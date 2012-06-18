@@ -221,7 +221,7 @@ void MediaLibrary::Update()
 			utf_to_locale(*it);
 			Artists->AddOption(*it);
 		}
-        if (Config.library_sort_by_mtime) 
+        if (Config.media_library_sort_by_mtime) 
             Artists->Sort<MTimeArtistSorting>();
         else
             Artists->Sort<CaseInsensitiveSorting>();
@@ -268,7 +268,7 @@ void MediaLibrary::Update()
 		}
 		utf_to_locale(Artists->Current());
 		if (!Albums->Empty()) 
-            if (Config.library_sort_by_mtime)
+            if (Config.media_library_sort_by_mtime)
                 Albums->Sort<MTimeAlbumSorting>();
             else
                 Albums->Sort<SearchConstraintsSorting>();
@@ -330,7 +330,7 @@ void MediaLibrary::Update()
 		}
 		Mpd.BlockIdle(0);
 		if (!Albums->Empty())
-            if (Config.library_sort_by_mtime)
+            if (Config.media_library_sort_by_mtime)
 			    Albums->Sort<MTimeAlbumSorting>();
             else
                 Albums->Sort<SearchConstraintsSorting>();

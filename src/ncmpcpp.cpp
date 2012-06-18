@@ -460,11 +460,11 @@ int main(int argc, char **argv)
 		title_allowed = 1;
 		
 		// key mapping beginning
-		if (Keypressed(input, Key.ToggleLibrarySortByMTime) &&
+		if (Keypressed(input, Key.ToggleMediaLibrarySortByMTime) &&
             myScreen == myLibrary) 
         {
-            Config.library_sort_by_mtime = !Config.library_sort_by_mtime;
-            if (Config.library_sort_by_mtime) 
+            Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
+            if (Config.media_library_sort_by_mtime) 
                 ShowMessage("Sorting by mtime...");
             else
                 ShowMessage("Sorting alphabetically...");
