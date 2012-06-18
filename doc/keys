@@ -184,3 +184,4 @@
 #
 #key_quit = 'q' 'Q'
 #
+#key_toggle_media_library_sort_by_mtime = 'm'
