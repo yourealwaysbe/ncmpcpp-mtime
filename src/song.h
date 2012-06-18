@@ -104,13 +104,15 @@ namespace MPD
 			
 			static std::string ShowTime(int);
 			static bool isFormatOk(const std::string &type, const std::string &format);
+
+
+			std::string GetTag(mpd_tag_type, unsigned = 0) const;
 			
 		private:
 			void SetHashAndSlash();
 			std::string ParseFormat(std::string::const_iterator &it, const char *escape_chars) const;
 			
 			void SetTag(mpd_tag_type, unsigned, const std::string &);
-			std::string GetTag(mpd_tag_type, unsigned) const;
 			
 			/// Used internally for handling filename, since we don't have
 			/// write access to file string in mpd_song, manage our own if

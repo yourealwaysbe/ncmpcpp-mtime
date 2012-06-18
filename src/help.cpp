@@ -295,7 +295,8 @@ void Help::GetKeybindings()
 	*w << DisplayKeys(Key.EditTags)			<< "Edit main tag/album/song's tags\n";
 #	endif // HAVE_TAGLIB_H
 	*w << DisplayKeys(Key.SwitchTagTypeList)	<< "Tag type list switcher (left column)\n";
-	
+    *w << DisplayKeys(Key.ToggleLibrarySortByMTime)	<< "Toggle sort alphabetically or by mtime \n";
+
 	
 	*w << "\n\n   " << fmtBold << "Keys - Playlist Editor\n -----------------------------------------\n" << fmtBoldEnd;
 	*w << DisplayKeys(Key.PrevColumn)		<< "Previous column\n";

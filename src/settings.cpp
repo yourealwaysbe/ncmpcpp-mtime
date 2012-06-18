@@ -267,6 +267,7 @@ void NcmpcppKeys::SetDefaults()
 	GoToParentDir[0] = KEY_BACKSPACE;
 	SwitchTagTypeList[0] = '`';
 	Quit[0] = 'q';
+    ToggleLibrarySortByMTime[0] = 'm';
 
 	Up[1] = 'k';
 	Down[1] = 'j';
@@ -357,6 +358,7 @@ void NcmpcppKeys::SetDefaults()
 	GoToParentDir[1] = 127;
 	SwitchTagTypeList[1] = NullKey;
 	Quit[1] = 'Q';
+    ToggleLibrarySortByMTime[1] = NullKey;
 }
 
 void NcmpcppConfig::SetDefaults()
@@ -443,6 +445,7 @@ void NcmpcppConfig::SetDefaults()
 	visualizer_use_wave = true;
 	visualizer_in_stereo = false;
 	browser_sort_by_mtime = false;
+	library_sort_by_mtime = false;
 	tag_editor_extended_numeration = false;
 	media_library_display_date = true;
 	media_library_display_empty_tag = true;
@@ -663,6 +666,8 @@ void NcmpcppKeys::Read()
 				GetKeys(key, SwitchTagTypeList);
 			else if (name == "key_quit")
 				GetKeys(key, Quit);
+			else if (name == "toggle_library_sort_by_mtime")
+				GetKeys(key, ToggleLibrarySortByMTime);
 		}
 	}
 	f.close();
@@ -1326,6 +1331,10 @@ void NcmpcppConfig::Read()
 			{
 				if (!v.empty())
 					media_lib_primary_tag = IntoTagItem(v[0]);
+			}
+			else if (name == "library_sort_by_mtime")
+			{
+				library_sort_by_mtime = v == "yes";
 			}
 		}
 	}

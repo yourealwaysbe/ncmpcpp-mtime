@@ -138,6 +138,7 @@ struct NcmpcppKeys
 	int GoToParentDir[2];
 	int SwitchTagTypeList[2];
 	int Quit[2];
+    int ToggleLibrarySortByMTime[2];
 };
 
 struct NcmpcppConfig
@@ -252,6 +253,7 @@ struct NcmpcppConfig
 	bool visualizer_use_wave;
 	bool visualizer_in_stereo;
 	bool browser_sort_by_mtime;
+    bool library_sort_by_mtime;
 	bool tag_editor_extended_numeration;
 	bool media_library_display_date;
 	bool media_library_display_empty_tag;
