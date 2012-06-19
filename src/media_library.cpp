@@ -46,13 +46,10 @@ size_t MediaLibrary::itsMiddleColStartX;
 size_t MediaLibrary::itsRightColWidth;
 size_t MediaLibrary::itsRightColStartX;
 
-
-unsigned long MediaLibrary::mtimeMapTimestamp = 0;
-std::set<MediaLibrary::album_mtime_flags> MediaLibrary::initedAlbumMTimeMaps 
-    = std::set<MediaLibrary::album_mtime_flags>();
+bool MediaLibrary::mtimeMapsOutdated;
+std::set<MediaLibrary::album_mtime_flags> MediaLibrary::initedAlbumMTimeMaps;
 MediaLibrary::album_mtime_map MediaLibrary::albumMTimeMap;
-std::set<mpd_tag_type> MediaLibrary::initedArtistMTimeMaps 
-    = std::set<mpd_tag_type>();
+std::set<mpd_tag_type> MediaLibrary::initedArtistMTimeMaps;
 MediaLibrary::artist_mtime_map MediaLibrary::artistMTimeMap;
 
 // this string marks the position in middle column that works as "All tracks" option. it's
@@ -101,6 +98,9 @@ void MediaLibrary::Init()
 	Songs->SetGetStringFunction(SongToString);
 	
 	w = Artists;
+
+    mtimeMapsOutdated = true;
+
 	isInitialized = 1;
 }
 
@@ -810,14 +810,12 @@ bool MediaLibrary::SearchConstraintsSorting::operator()(const SearchConstraints 
 
 
 void MediaLibrary::ensureMTimeMapsUpToDate() {
-    Mpd.UpdateStats();
-    unsigned long lastUpdate = Mpd.DBUpdateTime();
-    if (mtimeMapTimestamp < lastUpdate) {
+    if (mtimeMapsOutdated) {
         albumMTimeMap.clear();
         initedAlbumMTimeMaps.clear();
         artistMTimeMap.clear();
         initedArtistMTimeMaps.clear();
-        mtimeMapTimestamp = lastUpdate;
+        mtimeMapsOutdated = false;
     }
 }
 

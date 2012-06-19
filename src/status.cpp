@@ -560,6 +560,8 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 		if (!Mpd.SupportsIdle() || Mpd.Version() > 15)
 			mpd_db_updating = Mpd.GetDBIsUpdating() ? 'U' : 0;
 		ShowMessage(Mpd.GetDBIsUpdating() ? "Database update started!" : "Database update finished!");
+        // after db update finished, mtime maps in myLibrary are out of date
+        myLibrary->DatabaseUpdated();
 		if (changed.Database && myScreen == mySelectedItemsAdder)
 		{
 			myScreen->SwitchTo(); // switch to previous screen

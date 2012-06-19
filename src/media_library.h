@@ -67,13 +67,13 @@ class MediaLibrary : public Screen<Window>
                      time_t> artist_mtime_map; 
 
     // timestamp to make sure maps up to date
-    static unsigned long mtimeMapTimestamp;
+    static bool mtimeMapsOutdated;
     // erases maps if out of date
     static void ensureMTimeMapsUpToDate();
 
     // contains set of primary tags for which map has been initialised
     static std::set<album_mtime_flags> initedAlbumMTimeMaps;
-    static  album_mtime_map albumMTimeMap;
+    static album_mtime_map albumMTimeMap;
 
     static void forceInitedAlbumMTimeMap(const mpd_tag_type primary_tag,
                                          const bool display_date);
@@ -145,6 +145,8 @@ class MediaLibrary : public Screen<Window>
 		Menu<std::string> *Artists;
 		Menu<SearchConstraints> *Albums;
 		Menu<MPD::Song> *Songs;
+
+        void DatabaseUpdated() { mtimeMapsOutdated = true; }
 		
 	protected:
 		virtual void Init();
