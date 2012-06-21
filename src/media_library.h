@@ -21,94 +21,12 @@
 #ifndef _H_MEDIA_LIBRARY
 #define _H_MEDIA_LIBRARY
 
-#include <map>
-#include <set>
-
 #include "ncmpcpp.h"
 #include "screen.h"
+#include "media_library_sorting.h"
 
 class MediaLibrary : public Screen<Window>
 {
-	struct SearchConstraints
-	{
-		SearchConstraints(const std::string &tag, const std::string &album, const std::string &year) : PrimaryTag(tag), Album(album), Year(year) { }
-		SearchConstraints(const std::string &album, const std::string &year) : Album(album), Year(year) { }
-		
-		std::string PrimaryTag;
-		std::string Album;
-		std::string Year;
-	};
-	
-	struct SearchConstraintsSorting
-	{
-		bool operator()(const SearchConstraints &a, const SearchConstraints &b) const;
-	};
-
-
-    // typedefs map keys
-    typedef std::pair<mpd_tag_type, bool> album_mtime_flags;
-    typedef std::pair<album_mtime_flags,
-                      SearchConstraints> album_mtime_key;
-    typedef std::pair<mpd_tag_type, std::string> artist_mtime_key;
-
-    // sorting for maps
-	struct AlbumMapSorting
-	{
-        SearchConstraintsSorting scs;
-
-		bool operator()(const album_mtime_key &a, const album_mtime_key &b) const;
-	};
-
-    // typedefs for maps
-    typedef std::map<album_mtime_key, 
-                    time_t, 
-                    AlbumMapSorting> album_mtime_map;
-    typedef std::map<artist_mtime_key,
-                     time_t> artist_mtime_map; 
-
-    // timestamp to make sure maps up to date
-    static bool mtimeMapsOutdated;
-    // erases maps if out of date
-    static void ensureMTimeMapsUpToDate();
-
-    // contains set of primary tags for which map has been initialised
-    static std::set<album_mtime_flags> initedAlbumMTimeMaps;
-    static album_mtime_map albumMTimeMap;
-
-    static void forceInitedAlbumMTimeMap(const mpd_tag_type primary_tag,
-                                         const bool display_date);
-    static void updateAlbumMTimeMap(const mpd_tag_type primary_tag,
-                                    const bool display_date,
-                                    const SearchConstraints &a, 
-                                    const time_t time);
-    static time_t getAddAlbumMTime(const mpd_tag_type primary_tag,
-                                   const bool display_date,
-                                   const SearchConstraints &a);
-    static time_t getAlbumMTime(const mpd_tag_type primary_tag,
-                                const bool display_date,
-                                const SearchConstraints &a);
-    struct MTimeAlbumSorting 
-    {
-        bool operator()(const SearchConstraints &a, const SearchConstraints &b);
-    };
-
-    static std::set<mpd_tag_type> initedArtistMTimeMaps;
-    static artist_mtime_map artistMTimeMap;
-
-    static void forceInitedArtistMTimeMap(const mpd_tag_type primary_tag);
-    static time_t getAddArtistMTime(const mpd_tag_type primary_tag,
-                                    const std::string &a);
-    static time_t getArtistMTime(const mpd_tag_type primary_tag,
-                                 const std::string &a);
-    static void updateArtistMTimeMap(const mpd_tag_type primary_tag,
-                                     const std::string &a, 
-                                     const time_t time);
-    struct MTimeArtistSorting 
-    {
-        bool operator()(const std::string &a, const std::string &b);
-    };
-
-	
 	public:
 		virtual void SwitchTo();
 		virtual void Resize();
@@ -146,8 +64,8 @@ class MediaLibrary : public Screen<Window>
 		Menu<SearchConstraints> *Albums;
 		Menu<MPD::Song> *Songs;
 
-        void DatabaseUpdated() { mtimeMapsOutdated = true; }
-		
+        void DatabaseUpdated();
+
 	protected:
 		virtual void Init();
 		virtual bool isLockable() { return true; }
@@ -161,9 +79,7 @@ class MediaLibrary : public Screen<Window>
 		static void DisplayAlbums(const SearchConstraints &, void *, Menu<SearchConstraints> *);
 		static void DisplayPrimaryTags(const std::string &artist, void *, Menu<std::string> *menu);
 		
-		static bool SortSongsByTrack(MPD::Song *, MPD::Song *);
-		static bool SortAllTracks(MPD::Song *, MPD::Song *);
-		
+	
 		static bool hasTwoColumns;
 		static size_t itsLeftColStartX;
 		static size_t itsLeftColWidth;
