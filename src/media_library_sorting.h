@@ -39,11 +39,14 @@ struct SearchConstraints
     std::string PrimaryTag;
     std::string Album;
     std::string Year;
+
+    bool operator<(const SearchConstraints &a) const;
 };
 	
 struct SearchConstraintsSorting
 {
-    bool operator()(const SearchConstraints &a, const SearchConstraints &b) const;
+    bool operator()(const SearchConstraints &a, 
+                    const SearchConstraints &b) const;
 };
 
 
@@ -57,11 +60,17 @@ class MTimeArtistSorting
 
     private:        
 
-        typedef std::pair<mpd_tag_type, std::string> artist_mtime_key;
+        struct ArtistMTimeKey {
+            ArtistMTimeKey(mpd_tag_type tagType, std::string artist)
+                : TagType(tagType), Artist(artist) { };
 
+            mpd_tag_type TagType;
+            std::string Artist;
 
-        typedef std::map<artist_mtime_key,
-                         time_t> artist_mtime_map; 
+            bool operator<(const ArtistMTimeKey &a) const;
+        };
+
+        typedef std::map<ArtistMTimeKey, time_t> artist_mtime_map; 
 
         static std::set<mpd_tag_type> initedArtistMTimeMaps;
         static artist_mtime_map artistMTimeMap;
@@ -90,23 +99,34 @@ class MTimeAlbumSorting
 
 
     private:
-        typedef std::pair<mpd_tag_type, bool> album_mtime_flags;
-        typedef std::pair<album_mtime_flags,
-                          SearchConstraints> album_mtime_key;
 
-        struct AlbumMapSorting
-        {
-            SearchConstraintsSorting scs;
+        struct AlbumMTimeFlags {
+            AlbumMTimeFlags(mpd_tag_type tagType,
+                            bool displayDate) : TagType(tagType),
+                                                DisplayDate(displayDate) { }
 
-            bool operator()(const album_mtime_key &a, 
-                            const album_mtime_key &b) const;
+            mpd_tag_type TagType;
+            bool DisplayDate;
+
+            bool operator<(const AlbumMTimeFlags &a) const;
         };
 
-        typedef std::map<album_mtime_key, 
-                        time_t, 
-                        AlbumMapSorting> album_mtime_map;
+        struct AlbumMTimeKey {
+            AlbumMTimeKey(const AlbumMTimeFlags &flags, 
+                          const SearchConstraints &constraints) 
+                : Flags(flags),
+                  Constraints(constraints) { }
 
-        static std::set<album_mtime_flags> initedAlbumMTimeMaps;
+            AlbumMTimeFlags Flags;
+            SearchConstraints Constraints;
+
+            bool operator<(const AlbumMTimeKey &a) const;
+        };
+
+
+        typedef std::map<AlbumMTimeKey, time_t> album_mtime_map;
+
+        static std::set<AlbumMTimeFlags> initedAlbumMTimeMaps;
         static album_mtime_map albumMTimeMap;
 
         static void forceInitedAlbumMTimeMap(const mpd_tag_type primary_tag,

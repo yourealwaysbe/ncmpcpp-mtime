@@ -34,17 +34,23 @@
 
 
 
-
-
 ////////////////////////////////////////////////////////////////////
 // Simple ones
 
 
-bool SearchConstraintsSorting::operator()(const SearchConstraints &a, const SearchConstraints &b) const
-{
-	int result;
+bool SearchConstraints::operator<(const SearchConstraints &a) const {
+    int result = PrimaryTag.compare(a.PrimaryTag);
+    if (result != 0)
+        return result < 0;
+    result = PrimaryTag.compare(a.PrimaryTag);
+    return (result == 0 ? Year.compare(a.Year) : result) < 0; 
+}
+
+bool SearchConstraintsSorting::operator()(const SearchConstraints &a, 
+                                          const SearchConstraints &b) const {
+    int result;
 	CaseInsensitiveStringComparison cmp;
-	result = cmp(a.PrimaryTag, b.PrimaryTag);
+	result = cmp(a.PrimaryTag,  b.PrimaryTag);
 	if (result != 0)
 		return result < 0;
 	result = cmp(a.Year, b.Year);
@@ -95,12 +101,20 @@ void MTimeArtistSorting::DatabaseUpdated() {
 }
 
 
+bool MTimeArtistSorting::ArtistMTimeKey::operator<(const ArtistMTimeKey &a) const {
+    if (TagType == a.TagType) 
+        return Artist.compare(a.Artist) < 0;
+    else
+        return TagType < a.TagType;
+}
+
+
 time_t MTimeArtistSorting::getAddArtistMTime(const mpd_tag_type primary_tag,
                                              const std::string &a) {
     forceInitedArtistMTimeMap(primary_tag);
 
     artist_mtime_map::iterator it;
-    artist_mtime_key key = std::make_pair(primary_tag, a);
+    ArtistMTimeKey key = ArtistMTimeKey(primary_tag, a);
     it = artistMTimeMap.find(key);
     time_t time = 0;
     if (it == artistMTimeMap.end()) {
@@ -132,7 +146,7 @@ void MTimeArtistSorting::updateArtistMTimeMap(const mpd_tag_type primary_tag,
                                               const std::string &a, 
                                               const time_t time) {
     artist_mtime_map::iterator it;
-    artist_mtime_key key = std::make_pair(primary_tag, a);
+    ArtistMTimeKey key = ArtistMTimeKey(primary_tag, a);
     it = artistMTimeMap.find(key);
     if (it == artistMTimeMap.end()) {
         artistMTimeMap.insert(std::make_pair(key, time));
@@ -165,7 +179,7 @@ time_t MTimeArtistSorting::getArtistMTime(const mpd_tag_type primary_tag,
 // Album Sorting
 
 
-std::set<MTimeAlbumSorting::album_mtime_flags> 
+std::set<MTimeAlbumSorting::AlbumMTimeFlags> 
     MTimeAlbumSorting::initedAlbumMTimeMaps;
 
 MTimeAlbumSorting::album_mtime_map MTimeAlbumSorting::albumMTimeMap;
@@ -188,15 +202,22 @@ void MTimeAlbumSorting::DatabaseUpdated() {
    initedAlbumMTimeMaps.clear();
 }
 
+bool MTimeAlbumSorting::AlbumMTimeFlags::operator<(const AlbumMTimeFlags &a) const {
+    if (TagType == a.TagType)
+        return DisplayDate < a.DisplayDate; 
+    else 
+        return TagType < a.TagType;
+}
 
-bool MTimeAlbumSorting::AlbumMapSorting::operator()(const album_mtime_key &a, 
-                                                    const album_mtime_key &b) const 
-{
-    if (a.first == b.first) {
-        return scs(a.second, b.second);
-    } else {
-        return a.first < b.first;
-    }
+
+bool MTimeAlbumSorting::AlbumMTimeKey::operator<(const AlbumMTimeKey &a) const {
+    bool flt = Flags < a.Flags;
+    if (Flags < a.Flags)
+        return true;
+    else if (a.Flags < Flags)
+        return false;
+    else
+        return Constraints < a.Constraints;
 }
 
 
@@ -205,8 +226,8 @@ time_t MTimeAlbumSorting::getAddAlbumMTime(const mpd_tag_type primary_tag,
                                            const SearchConstraints &a) {
     forceInitedAlbumMTimeMap(primary_tag, display_date);
 
-    album_mtime_flags f = std::make_pair(primary_tag, display_date);
-    album_mtime_key key = std::make_pair(f, a);
+    AlbumMTimeFlags f = AlbumMTimeFlags(primary_tag, display_date);
+    AlbumMTimeKey key = AlbumMTimeKey(f, a);
     album_mtime_map::iterator it;
     it = albumMTimeMap.find(key);
     time_t time = 0;
@@ -249,7 +270,7 @@ time_t MTimeAlbumSorting::getAlbumMTime(const mpd_tag_type primary_tag,
 
 void MTimeAlbumSorting::forceInitedAlbumMTimeMap(const mpd_tag_type primary_tag,
                                                  const bool display_date) {
-    album_mtime_flags f = std::make_pair(primary_tag, display_date);
+    AlbumMTimeFlags f = AlbumMTimeFlags(primary_tag, display_date);
     if (initedAlbumMTimeMaps.count(f) == 0) {
         MPD::SongList list;
         Mpd.GetDirectoryRecursive("/", list);
@@ -274,8 +295,8 @@ void MTimeAlbumSorting::updateAlbumMTimeMap(const mpd_tag_type primary_tag,
                                             const SearchConstraints &a, 
                                             const time_t time) {
     album_mtime_map::iterator it;
-    album_mtime_flags f = std::make_pair(primary_tag, display_date);
-    album_mtime_key key = std::make_pair(f, a);
+    AlbumMTimeFlags f = AlbumMTimeFlags(primary_tag, display_date);
+    AlbumMTimeKey key = AlbumMTimeKey(f, a);
     it = albumMTimeMap.find(key);
     if (it == albumMTimeMap.end()) {
         albumMTimeMap.insert(std::make_pair(key, time));
