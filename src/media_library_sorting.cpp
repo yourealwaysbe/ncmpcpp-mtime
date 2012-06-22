@@ -33,17 +33,46 @@
 #include "status.h"
 
 
+///////////////////////////////////////////////////////////
+// Lexico
+
+
+template <typename T1, typename T2> 
+bool lexico(const T1 &a1, const T1 &a2, 
+            const T2 &b1, const T2 &b2) {
+    if (a1 < a2)
+        return true;
+    else if (a2 < a1)
+        return false;
+    else
+        return (b1 < b2);
+}
+
+template <typename T1, typename T2, typename T3> 
+bool lexico(const T1 &a1, const T1 &a2, 
+            const T2 &b1, const T2 &b2,
+            const T3 &c1, const T3 &c2) {
+    if (a1 < a2)
+        return true;
+    else if (a2 < a1)
+        return false;
+    else
+        return lexico(b1, b2,
+                      c1, c2);
+}
+
+
+
+
 
 ////////////////////////////////////////////////////////////////////
 // Simple ones
 
 
 bool SearchConstraints::operator<(const SearchConstraints &a) const {
-    int result = PrimaryTag.compare(a.PrimaryTag);
-    if (result != 0)
-        return result < 0;
-    result = PrimaryTag.compare(a.PrimaryTag);
-    return (result == 0 ? Year.compare(a.Year) : result) < 0; 
+    return lexico(PrimaryTag, a.PrimaryTag,
+                  Album, a.Album,
+                  Year, a.Year);
 }
 
 bool SearchConstraintsSorting::operator()(const SearchConstraints &a, 
@@ -102,10 +131,8 @@ void MTimeArtistSorting::DatabaseUpdated() {
 
 
 bool MTimeArtistSorting::ArtistMTimeKey::operator<(const ArtistMTimeKey &a) const {
-    if (TagType == a.TagType) 
-        return Artist.compare(a.Artist) < 0;
-    else
-        return TagType < a.TagType;
+    return lexico(TagType, a.TagType,
+                  Artist, a.Artist);
 }
 
 
@@ -203,21 +230,14 @@ void MTimeAlbumSorting::DatabaseUpdated() {
 }
 
 bool MTimeAlbumSorting::AlbumMTimeFlags::operator<(const AlbumMTimeFlags &a) const {
-    if (TagType == a.TagType)
-        return DisplayDate < a.DisplayDate; 
-    else 
-        return TagType < a.TagType;
+    return lexico(TagType, a.TagType,
+                  DisplayDate, a.DisplayDate);
 }
 
 
 bool MTimeAlbumSorting::AlbumMTimeKey::operator<(const AlbumMTimeKey &a) const {
-    bool flt = Flags < a.Flags;
-    if (Flags < a.Flags)
-        return true;
-    else if (a.Flags < Flags)
-        return false;
-    else
-        return Constraints < a.Constraints;
+    return lexico(Flags, a.Flags,
+                  Constraints, a.Constraints);
 }
 
 
@@ -232,6 +252,7 @@ time_t MTimeAlbumSorting::getAddAlbumMTime(const mpd_tag_type primary_tag,
     it = albumMTimeMap.find(key);
     time_t time = 0;
     if (it == albumMTimeMap.end()) {
+        ShowMessage("Cache miss");
         time = getAlbumMTime(primary_tag, display_date, a);
         albumMTimeMap.insert(std::make_pair(key, time));
     } else {
