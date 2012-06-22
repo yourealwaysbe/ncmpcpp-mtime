@@ -97,6 +97,10 @@ class MTimeAlbumSorting
 
         static void DatabaseUpdated();
 
+        static void InitMapsWith(mpd_tag_type primary_tag,
+                                 bool display_date,
+                                 const MPD::SongList &list);
+
 
     private:
 

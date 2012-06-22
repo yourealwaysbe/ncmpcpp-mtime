@@ -166,6 +166,13 @@ void MTimeArtistSorting::forceInitedArtistMTimeMap(const mpd_tag_type primary_ta
         }
 
         initedArtistMTimeMaps.insert(primary_tag);
+
+        // finally, because we need album sorting eventually
+        MTimeAlbumSorting::InitMapsWith(primary_tag,
+                                        // best guess at whether we need to
+                                        // display date
+                                        Config.media_library_display_date,
+                                        list);
     }
 }
 
@@ -228,6 +235,26 @@ void MTimeAlbumSorting::DatabaseUpdated() {
    albumMTimeMap.clear();
    initedAlbumMTimeMaps.clear();
 }
+
+void MTimeAlbumSorting::InitMapsWith(mpd_tag_type primary_tag,
+                                     bool display_date,
+                                     const MPD::SongList &list) {
+    AlbumMTimeFlags f = AlbumMTimeFlags(primary_tag, display_date);
+    for (MPD::SongList::const_iterator it = list.begin(); 
+         it != list.end(); 
+        ++it) {
+        std::string date = display_date ? (*it)->GetDate() : "";
+        updateAlbumMTimeMap(primary_tag,
+                            display_date,
+                            SearchConstraints((*it)->GetTag(primary_tag),
+                                              (*it)->GetAlbum(),
+                                              date),
+                            (*it)->GetMTime());
+	}
+
+    initedAlbumMTimeMaps.insert(f);
+}
+
 
 bool MTimeAlbumSorting::AlbumMTimeFlags::operator<(const AlbumMTimeFlags &a) const {
     return lexico(TagType, a.TagType,
@@ -294,19 +321,7 @@ void MTimeAlbumSorting::forceInitedAlbumMTimeMap(const mpd_tag_type primary_tag,
     if (initedAlbumMTimeMaps.count(f) == 0) {
         MPD::SongList list;
         Mpd.GetDirectoryRecursive("/", list);
-        for (MPD::SongList::const_iterator it = list.begin(); 
-             it != list.end(); 
-            ++it) {
-            std::string date = display_date ? (*it)->GetDate() : "";
-            updateAlbumMTimeMap(primary_tag,
-                                display_date,
-                                SearchConstraints((*it)->GetTag(primary_tag),
-                                                  (*it)->GetAlbum(),
-                                                  date),
-                                (*it)->GetMTime());
-	    }
-
-        initedAlbumMTimeMaps.insert(f);
+        InitMapsWith(primary_tag, display_date, list);
     }
 }
 
