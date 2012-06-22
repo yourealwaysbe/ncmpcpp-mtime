@@ -252,7 +252,6 @@ time_t MTimeAlbumSorting::getAddAlbumMTime(const mpd_tag_type primary_tag,
     it = albumMTimeMap.find(key);
     time_t time = 0;
     if (it == albumMTimeMap.end()) {
-        ShowMessage("Cache miss");
         time = getAlbumMTime(primary_tag, display_date, a);
         albumMTimeMap.insert(std::make_pair(key, time));
     } else {
