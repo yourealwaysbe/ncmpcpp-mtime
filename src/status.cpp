@@ -225,17 +225,16 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 	static MPD::Song np;
 	
 	int sx, sy;
-	*wFooter << fmtBold;
 	wFooter->GetXY(sx, sy);
 	
 	if (!Playlist::BlockNowPlayingUpdate)
-		myPlaylist->NowPlaying = Mpd.GetCurrentSongPos();
+		myPlaylist->NowPlaying = Mpd.GetCurrentlyPlayingSongPos();
 	
 	if (changed.Playlist)
 	{
 		if (!Playlist::BlockUpdate)
 		{
-			if (!(np = Mpd.GetCurrentSong()).Empty())
+			if (!(np = Mpd.GetCurrentlyPlayingSong()).Empty())
 				WindowTitle(utf_to_locale_cpy(np.toString(Config.song_window_title_format)));
 			
 			bool was_filtered = myPlaylist->Items->isFiltered();
@@ -408,7 +407,7 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 				Lyrics::DownloadInBackground(myPlaylist->NowPlayingSong());
 #			endif // HAVE_CURL_CURL_H
 			
-			if (Mpd.isPlaying() && !(np = Mpd.GetCurrentSong()).Empty())
+			if (Mpd.isPlaying() && !(np = Mpd.GetCurrentlyPlayingSong()).Empty())
 				WindowTitle(utf_to_locale_cpy(np.toString(Config.song_window_title_format)));
 			
 			if (Config.autocenter_mode && !myPlaylist->Items->isFiltered())
@@ -424,7 +423,7 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 	}
 	if (changed.ElapsedTime || changed.SongID || Global::RedrawStatusbar)
 	{
-		if (np.Empty() && !(np = Mpd.GetCurrentSong()).Empty())
+		if (np.Empty() && !(np = Mpd.GetCurrentlyPlayingSong()).Empty())
 			WindowTitle(utf_to_locale_cpy(np.toString(Config.song_window_title_format)));
 		if (!np.Empty() && Mpd.isPlaying())
 		{
@@ -505,9 +504,9 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 				}
 				basic_buffer<my_char_t> np_song;
 				String2Buffer(TO_WSTRING(utf_to_locale_cpy(np.toString(Config.song_status_format, "$"))), np_song);
-				*wFooter << XY(0, 1) << wclrtoeol << player_state << fmtBoldEnd;
+				*wFooter << XY(0, 1) << wclrtoeol << fmtBold << player_state << fmtBoldEnd;
 				np_song.Write(*wFooter, playing_song_scroll_begin, wFooter->GetWidth()-player_state.length()-tracklength.length(), U(" ** "));
-				*wFooter << fmtBold << XY(wFooter->GetWidth()-tracklength.length(), 1) << tracklength;
+				*wFooter << fmtBold << XY(wFooter->GetWidth()-tracklength.length(), 1) << tracklength << fmtBoldEnd;
 			}
 			if (!block_progressbar_update)
 				DrawProgressbar(Mpd.GetElapsedTime(), Mpd.GetTotalTime());
@@ -646,7 +645,6 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 		myOutputs->FetchList();
 #		endif // ENABLE_OUTPUTS
 	}
-	*wFooter << fmtBoldEnd;
 	wFooter->GotoXY(sx, sy);
 	if (changed.PlayerState || (changed.ElapsedTime && (!Config.new_design || Mpd.GetState() == MPD::psPlay)))
 		wFooter->Refresh();
@@ -664,7 +662,9 @@ void DrawProgressbar(unsigned elapsed, unsigned time)
 {
 	unsigned pb_width = wFooter->GetWidth();
 	unsigned howlong = time ? pb_width*elapsed/time : 0;
-	*wFooter << fmtBold << Config.progressbar_color;
+	if (Config.progressbar_boldness)
+		*wFooter << fmtBold;
+	*wFooter << Config.progressbar_color;
 	if (Config.progressbar[2] != '\0')
 	{
 		wFooter->GotoXY(0, 0);
@@ -676,13 +676,17 @@ void DrawProgressbar(unsigned elapsed, unsigned time)
 		mvwhline(wFooter->Raw(), 0, 0, 0, pb_width);
 	if (time)
 	{
+		*wFooter << Config.progressbar_elapsed_color;
 		pb_width = std::min(size_t(howlong), wFooter->GetWidth());
 		for (unsigned i = 0; i < pb_width; ++i)
 			*wFooter << Config.progressbar[0];
 		if (howlong < wFooter->GetWidth())
 			*wFooter << Config.progressbar[1];
+		*wFooter << clEnd;
 	}
-	*wFooter << clEnd << fmtBoldEnd;
+	*wFooter << clEnd;
+	if (Config.progressbar_boldness)
+		*wFooter << fmtBoldEnd;
 }
 
 void ShowMessage(const char *format, ...)

@@ -131,6 +131,12 @@ Format for albums' list in Tag editor.
 .TP 
 .B song_window_title_format
 Song format for window title.
+.TP
+.B browser_sort_mode
+Determines sort mode for browser. Possible values are "name", "mtime" and "format".
+.TP
+.B browser_sort_format
+Format to use for sorting songs in browser. For this option to be effective, browser_sort_mode must be set to "format".
 .TP 
 .B external_editor = PATH
 Path to external editor used to edit lyrics.
@@ -228,6 +234,9 @@ If enabled, currently highlighted position in the list will be always centered.
 .B progressbar_look = TEXT
 This variable defines the look of progressbar. Note that it has to be exactly two or three characters long.
 .TP 
+.B progressbar_boldness = yes/no
+This variable defines whether progressbar should be displayed in bold or not.
+.TP 
 .B default_find_mode = wrapped/normal
 If set to "wrapped", going from last found position to next will take you to the first one (same goes for the first position and going to previous one), otherwise no actions will be performed.
 .TP 
@@ -295,7 +304,7 @@ If enabled, bitrate of currently playing song will be displayed in statusbar.
 If enabled, remaining time of currently playing song will be be displayed in statusbar instead of elapsed time.
 .TP 
 .B ignore_leading_the = yes/no
-If enabled, word "the" at the beginning of tags/filenames will be ignored while sorting items.
+If enabled, word "the" at the beginning of tags/filenames/sort format will be ignored while sorting items.
 .TP 
 .B use_console_editor = yes/no
 If your external editor is console application, you need to enable it.
@@ -363,6 +372,9 @@ Color of main window's highlight.
 .B progressbar_color = COLOR
 Color of progressbar.
 .TP 
+.B progressbar_elapsed_color = COLOR
+Color of part of progressbar that represents elapsed time.
+.TP 
 .B statusbar_color = COLOR
 Color of statusbar.
 .TP 
@@ -393,7 +405,7 @@ For song format you can use:
  %A - album artist
  %t - title
  %b - album
- %y - year
+ %y - date
  %n - track number (01/12 -> 01)
  %N - full track info (01/12 -> 01/12)
  %g - genre

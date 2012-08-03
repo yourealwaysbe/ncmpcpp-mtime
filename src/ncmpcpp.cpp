@@ -249,6 +249,8 @@ int main(int argc, char **argv)
 	Config.Read();
 	Key.Read();
 	
+	Config.GenerateColumns();
+	
 	if (getenv("MPD_HOST"))
 		Mpd.SetHostname(getenv("MPD_HOST"));
 	if (getenv("MPD_PORT"))
@@ -342,8 +344,9 @@ int main(int argc, char **argv)
 	if (Config.jump_to_now_playing_song_at_start)
 	{
 		TraceMpdStatus();
-		if (myPlaylist->isPlaying())
-			myPlaylist->Items->Highlight(myPlaylist->NowPlaying);
+		int curr_pos = Mpd.GetCurrentSongPos();
+		if  (curr_pos >= 0)
+			myPlaylist->Items->Highlight(curr_pos);
 	}
 	
 	while (!main_exit)
@@ -1315,7 +1318,6 @@ int main(int argc, char **argv)
 			wFooter->SetTimeout(ncmpcpp_window_timeout);
 			
 			SeekingInProgress = 1;
-			*wFooter << fmtBold;
 			while (Keypressed(input, Key.SeekForward) || Keypressed(input, Key.SeekBackward))
 			{
 				TraceMpdStatus();
@@ -1337,6 +1339,7 @@ int main(int argc, char **argv)
 						songpos = 0;
 				}
 				
+				*wFooter << fmtBold;
 				std::string tracklength;
 				if (Config.new_design)
 				{
@@ -1367,10 +1370,10 @@ int main(int argc, char **argv)
 					tracklength += "]";
 					*wFooter << XY(wFooter->GetWidth()-tracklength.length(), 1) << tracklength;
 				}
+				*wFooter << fmtBoldEnd;
 				DrawProgressbar(songpos, Mpd.GetTotalTime());
 				wFooter->Refresh();
 			}
-			*wFooter << fmtBoldEnd;
 			SeekingInProgress = 0;
 			Mpd.Seek(songpos);
 			UpdateStatusImmediately = 1;
@@ -2039,6 +2042,24 @@ int main(int argc, char **argv)
 				RedrawHeader = 1;
 			}
 		}
+		else if (Keypressed(input, Key.DisableFilter))
+		{
+			List *mList = myScreen->GetList();
+			
+			if (!mList)
+				continue;
+			
+			mList->ApplyFilter("");
+			
+			ShowMessage("Filtering disabled");
+			
+			if (myScreen == myPlaylist)
+			{
+				myPlaylist->EnableHighlighting();
+				Playlist::ReloadTotalLength = 1;
+				RedrawHeader = 1;
+			}
+		}
 		else if (Keypressed(input, Key.FindForward) || Keypressed(input, Key.FindBackward))
 		{
 			List *mList = myScreen->GetList();
@@ -2168,11 +2189,28 @@ int main(int argc, char **argv)
 				if (number && (answer == 's' ? Mpd.AddRandomSongs(number) : Mpd.AddRandomTag(tag_type, number)))
 					ShowMessage("%zu random %s%s added to playlist!", number, tag_type_str.c_str(), number == 1 ? "" : "s");
 			}
-			else if (myScreen == myBrowser && !myBrowser->isLocal())
+			else if (myScreen == myBrowser)
 			{
-				Config.browser_sort_by_mtime = !Config.browser_sort_by_mtime;
+				switch (Config.browser_sort_mode)
+				{
+					case smName:
+						if (!myBrowser->isLocal())
+						{
+							Config.browser_sort_mode = smMTime;
+							ShowMessage("Sort songs by: Modification time");
+							break;
+						}
+						// local browser doesn't support sorting by mtime, so we just skip it.
+					case smMTime:
+						Config.browser_sort_mode = smCustomFormat;
+						ShowMessage("Sort songs by: Custom format");
+						break;
+					case smCustomFormat:
+						Config.browser_sort_mode = smName;
+						ShowMessage("Sort songs by: Name");
+						break;
+				}
 				myBrowser->Main()->Sort<CaseInsensitiveSorting>(myBrowser->CurrentDir() != "/");
-				ShowMessage("Sort songs by: %s", Config.browser_sort_by_mtime ? "Modification time" : "Name");
 			}
 			else if (myScreen->ActiveWindow() == myLibrary->Artists
 			||	 (myLibrary->Columns() == 2 && myScreen->ActiveWindow() == myLibrary->Albums))
@@ -2367,6 +2405,7 @@ int main(int argc, char **argv)
 			||  Keypressed(input, Key.Home)
 			||  Keypressed(input, Key.End)
 			||  Keypressed(input, Key.ApplyFilter)
+			||  Keypressed(input, Key.DisableFilter)
 			||  Keypressed(input, Key.FindForward)
 			||  Keypressed(input, Key.FindBackward)
 			||  Keypressed(input, Key.NextFoundPosition)

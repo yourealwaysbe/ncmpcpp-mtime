@@ -483,7 +483,7 @@ std::string Window::GetString(const std::string &base, size_t length, size_t wid
 			gotoend = 0;
 		}
 		
-		mvwhline(itsWindow, y, minx, 32, width+1);
+		mvwhline(itsWindow, y, minx, ' ', width+1);
 		
 		if (!encrypted)
 			mvwprintw(itsWindow, y, minx, "%ls", tmp->substr(beginning, width+1).c_str());
@@ -496,15 +496,6 @@ std::string Window::GetString(const std::string &base, size_t length, size_t wid
 		wmove(itsWindow, y, x);
 		prefresh(itsWindow, 0, 0, itsStartY, itsStartX, itsStartY+itsHeight-1, itsStartX+itsWidth-1);
 		ReadKey(input);
-		
-		// these key codes are special and should be ignored
-		if ((input < 10 || (input > 10 && input != 21 && input < 32))
-#		ifdef USE_PDCURSES
-		&&   input != KEY_BACKSPACE)
-#		else
-		)
-#		endif // USE_PDCURSES
-			continue;
 		
 		switch (input)
 		{
@@ -542,7 +533,9 @@ std::string Window::GetString(const std::string &base, size_t length, size_t wid
 					beginning++;
 				break;
 			}
-			case KEY_BACKSPACE: case 127:
+			case KEY_CTRL_H:
+			case KEY_BACKSPACE:
+			case KEY_BACKSPACE_2:
 			{
 				if (x <= minx && !beginning)
 					break;
@@ -556,7 +549,7 @@ std::string Window::GetString(const std::string &base, size_t length, size_t wid
 				}
 				else if (beginning > 0)
 					beginning--;
-				if (input != KEY_BACKSPACE && input != 127)
+				if (input != KEY_CTRL_H && input != KEY_BACKSPACE && input != KEY_BACKSPACE_2)
 					break; // backspace = left & delete.
 			}
 			case KEY_DC:
@@ -582,9 +575,9 @@ std::string Window::GetString(const std::string &base, size_t length, size_t wid
 				gotoend = 1;
 				break;
 			}
-			case 10:
+			case KEY_ENTER:
 				break;
-			case 21: // CTRL+U
+			case KEY_CTRL_U:
 				tmp->clear();
 				real_maxx = maxx = real_x = x = minx;
 				maxbeginning = beginning = 0;
@@ -598,36 +591,40 @@ std::string Window::GetString(const std::string &base, size_t length, size_t wid
 				if (int(mbrtowc(&wc_in, tmp_in.c_str(), MB_CUR_MAX, 0)) < 0)
 					break;
 				
-				if (wcwidth(wc_in) > 1)
+				int wcwidth_res = wcwidth(wc_in);
+				if (wcwidth_res > 1)
 					block_scrolling = 1;
 				
-				if ((real_x-minx)+beginning >= tmp->length())
+				if (wcwidth_res > 0) // is char printable? we want to ignore things like Ctrl-?, Fx etc.
 				{
-					tmp->push_back(wc_in);
-					if (!beginning)
+					if ((real_x-minx)+beginning >= tmp->length())
 					{
-						real_x++;
-						x += wcwidth(wc_in);
-					}
-					beginning++;
-					gotoend = 1;
-				}
-				else
-				{
-					tmp->insert(tmp->begin()+(real_x-minx)+beginning, wc_in);
-					if (x < maxx)
-					{
-						real_x++;
-						x += wcwidth(wc_in);
-					}
-					else if (beginning < maxbeginning)
+						tmp->push_back(wc_in);
+						if (!beginning)
+						{
+							real_x++;
+							x += wcwidth(wc_in);
+						}
 						beginning++;
+						gotoend = 1;
+					}
+					else
+					{
+						tmp->insert(tmp->begin()+(real_x-minx)+beginning, wc_in);
+						if (x < maxx)
+						{
+							real_x++;
+							x += wcwidth(wc_in);
+						}
+						else if (beginning < maxbeginning)
+							beginning++;
+					}
 				}
 				tmp_in.clear();
 			}
 		}
 	}
-	while (input != 10);
+	while (input != KEY_ENTER);
 	curs_set(0);
 	
 	if (itsHistory && !encrypted)

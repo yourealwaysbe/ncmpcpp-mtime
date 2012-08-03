@@ -230,6 +230,7 @@ void NcmpcppKeys::SetDefaults()
 	UpdateDB[0] = 'u';
 	SortPlaylist[0] = 22;
 	ApplyFilter[0] = 6;
+	DisableFilter[0] = 7;
 	FindForward[0] = '/';
 	FindBackward[0] = '?';
 	NextFoundPosition[0] = '.';
@@ -321,6 +322,7 @@ void NcmpcppKeys::SetDefaults()
 	UpdateDB[1] = NullKey;
 	SortPlaylist[1] = NullKey;
 	ApplyFilter[1] = NullKey;
+	DisableFilter[1] = NullKey;
 	FindForward[1] = NullKey;
 	FindBackward[1] = NullKey;
 	NextFoundPosition[1] = NullKey;
@@ -372,6 +374,7 @@ void NcmpcppConfig::SetDefaults()
 	song_status_format_no_colors = song_status_format;
 	song_window_title_format = "{{%a - }{%t}|{%f}}";
 	song_library_format = "{{%n - }{%t}|{%f}}";
+	browser_sort_format = "{{%a - }{%t}|{%f} {(%l)}}";
 	tag_editor_album_format = "{{(%y) }%b}";
 	new_header_first_line = "{$b$1$aqqu$/a$9 {%t}|{%f} $1$atqq$/a$9$/b}";
 	new_header_second_line = "{{{$4$b%a$/b$9}{ - $7%b$9}{ ($4%y$9)}}|{%D}}";
@@ -393,6 +396,7 @@ void NcmpcppConfig::SetDefaults()
 	main_color = clYellow;
 	main_highlight_color = main_color;
 	progressbar_color = clDefault;
+	progressbar_elapsed_color = clDefault;
 	statusbar_color = clDefault;
 	alternative_ui_separator_color = clBlack;
 	active_column_color = clRed;
@@ -453,6 +457,7 @@ void NcmpcppConfig::SetDefaults()
 	discard_colors_if_item_is_selected = true;
 	store_lyrics_in_song_dir = false;
 	ask_for_locked_screen_width_part = true;
+	progressbar_boldness = true;
 	set_window_title = true;
 	mpd_port = 6600;
 	mpd_connection_timeout = 15;
@@ -474,6 +479,7 @@ void NcmpcppConfig::SetDefaults()
 		system_encoding.clear();
 #	endif // HAVE_LANGINFO_H
 	startup_screen = myPlaylist;
+	browser_sort_mode = smName;
 	// default screens sequence
 	screens_seq.push_back(myPlaylist);
 	screens_seq.push_back(myBrowser);
@@ -598,6 +604,8 @@ void NcmpcppKeys::Read()
 				GetKeys(key, SortPlaylist);
 			else if (name == "key_apply_filter")
 				GetKeys(key, ApplyFilter);
+			else if (name == "key_clear_filter")
+				GetKeys(key, DisableFilter);
 			else if (name == "key_find_forward")
 				GetKeys(key, FindForward);
 			else if (name == "key_find_backward")
@@ -852,6 +860,15 @@ void NcmpcppConfig::Read()
 					tag_editor_album_format = '{';
 					tag_editor_album_format += v;
 					tag_editor_album_format += '}';
+				}
+			}
+			else if (name == "browser_sort_format")
+			{
+				if (!v.empty() && MPD::Song::isFormatOk("browser_sort_format", v))
+				{
+					browser_sort_format = '{';
+					browser_sort_format += v;
+					browser_sort_format += '}';
 				}
 			}
 			else if (name == "external_editor")
@@ -1233,6 +1250,15 @@ void NcmpcppConfig::Read()
 				if (interval)
 					visualizer_sync_interval = interval;
 			}
+			else if (name == "sort_mode")
+			{
+				if (v == "mtime")
+					browser_sort_mode = smMTime;
+				else if (v == "format")
+					browser_sort_mode = smCustomFormat;
+				else
+					browser_sort_mode = smName; // "name" or invalid
+			}
 			else if (name == "locked_screen_width_part")
 			{
 				int part = StrToInt(v);
@@ -1243,6 +1269,11 @@ void NcmpcppConfig::Read()
 			{
 				if (!v.empty())
 					ask_for_locked_screen_width_part = v == "yes";
+			}
+			else if (name == "progressbar_boldness")
+			{
+				if (!v.empty())
+					progressbar_boldness = v == "yes";
 			}
 			else if (name == "song_window_title_format")
 			{
@@ -1297,6 +1328,11 @@ void NcmpcppConfig::Read()
 				if (!v.empty())
 					progressbar_color = IntoColor(v);
 			}
+			else if (name == "progressbar_elapsed_color")
+			{
+				if (!v.empty())
+					progressbar_elapsed_color = IntoColor(v);
+			}
 			else if (name == "statusbar_color")
 			{
 				if (!v.empty())
@@ -1339,7 +1375,11 @@ void NcmpcppConfig::Read()
 		}
 	}
 	f.close();
-	
+}
+
+void NcmpcppConfig::GenerateColumns()
+{
+	columns.clear();
 	std::string width;
 	while (!(width = GetLineValue(song_list_columns_format, '(', ')', 1)).empty())
 	{

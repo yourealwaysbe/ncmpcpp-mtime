@@ -33,12 +33,12 @@ bool SortAllTracks(MPD::Song *, MPD::Song *);
 
 struct SearchConstraints
 {
-    SearchConstraints(const std::string &tag, const std::string &album, const std::string &year) : PrimaryTag(tag), Album(album), Year(year) { }
-    SearchConstraints(const std::string &album, const std::string &year) : Album(album), Year(year) { }
+    SearchConstraints(const std::string &tag, const std::string &album, const std::string &date) : PrimaryTag(tag), Album(album), Date(date) { }
+    SearchConstraints(const std::string &album, const std::string &date) : Album(album), Date(date) { }
     
     std::string PrimaryTag;
     std::string Album;
-    std::string Year;
+    std::string Date;
 
     bool operator<(const SearchConstraints &a) const;
 };

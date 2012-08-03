@@ -29,6 +29,8 @@
 
 class BasicScreen; // forward declaration for screens sequence
 
+enum SortMode { smName, smMTime, smCustomFormat };
+
 struct Column
 {
 	Column() : right_alignment(0), display_empty_tag(1) { }
@@ -101,6 +103,7 @@ struct NcmpcppKeys
 	int UpdateDB[2];
 	int SortPlaylist[2];
 	int ApplyFilter[2];
+	int DisableFilter[2];
 	int FindForward[2];
 	int FindBackward[2];
 	int NextFoundPosition[2];
@@ -150,6 +153,7 @@ struct NcmpcppConfig
 	
 	void SetDefaults();
 	void Read();
+	void GenerateColumns();
 	
 	std::string ncmpcpp_directory;
 	std::string lyrics_directory;
@@ -168,6 +172,7 @@ struct NcmpcppConfig
 	std::string song_library_format;
 	std::string tag_editor_album_format;
 	std::string song_in_columns_to_string_format;
+	std::string browser_sort_format;
 	std::string external_editor;
 	std::string system_encoding;
 	std::string execute_on_song_change;
@@ -197,6 +202,7 @@ struct NcmpcppConfig
 	Color main_color;
 	Color main_highlight_color;
 	Color progressbar_color;
+	Color progressbar_elapsed_color;
 	Color statusbar_color;
 	Color alternative_ui_separator_color;
 	Color active_column_color;
@@ -261,6 +267,7 @@ struct NcmpcppConfig
 	bool discard_colors_if_item_is_selected;
 	bool store_lyrics_in_song_dir;
 	bool ask_for_locked_screen_width_part;
+	bool progressbar_boldness;
 	
 	int mpd_port;
 	int mpd_connection_timeout;
@@ -282,6 +289,8 @@ struct NcmpcppConfig
 	
 	BasicScreen *startup_screen;
 	std::list<BasicScreen *> screens_seq;
+	
+	SortMode browser_sort_mode;
 	
 	private:
 		void MakeProperPath(std::string &dir);

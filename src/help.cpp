@@ -210,6 +210,7 @@ void Help::GetKeybindings()
 	*w << DisplayKeys(Key.UpdateDB)			<< "Start a music database update\n";
 	*w << "\n";
 	*w << DisplayKeys(Key.ApplyFilter)		<< "Apply filter\n";
+	*w << DisplayKeys(Key.DisableFilter)		<< "Disable filter\n";
 	*w << DisplayKeys(Key.FindForward)		<< "Forward find\n";
 	*w << DisplayKeys(Key.FindBackward)		<< "Backward find\n";
 	*w << DisplayKeys(Key.PrevFoundPosition)	<< "Go to previous found position\n";
@@ -298,7 +299,7 @@ void Help::GetKeybindings()
     *w << DisplayKeys(Key.ToggleMediaLibrarySortByMTime)	<< "Toggle sort alphabetically or by mtime \n";
 
 	
-	*w << "\n\n   " << fmtBold << "Keys - Playlist Editor\n -----------------------------------------\n" << fmtBoldEnd;
+	*w << "\n\n   " << fmtBold << "Keys - Playlist editor\n -----------------------------------------\n" << fmtBoldEnd;
 	*w << DisplayKeys(Key.PrevColumn)		<< "Previous column\n";
 	*w << DisplayKeys(Key.NextColumn)		<< "Next column\n";
 	*w << DisplayKeys(Key.Enter)			<< "Add item to playlist and play\n";

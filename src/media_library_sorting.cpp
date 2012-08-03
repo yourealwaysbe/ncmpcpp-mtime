@@ -72,7 +72,7 @@ bool lexico(const T1 &a1, const T1 &a2,
 bool SearchConstraints::operator<(const SearchConstraints &a) const {
     return lexico(PrimaryTag, a.PrimaryTag,
                   Album, a.Album,
-                  Year, a.Year);
+                  Date, a.Date);
 }
 
 bool SearchConstraintsSorting::operator()(const SearchConstraints &a, 
@@ -82,7 +82,7 @@ bool SearchConstraintsSorting::operator()(const SearchConstraints &a,
 	result = cmp(a.PrimaryTag,  b.PrimaryTag);
 	if (result != 0)
 		return result < 0;
-	result = cmp(a.Year, b.Year);
+	result = cmp(a.Date, b.Date);
 	return (result == 0 ? cmp(a.Album, b.Album) : result) < 0;
 }
 
@@ -295,14 +295,14 @@ time_t MTimeAlbumSorting::getAlbumMTime(const mpd_tag_type primary_tag,
 		
     Mpd.StartSearch(1);
     Mpd.AddSearch(MPD_TAG_ALBUM, locale_to_utf_cpy(a.Album));
-    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Year));
+    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Date));
 
     if (a.PrimaryTag.length() > 0) {
 	    Mpd.AddSearch(primary_tag,
                       locale_to_utf_cpy(a.PrimaryTag));
     }
     if (display_date) {
-	    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Year));
+	    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Date));
     }
     Mpd.CommitSearch(list);
 		

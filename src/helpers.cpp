@@ -206,7 +206,7 @@ void ParseArgv(int argc, char **argv)
 						Replace(now_playing_format, "\\t", "\t");
 					}
 				}
-				std::cout << utf_to_locale_cpy(Mpd.GetCurrentSong().toString(now_playing_format)) << "\n";
+				std::cout << utf_to_locale_cpy(Mpd.GetCurrentlyPlayingSong().toString(now_playing_format)) << "\n";
 			}
 			exit(0);
 		}
@@ -298,24 +298,36 @@ int CaseInsensitiveStringComparison::operator()(const std::string &a, const std:
 
 bool CaseInsensitiveSorting::operator()(const MPD::Item &a, const MPD::Item &b)
 {
+	bool result;
 	if (a.type == b.type)
 	{
 		switch (a.type)
 		{
 			case MPD::itDirectory:
-				return cmp(ExtractTopName(a.name), ExtractTopName(b.name)) < 0;
+				result = cmp(ExtractTopName(a.name), ExtractTopName(b.name)) < 0;
+				break;
 			case MPD::itPlaylist:
-				return cmp(a.name, b.name) < 0;
+				result = cmp(a.name, b.name) < 0;
+				break;
 			case MPD::itSong:
-				return Config.browser_sort_by_mtime
-						? a.song->GetMTime() > b.song->GetMTime()
-						: operator()(a.song, b.song);
-			default: // there's no other type, just silence compiler.
-				return 0;
+				switch (Config.browser_sort_mode)
+				{
+					case smName:
+						result = operator()(a.song, b.song);
+						break;
+					case smMTime:
+						result = a.song->GetMTime() > b.song->GetMTime();
+						break;
+					case smCustomFormat:
+						result = cmp(a.song->toString(Config.browser_sort_format), b.song->toString(Config.browser_sort_format)) < 0;
+						break;
+				}
+				break;
 		}
 	}
 	else
-		return a.type < b.type;
+		result = a.type < b.type;
+	return result;
 }
 
 std::string Timestamp(time_t t)
