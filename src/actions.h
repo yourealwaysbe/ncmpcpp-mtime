@@ -841,6 +841,7 @@ struct ToggleMediaLibraryMTimeSort : public Action
 {
     ToggleMediaLibraryMTimeSort() : Action(aToggleMediaLibraryMTimeSort, 
                                            "toggle_media_library_sort_by_mtime") { }
+    virtual bool canBeRun() const;
     virtual void Run();
 };
 

@@ -2498,6 +2498,10 @@ void ShowServerInfo::Run()
 	myServerInfo->SwitchTo();
 }
 
+bool ToggleMediaLibraryMTimeSort::canBeRun() const {
+    return (myScreen == myLibrary);
+}
+
 void ToggleMediaLibraryMTimeSort::Run() 
 {
     if (myScreen == myLibrary) {

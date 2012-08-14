@@ -134,7 +134,12 @@ void CreateDir(const std::string &dir)
 void NcmpcppKeys::GenerateKeybindings()
 {
 #	define BIND(key, action) Bindings.insert(std::make_pair(key, Action::Get(action)))
-	
+
+    // until we get the keys file back
+    BIND('h',       aPreviousColumn);
+	BIND('l',       aNextColumn);
+
+    // the usual
 	BIND(KEY_MOUSE,		aMouseEvent);
 	BIND(KEY_UP,		aScrollUp);
 	BIND(KEY_DOWN,		aScrollDown);
@@ -264,7 +269,7 @@ void NcmpcppKeys::GenerateKeybindings()
 	BIND(KEY_F9,		aShowVisualizer);
 	BIND(KEY_F10,		aShowClock);
 	BIND('Q',		aQuit);
-	
+
 #	undef BIND
 }
 
