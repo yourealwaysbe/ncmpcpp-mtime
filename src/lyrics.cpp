@@ -375,9 +375,10 @@ void Lyrics::Edit()
 	
 	ShowMessage("Opening lyrics in external editor...");
 	
+	GNUC_UNUSED int res;
 	if (Config.use_console_editor)
 	{
-		system(("/bin/sh -c \"" + Config.external_editor + " \\\"" + itsFilename + "\\\"\"").c_str());
+		res = system(("/bin/sh -c \"" + Config.external_editor + " \\\"" + itsFilename + "\\\"\"").c_str());
 		// below is needed as screen gets cleared, but apparently
 		// ncurses doesn't know about it, so we need to reload main screen
 		endwin();
@@ -385,7 +386,7 @@ void Lyrics::Edit()
 		curs_set(0);
 	}
 	else
-		system(("nohup " + Config.external_editor + " \"" + itsFilename + "\" > /dev/null 2>&1 &").c_str());
+		res = system(("nohup " + Config.external_editor + " \"" + itsFilename + "\" > /dev/null 2>&1 &").c_str());
 }
 
 #ifdef HAVE_CURL_CURL_H
@@ -398,20 +399,18 @@ void Lyrics::Save(const std::string &filename, const std::string &lyrics)
 		output.close();
 	}
 }
-#endif // HAVE_CURL_CURL_H
 
 void Lyrics::Refetch()
 {
 	if (remove(itsFilename.c_str()) && errno != ENOENT)
 	{
-		static const char msg[] = "Couldn't remove \"%s\": %s";
+		const char msg[] = "Couldn't remove \"%s\": %s";
 		ShowMessage(msg, Shorten(TO_WSTRING(itsFilename), COLS-static_strlen(msg)-25).c_str(), strerror(errno));
 		return;
 	}
 	Load();
 }
 
-#ifdef HAVE_CURL_CURL_H
 void Lyrics::ToggleFetcher()
 {
 	if (itsFetcher && *itsFetcher)

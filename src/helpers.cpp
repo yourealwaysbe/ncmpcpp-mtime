@@ -18,6 +18,7 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
+#include <cassert>
 #include <cstring>
 #include <algorithm>
 #include <iostream>
@@ -298,7 +299,7 @@ int CaseInsensitiveStringComparison::operator()(const std::string &a, const std:
 
 bool CaseInsensitiveSorting::operator()(const MPD::Item &a, const MPD::Item &b)
 {
-	bool result;
+	bool result = false;
 	if (a.type == b.type)
 	{
 		switch (a.type)
@@ -323,6 +324,8 @@ bool CaseInsensitiveSorting::operator()(const MPD::Item &a, const MPD::Item &b)
 						break;
 				}
 				break;
+			default: // there is no other option, silence compiler
+				assert(false);
 		}
 	}
 	else
@@ -477,30 +480,4 @@ std::basic_string<my_char_t> Scroller(const std::basic_string<my_char_t> &str, s
 	else
 		result = s;
 	return result;
-}
-
-bool SwitchToNextColumn(BasicScreen *screen)
-{
-	if (screen == myLibrary)
-		return myLibrary->NextColumn();
-	else if (screen == myPlaylistEditor)
-		return myPlaylistEditor->NextColumn();
-#	ifdef HAVE_TAGLIB_H
-	else if (screen == myTagEditor)
-		return myTagEditor->NextColumn();
-#	endif // HAVE_TAGLIB_H
-	return false;
-}
-
-bool SwitchToPrevColumn(BasicScreen *screen)
-{
-	if (screen == myLibrary)
-		return myLibrary->PrevColumn();
-	else if (screen == myPlaylistEditor)
-		return myPlaylistEditor->PrevColumn();
-#	ifdef HAVE_TAGLIB_H
-	else if (screen == myTagEditor)
-		return myTagEditor->PrevColumn();
-#	endif // HAVE_TAGLIB_H
-	return false;
 }

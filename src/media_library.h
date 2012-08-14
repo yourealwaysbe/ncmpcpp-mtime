@@ -55,8 +55,10 @@ class MediaLibrary : public Screen<Window>
 		virtual bool isMergable() { return true; }
 		
 		int Columns() { return hasTwoColumns ? 2 : 3; }
-		bool NextColumn();
-		bool PrevColumn();
+		bool isNextColumnAvailable();
+		void NextColumn();
+		bool isPrevColumnAvailable();
+		void PrevColumn();
 		
 		void LocateSong(const MPD::Song &);
 		

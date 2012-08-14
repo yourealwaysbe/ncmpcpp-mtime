@@ -33,7 +33,6 @@ namespace MPD
 	{
 		extern const char *PartOfSongsAdded;
 		extern const char *FullPlaylist;
-		extern const char *FunctionDisabledFilteringEnabled;
 	}
 	
 	enum ItemType { itDirectory, itSong, itPlaylist };
@@ -121,7 +120,7 @@ namespace MPD
 			void Stop();
 			void Next();
 			void Prev();
-			void Move(unsigned, unsigned);
+			bool Move(unsigned, unsigned);
 			void Swap(unsigned, unsigned);
 			void Seek(unsigned);
 			void Shuffle();
@@ -152,7 +151,6 @@ namespace MPD
 			unsigned long PlayTime() const { return itsStats ? mpd_stats_get_play_time(itsStats) : 0; }
 			unsigned long DBPlayTime() const { return itsStats ? mpd_stats_get_db_play_time(itsStats) : 0; }
 			
-			size_t GetMaxPlaylistLength() const { return itsMaxPlaylistLength; }
 			size_t GetPlaylistLength() const { return itsCurrentStatus ? mpd_status_get_queue_length(itsCurrentStatus) : 0; }
 			void GetPlaylistChanges(unsigned, SongList &);
 			
@@ -193,7 +191,7 @@ namespace MPD
 			void ClearPlaylist(const std::string &);
 			void AddToPlaylist(const std::string &, const Song &);
 			void AddToPlaylist(const std::string &, const std::string &);
-			void Move(const std::string &, int, int);
+			bool Move(const std::string &, int, int);
 			bool Rename(const std::string &, const std::string &);
 			
 			void StartSearch(bool);
@@ -228,7 +226,6 @@ namespace MPD
 			bool isCommandsListEnabled;
 			
 			std::string itsErrorMessage;
-			size_t itsMaxPlaylistLength;
 			
 			int itsFD;
 			bool isIdle;
