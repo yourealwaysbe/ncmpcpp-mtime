@@ -535,34 +535,34 @@ void MPD::Connection::Shuffle()
 	}
 }
 
-void MPD::Connection::ClearPlaylist()
+bool MPD::Connection::ClearPlaylist()
 {
 	if (!itsConnection)
-		return;
+		return false;
 	if (!isCommandsListEnabled)
 	{
 		GoBusy();
-		mpd_run_clear(itsConnection);
+		return mpd_run_clear(itsConnection);
 	}
 	else
 	{
 		assert(!isIdle);
-		mpd_send_clear(itsConnection);
+		return mpd_send_clear(itsConnection);
 	}
 }
 
-void MPD::Connection::ClearPlaylist(const std::string &playlist)
+bool MPD::Connection::ClearPlaylist(const std::string &playlist)
 {
 	if (!itsConnection)
-		return;
+		return false;
 	if (!isCommandsListEnabled)
 	{
 		GoBusy();
-		mpd_run_playlist_clear(itsConnection, playlist.c_str());
+		return mpd_run_playlist_clear(itsConnection, playlist.c_str());
 	}
 	else
 	{
-		mpd_send_playlist_clear(itsConnection, playlist.c_str());
+		return mpd_send_playlist_clear(itsConnection, playlist.c_str());
 		assert(!isIdle);
 	}
 }
@@ -839,6 +839,22 @@ void MPD::Connection::SetCrossfade(unsigned crossfade)
 	}
 }
 
+bool MPD::Connection::SetPriority(const Song &s, int prio)
+{
+	if (!itsConnection)
+		return false;
+	if (!isCommandsListEnabled)
+	{
+		GoBusy();
+		return mpd_run_prio_id(itsConnection, prio, s.GetID());
+	}
+	else
+	{
+		assert(!isIdle);
+		return mpd_send_prio_id(itsConnection, prio, s.GetID());
+	}
+}
+
 int MPD::Connection::AddSong(const std::string &path, int pos)
 {
 	if (!itsConnection)
@@ -867,19 +883,19 @@ int MPD::Connection::AddSong(const Song &s, int pos)
 	return !s.Empty() ? (AddSong((!s.isFromDB() ? "file://" : "") + (s.Localized() ? locale_to_utf_cpy(s.GetFile()) : s.GetFile()), pos)) : -1;
 }
 
-void MPD::Connection::Add(const std::string &path)
+bool MPD::Connection::Add(const std::string &path)
 {
 	if (!itsConnection)
-		return;
+		return false;
 	if (!isCommandsListEnabled)
 	{
 		GoBusy();
-		mpd_run_add(itsConnection, path.c_str());
+		return mpd_run_add(itsConnection, path.c_str());
 	}
 	else
 	{
 		assert(!isIdle);
-		mpd_send_add(itsConnection, path.c_str());
+		return mpd_send_add(itsConnection, path.c_str());
 	}
 }
 
@@ -900,7 +916,6 @@ bool MPD::Connection::AddRandomTag(mpd_tag_type tag, size_t number)
 	}
 	else
 	{
-		srand(time(0));
 		std::random_shuffle(tags.begin(), tags.end());
 		TagList::const_iterator it = tags.begin()+rand()%(tags.size()-number);
 		for (size_t i = 0; i < number && it != tags.end(); ++i)

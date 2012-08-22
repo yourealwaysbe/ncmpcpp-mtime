@@ -18,6 +18,7 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
+#include <cassert>
 #include <algorithm>
 
 #include "charset.h"
@@ -272,6 +273,17 @@ void PlaylistEditor::MoveSelectedItems(Playlist::Movement where)
 	}
 }
 
+bool PlaylistEditor::isContentFiltered()
+{
+	if (Content->isFiltered())
+	{
+		ShowMessage("Function currently unavailable due to filtered playlist content");
+		return true;
+	}
+	return false;
+}
+
+
 bool PlaylistEditor::isNextColumnAvailable()
 {
 	if (w == Playlists)
@@ -324,9 +336,12 @@ void PlaylistEditor::AddToPlaylist(bool add_n_play)
 	
 	if (w == Playlists && !Playlists->Empty())
 	{
-		Mpd.GetPlaylistContent(locale_to_utf_cpy(Playlists->Current()), list);
-		if (myPlaylist->Add(list, add_n_play))
-			ShowMessage("Loading playlist %s...", Playlists->Current().c_str());
+		if (Mpd.LoadPlaylist(utf_to_locale_cpy(Playlists->Current())))
+		{
+			ShowMessage("Playlist \"%s\" loaded", Playlists->Current().c_str());
+			if (add_n_play)
+				myPlaylist->PlayNewlyAddedSongs();
+		}
 	}
 	else if (w == Content && !Content->Empty())
 		Content->Bold(Content->Choice(), myPlaylist->Add(Content->Current(), Content->isBold(), add_n_play));
@@ -402,9 +417,7 @@ void PlaylistEditor::GetSelectedSongs(MPD::SongList &v)
 	if (selected.empty())
 		selected.push_back(Content->Choice());
 	for (std::vector<size_t>::const_iterator it = selected.begin(); it != selected.end(); ++it)
-	{
 		v.push_back(new MPD::Song(Content->at(*it)));
-	}
 }
 
 void PlaylistEditor::ApplyFilter(const std::string &s)
@@ -436,6 +449,5 @@ List *PlaylistEditor::GetList()
 	else if (w == Content)
 		return Content;
 	else // silence compiler
-		return 0;
+		assert(false);
 }
-

@@ -133,7 +133,7 @@ std::string Help::DisplayKeys(const ActionType at)
 			result += " ";
 		}
 	}
-	result.resize(12, ' ');
+	result.resize(16, ' ');
 	return result;
 }
 
@@ -227,8 +227,7 @@ void Help::GetKeybindings()
 	KeyDesc(aToggleRandom, "Toggle random mode");
 	KeyDesc(aToggleSingle, "Toggle single mode");
 	KeyDesc(aToggleConsume, "Toggle consume mode");
-	if (Mpd.Version() >= 16)
-		KeyDesc(aToggleReplayGainMode, "Toggle replay gain mode");
+	KeyDesc(aToggleReplayGainMode, "Toggle replay gain mode");
 	KeyDesc(aToggleBitrateVisibility, "Toggle bitrate visibility");
 	KeyDesc(aShuffle, "Shuffle playlist");
 	KeyDesc(aToggleCrossfade, "Toggle crossfade mode");
@@ -268,7 +267,8 @@ void Help::GetKeybindings()
 	KeyDesc(aPressEnter, "Play selected item");
 	KeyDesc(aDelete, "Delete selected item(s) from playlist");
 	KeyDesc(aClearMainPlaylist, "Clear playlist");
-	KeyDesc(aCropMainPlaylist, "Clear playlist except playing/selected items");
+	KeyDesc(aCropMainPlaylist, "Clear playlist except selected item(s)");
+	KeyDesc(aSetSelectedItemsPriority, "Set priority of selected items");
 	KeyDesc(aMoveSelectedItemsUp, "Move selected item(s) up");
 	KeyDesc(aMoveSelectedItemsDown, "Move selected item(s) down");
 	KeyDesc(aMoveSelectedItemsTo, "Move selected item(s) to cursor position");
@@ -290,8 +290,7 @@ void Help::GetKeybindings()
 #	endif // HAVE_TAGLIB_H
 	KeyDesc(aEditDirectoryName, "Edit directory name");
 	KeyDesc(aEditPlaylistName, "Edit playlist name");
-	if (Mpd.GetHostname()[0] == '/') // are we connected to unix socket?
-		KeyDesc(aShowBrowser, "Browse MPD database/local filesystem");
+	KeyDesc(aShowBrowser, "Browse MPD database/local filesystem");
 	KeyDesc(aToggleBrowserSortMode, "Toggle sort mode");
 	KeyDesc(aJumpToPlayingSong, "Locate playing song");
 	KeyDesc(aJumpToParentDir, "Go to parent directory");

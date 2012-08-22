@@ -69,7 +69,6 @@ class Playlist : public Screen<Window>
 		void Reverse();
 		void AdjustSortOrder(Movement where);
 		bool SortingInProgress() { return w == SortDialog; }
-		void FixPositions(size_t = 0);
 		
 		void EnableHighlighting();
 		void UpdateTimer() { time(&itsTimer); }
@@ -77,6 +76,9 @@ class Playlist : public Screen<Window>
 		
 		bool Add(const MPD::Song &s, bool in_playlist, bool play, int position = -1);
 		bool Add(const MPD::SongList &l, bool play, int position = -1);
+		void PlayNewlyAddedSongs();
+		
+		void SetSelectedItemsPriority(int prio);
 		
 		static std::string SongToString(const MPD::Song &, void *);
 		static std::string SongInColumnsToString(const MPD::Song &, void *);
@@ -103,7 +105,21 @@ class Playlist : public Screen<Window>
 		
 		time_t itsTimer;
 		
-		static bool Sorting(MPD::Song *a, MPD::Song *b);
+		// stuff for sorting playlist
+		static void QuickSort(MPD::SongList::iterator first, MPD::SongList::iterator last, MPD::SongList::iterator begin);
+		inline static void IterSwap(MPD::SongList::iterator a, MPD::SongList::iterator b, MPD::SongList::iterator begin)
+		{
+			iter_swap(a, b);
+			Mpd.Swap(a-begin, b-begin);
+		}
+		inline static bool SongComp(MPD::Song *a, MPD::Song *b)
+		{
+			CaseInsensitiveStringComparison cmp;
+			for (size_t i = 0; i < SortOptions; ++i)
+				if (int ret = cmp(a->GetTags((*SortDialog)[i].second), b->GetTags((*SortDialog)[i].second)))
+					return ret < 0;
+			return a->GetPosition() < b->GetPosition();
+		}
 		
 		static Menu< std::pair<std::string, MPD::Song::GetFunction> > *SortDialog;
 		static const size_t SortOptions;

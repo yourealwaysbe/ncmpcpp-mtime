@@ -177,6 +177,8 @@ void NcmpcppKeys::GenerateKeybindings()
 	BIND('P',		aPause);
 	BIND('>',		aNextSong);
 	BIND('<',		aPreviousSong);
+	BIND(KEY_CTRL_H,	aJumpToParentDir);
+	BIND(KEY_CTRL_H,	aReplaySong);
 	BIND(KEY_BACKSPACE,	aJumpToParentDir);
 	BIND(KEY_BACKSPACE,	aReplaySong);
 	BIND(KEY_BACKSPACE_2,	aJumpToParentDir);
@@ -252,6 +254,7 @@ void NcmpcppKeys::GenerateKeybindings()
 	BIND('`',		aRefetchLyrics);
 	BIND('`',		aRefetchArtistInfo);
 	BIND('`',		aAddRandomItems);
+	BIND(KEY_CTRL_P,	aSetSelectedItemsPriority);
 	BIND('q',		aQuit);
 	BIND('k',		aScrollUp);
 	BIND('j',		aScrollDown);

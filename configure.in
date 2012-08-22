@@ -41,11 +41,9 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[ ]])],
 )
 CXXFLAGS="$old_CXXFLAGS $no_exceptions"
 
-
-dnl ====================================
-dnl = checking for win32 related stuff =
-dnl ====================================
-AC_CHECK_LIB(ws2_32, _head_libws2_32_a, LDFLAGS="$LDFLAGS -lws2_32", )
+dnl ==============================
+dnl = checking for regex (win32) =
+dnl ==============================
 AC_CHECK_LIB(regex, regcomp, LDFLAGS="$LDFLAGS -lregex", )
 
 dnl ================================
@@ -57,7 +55,7 @@ AC_CHECK_HEADERS([langinfo.h], , AC_MSG_WARN(locale detection disabled))
 dnl ==============================
 dnl = checking for libmpdclient2 =
 dnl ==============================
-PKG_CHECK_MODULES([libmpdclient], [libmpdclient >= 2.1], [
+PKG_CHECK_MODULES([libmpdclient], [libmpdclient >= 2.8], [
 	AC_SUBST(libmpdclient_LIBS)
 	AC_SUBST(libmpdclient_CFLAGS)
 	CPPFLAGS="$CPPFLAGS $libmpdclient_CFLAGS"
@@ -67,7 +65,7 @@ PKG_CHECK_MODULES([libmpdclient], [libmpdclient >= 2.1], [
 		AC_MSG_ERROR([missing mpd/client.h header])
 	)
 ],
-	AC_MSG_ERROR([libmpdclient >= 2.1 is required!])
+	AC_MSG_ERROR([libmpdclient >= 2.8 is required!])
 )
 
 dnl ========================
@@ -190,7 +188,6 @@ if test "$curl" != "no" ; then
 		)
 	fi
 fi
-
 
 dnl =======================
 dnl = checking for taglib =

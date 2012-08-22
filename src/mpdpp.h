@@ -124,7 +124,7 @@ namespace MPD
 			void Swap(unsigned, unsigned);
 			void Seek(unsigned);
 			void Shuffle();
-			void ClearPlaylist();
+			bool ClearPlaylist();
 			
 			bool isPlaying() const { return GetState() > psStop; }
 			
@@ -174,11 +174,13 @@ namespace MPD
 			std::string GetReplayGainMode();
 			void SetReplayGainMode(ReplayGainMode);
 			
+			bool SetPriority(const Song &s, int prio);
+			
 			int AddSong(const std::string &, int = -1); // returns id of added song
 			int AddSong(const Song &, int = -1); // returns id of added song
 			bool AddRandomTag(mpd_tag_type, size_t);
 			bool AddRandomSongs(size_t);
-			void Add(const std::string &path);
+			bool Add(const std::string &path);
 			bool Delete(unsigned);
 			bool DeleteID(unsigned);
 			bool Delete(const std::string &, unsigned);
@@ -188,7 +190,7 @@ namespace MPD
 			bool DeletePlaylist(const std::string &);
 			bool LoadPlaylist(const std::string &name);
 			int SavePlaylist(const std::string &);
-			void ClearPlaylist(const std::string &);
+			bool ClearPlaylist(const std::string &);
 			void AddToPlaylist(const std::string &, const Song &);
 			void AddToPlaylist(const std::string &, const std::string &);
 			bool Move(const std::string &, int, int);

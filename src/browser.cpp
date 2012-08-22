@@ -134,22 +134,16 @@ void Browser::EnterPressed()
 		}
 		case itSong:
 		{
-			w->Bold(w->Choice(), myPlaylist->Add(*item.song, w->isBold(), 1));
+			bool res = myPlaylist->Add(*item.song, w->isBold(), 1);
+			w->Bold(w->Choice(), res);
 			break;
 		}
 		case itPlaylist:
 		{
-			std::string name = item.name;
-			ShowMessage("Loading and playing playlist %s...", name.c_str());
-			locale_to_utf(name);
-			if (!Mpd.LoadPlaylist(name))
-				ShowMessage("Couldn't load playlist.");
-			else
+			if (Mpd.LoadPlaylist(locale_to_utf_cpy(item.name)))
 			{
-				size_t old_size = myPlaylist->Items->Size();
-				Mpd.UpdateStatus();
-				if (old_size < myPlaylist->Items->Size())
-					Mpd.Play(old_size);
+				ShowMessage("Playlist \"%s\" loaded", item.name.c_str());
+				myPlaylist->PlayNewlyAddedSongs();
 			}
 		}
 	}
@@ -178,39 +172,37 @@ void Browser::SpacePressed()
 			if (itsBrowsedDir != "/" && !w->Choice())
 				break; // do not let add parent dir.
 			
-			MPD::SongList list;
+			bool result;
 #			ifndef WIN32
 			if (isLocal())
 			{
+				MPD::SongList list;
 				MPD::ItemList items;
-				ShowMessage("Scanning \"%s\"...", item.name.c_str());
+				ShowMessage("Scanning directory \"%s\"...", item.name.c_str());
 				myBrowser->GetLocalDirectory(items, item.name, 1);
 				list.reserve(items.size());
 				for (MPD::ItemList::const_iterator it = items.begin(); it != items.end(); ++it)
 					list.push_back(it->song);
+				result = myPlaylist->Add(list, 0);
+				FreeSongList(list);
 			}
 			else
 #			endif // !WIN32
-				Mpd.GetDirectoryRecursive(locale_to_utf_cpy(item.name), list);
-			
-			if (myPlaylist->Add(list, 0))
-				ShowMessage("Added folder: %s", item.name.c_str());
-			
-			FreeSongList(list);
+				result = Mpd.Add(locale_to_utf_cpy(item.name));
+			if (result)
+				ShowMessage("Directory \"%s\" added", item.name.c_str());
 			break;
 		}
 		case itSong:
 		{
-			w->Bold(w->Choice(), myPlaylist->Add(*item.song, w->isBold(), 0));
+			bool res = myPlaylist->Add(*item.song, w->isBold(), 0);
+			w->Bold(w->Choice(), res);
 			break;
 		}
 		case itPlaylist:
 		{
-			std::string name = item.name;
-			ShowMessage("Loading playlist %s...", name.c_str());
-			locale_to_utf(name);
-			if (!Mpd.LoadPlaylist(name))
-				ShowMessage("Couldn't load playlist.");
+			if (Mpd.LoadPlaylist(locale_to_utf_cpy(item.name)))
+				ShowMessage("Playlist \"%s\" loaded", item.name.c_str());
 			break;
 		}
 	}
@@ -523,10 +515,13 @@ void Browser::ClearDirectory(const std::string &path) const
 void Browser::ChangeBrowseMode()
 {
 	if (Mpd.GetHostname()[0] != '/')
+	{
+		ShowMessage("For browsing local filesystem connection to MPD via UNIX Socket is required");
 		return;
+	}
 	
 	itsBrowseLocally = !itsBrowseLocally;
-	ShowMessage("Browse mode: %s", itsBrowseLocally ? "Local filesystem" : "MPD music dir");
+	ShowMessage("Browse mode: %s", itsBrowseLocally ? "Local filesystem" : "MPD database");
 	itsBrowsedDir = itsBrowseLocally ? Config.GetHomeDirectory() : "/";
 	if (itsBrowseLocally && *itsBrowsedDir.rbegin() == '/')
 		itsBrowsedDir.resize(itsBrowsedDir.length()-1);

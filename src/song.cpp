@@ -84,6 +84,13 @@ std::string MPD::Song::GetLength(unsigned pos) const
 	return !len ? "-:--" : ShowTime(len);
 }
 
+std::string MPD::Song::GetPriority(unsigned pos) const
+{
+	if (pos > 0)
+		return "";
+	return IntoStr(GetPrio());
+}
+
 void MPD::Song::Localize()
 {
 #	ifdef HAVE_ICONV_H
@@ -313,11 +320,6 @@ void MPD::Song::SetDisc(const std::string &str, unsigned pos)
 void MPD::Song::SetComment(const std::string &str, unsigned pos)
 {
 	SetTag(MPD_TAG_COMMENT, pos, str);
-}
-
-void MPD::Song::SetPosition(unsigned pos)
-{
-	mpd_song_set_pos(itsSong, pos);
 }
 
 void MPD::Song::SetTags(SetFunction f, const std::string &value)
