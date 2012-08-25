@@ -21,6 +21,7 @@
 #ifndef _SETTINGS_H
 #define _SETTINGS_H
 
+#include <cassert>
 #include <vector>
 
 #include <mpd/client.h>
@@ -45,21 +46,46 @@ struct Column
 	bool display_empty_tag;
 };
 
-struct NcmpcppKeys
+struct Bind
 {
-	typedef std::pair<
-			std::multimap<int, Action *>::iterator
-		,	std::multimap<int, Action *>::iterator
-		> Binding;
+	typedef std::vector<Action *> ActionChain;
 	
-	void GenerateKeybindings();
+	Bind(ActionType at) : isThisSingle(true), itsAction(Action::Get(at)) { }
+	Bind(ActionChain *chain) : isThisSingle(false), itsChain(chain) { }
 	
-	std::multimap<int, Action *> Bindings;
+	bool isSingle() const { return isThisSingle; }
+	ActionChain *getChain() const { assert(!isThisSingle); return itsChain; }
+	Action *getAction() const { assert(isThisSingle); return itsAction; }
+	
+	private:
+		bool isThisSingle;
+		union {
+			Action *itsAction;
+			ActionChain *itsChain;
+		};
 };
 
-struct NcmpcppConfig
+struct KeyConfiguration
 {
-	NcmpcppConfig();
+	typedef std::pair<
+			std::multimap<Action::Key, Bind>::iterator
+		,	std::multimap<Action::Key, Bind>::iterator
+		> Binding;
+	
+	void GenerateBindings();
+	
+	std::multimap<Action::Key, Bind> Bindings;
+	
+	private:
+		template <typename T> void Bind_(wchar_t c, CharType ct, T t)
+		{
+			Bindings.insert(std::make_pair(Action::Key(c, ct), Bind(t)));
+		}
+};
+
+struct Configuration
+{
+	Configuration();
 	
 	const std::string &GetHomeDirectory();
 	void CheckForCommandLineConfigFilePath(char **argv, int argc);
@@ -210,8 +236,8 @@ struct NcmpcppConfig
 		std::string config_file_path;
 };
 
-extern NcmpcppKeys Key;
-extern NcmpcppConfig Config;
+extern KeyConfiguration Keys;
+extern Configuration Config;
 
 void CreateDir(const std::string &dir);
 

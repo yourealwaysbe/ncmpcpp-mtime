@@ -18,55 +18,34 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#ifndef _CONV_H
-#define _CONV_H
-
-#include <cstring>
-#include <string>
-
 #include "actions.h"
-#include "window.h"
-#include "song.h"
 
-template <size_t N> inline size_t static_strlen(const char (&)[N])
+struct PushCharacters : public Action
 {
-	return N-1;
-}
-
-template <size_t N> void Replace(std::string &s, const char (&from)[N], const char *to)
-{
-	size_t to_len = strlen(to);
-	for (size_t i = 0; (i = s.find(from, i)) != std::string::npos; i += to_len)
-		s.replace(i, N-1, to);
-}
-
-int StrToInt(const std::string &);
-long StrToLong(const std::string &);
-
-std::string IntoStr(int);
-std::string IntoStr(mpd_tag_type);
-std::string IntoStr(NCurses::Color);
-std::string IntoStr(const Action::Key &key, bool *print_backspace = 0);
-
-NCurses::Color IntoColor(const std::string &);
-
-mpd_tag_type IntoTagItem(char);
-
-MPD::Song::GetFunction toGetFunction(char c);
-
-#ifdef HAVE_TAGLIB_H
-MPD::Song::SetFunction IntoSetFunction(mpd_tag_type);
-#endif // HAVE_TAGLIB_H
-
-std::string Shorten(const std::basic_string<my_char_t> &s, size_t max_length);
-
-void EscapeUnallowedChars(std::string &);
-
-std::string unescapeHtmlUtf8(const std::string &data);
-
-void StripHtmlTags(std::string &s);
-
-void Trim(std::string &s);
-
-#endif
-
+	template <typename Iterator> PushCharacters(Window **w, Iterator first, Iterator last) : Action(aMacroUtility, "")
+	{
+		construct(w, first, last);
+	}
+	
+	PushCharacters(Window **w, const std::initializer_list<int> &v) : Action(aMacroUtility, "")
+	{
+		construct(w, v.begin(), v.end());
+	}
+	
+	virtual void Run()
+	{
+		for (auto it = itsQueue.begin(); it != itsQueue.end(); ++it)
+			(*itsWindow)->PushChar(*it);
+	}
+	
+	private:
+		template <typename Iterator> void construct(Window **w, Iterator first, Iterator last)
+		{
+			itsWindow = w;
+			for (; first != last; ++first)
+				itsQueue.push_back(*first);
+		}
+		
+		Window **itsWindow;
+		std::vector<int> itsQueue;
+};

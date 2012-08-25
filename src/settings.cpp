@@ -51,8 +51,8 @@
 # include <langinfo.h>
 #endif
 
-NcmpcppConfig Config;
-NcmpcppKeys Key;
+Configuration Config;
+KeyConfiguration Keys;
 
 namespace
 {
@@ -131,7 +131,7 @@ void CreateDir(const std::string &dir)
 	);
 }
 
-void NcmpcppKeys::GenerateKeybindings()
+void KeyConfiguration::GenerateBindings()
 {
 #	define BIND(key, action) Bindings.insert(std::make_pair(key, Action::Get(action)))
 
@@ -140,143 +140,141 @@ void NcmpcppKeys::GenerateKeybindings()
 	BIND('l',       aNextColumn);
 
     // the usual
-	BIND(KEY_MOUSE,		aMouseEvent);
-	BIND(KEY_UP,		aScrollUp);
-	BIND(KEY_DOWN,		aScrollDown);
-	BIND('[',		aScrollUpAlbum);
-	BIND(']',		aScrollDownAlbum);
-	BIND('{',		aScrollUpArtist);
-	BIND('}',		aScrollDownArtist);
-	BIND(KEY_PPAGE,		aPageUp);
-	BIND(KEY_NPAGE,		aPageDown);
-	BIND(KEY_HOME,		aMoveHome);
-	BIND(KEY_END,		aMoveEnd);
-	BIND(' ',		aPressSpace);
-	BIND(KEY_ENTER,		aPressEnter);
-	BIND(KEY_DC,		aDelete);
-	BIND(KEY_RIGHT,		aNextColumn);
-	BIND(KEY_RIGHT,		aSlaveScreen);
-	BIND(KEY_RIGHT,		aVolumeUp);
-	BIND(KEY_LEFT,		aPreviousColumn);
-	BIND(KEY_LEFT,		aMasterScreen);
-	BIND(KEY_LEFT,		aVolumeDown);
-	BIND(KEY_TAB,		aNextScreen);
-	BIND(KEY_SHIFT_TAB,	aPreviousScreen);
-	BIND('1',		aShowHelp);
-	BIND('2',		aShowPlaylist);
-	BIND('3',		aShowBrowser);
-	BIND('4',		aShowSearchEngine);
-	BIND('5',		aShowMediaLibrary);
-	BIND('6',		aShowPlaylistEditor);
-	BIND('7',		aShowTagEditor);
-	BIND('8',		aShowOutputs);
-	BIND('9',		aShowVisualizer);
-	BIND('0',		aShowClock);
-	BIND('@',		aShowServerInfo);
-	BIND('s',		aStop);
-	BIND('P',		aPause);
-	BIND('>',		aNextSong);
-	BIND('<',		aPreviousSong);
-	BIND(KEY_CTRL_H,	aJumpToParentDir);
-	BIND(KEY_CTRL_H,	aReplaySong);
-	BIND(KEY_BACKSPACE,	aJumpToParentDir);
-	BIND(KEY_BACKSPACE,	aReplaySong);
-	BIND(KEY_BACKSPACE_2,	aJumpToParentDir);
-	BIND(KEY_BACKSPACE_2,	aReplaySong);
-	BIND('f',		aSeekForward);
-	BIND('b',		aSeekBackward);
-	BIND('r',		aToggleRepeat);
-	BIND('z',		aToggleRandom);
-	BIND('y',		aSaveTagChanges);
-	BIND('y',		aStartSearching);
-	BIND('y',		aToggleSingle);
-	BIND('R',		aToggleConsume);
-	BIND('Y',		aToggleReplayGainMode);
-	BIND('t',		aToggleSpaceMode);
-	BIND('T',		aToggleAddMode);
-	BIND('|',		aToggleMouse);
-	BIND('#',		aToggleBitrateVisibility);
-	BIND('Z',		aShuffle);
-	BIND('x',		aToggleCrossfade);
-	BIND('X',		aSetCrossfade);
-	BIND('u',		aUpdateDatabase);
-	BIND(KEY_CTRL_V,	aSortPlaylist);
-	BIND(KEY_CTRL_R,	aReversePlaylist);
-	BIND(KEY_CTRL_F,	aApplyFilter);
-	BIND(KEY_CTRL_G,	aDisableFilter);
-	BIND('/',		aFind);
-	BIND('/',		aFindItemForward);
-	BIND('?',		aFind);
-	BIND('?',		aFindItemBackward);
-	BIND('.',		aNextFoundItem);
-	BIND(',',		aPreviousFoundItem);
-	BIND('w',		aToggleFindMode);
-	BIND('e',		aEditSong);
-	BIND('e',		aEditLibraryTag);
-	BIND('e',		aEditLibraryAlbum);
-	BIND('e',		aEditDirectoryName);
-	BIND('e',		aEditPlaylistName);
-	BIND('e',		aEditLyrics);
-	BIND('i',		aShowSongInfo);
-	BIND('I',		aShowArtistInfo);
-	BIND('g',		aJumpToPositionInSong);
-	BIND('l',		aShowLyrics);
-	BIND('v',		aReverseSelection);
-	BIND('V',		aDeselectItems);
-	BIND('B',		aSelectAlbum);
-	BIND('a',		aAddSelectedItems);
-	BIND('c',		aClearPlaylist);
-	BIND('c',		aClearMainPlaylist);
-	BIND('C',		aCropPlaylist);
-	BIND('C',		aCropMainPlaylist);
-	BIND('m',		aToggleMediaLibraryMTimeSort);
-	BIND('m',		aMoveSortOrderUp);
-	BIND('m',		aMoveSelectedItemsUp);
-	BIND('n',		aMoveSortOrderDown);
-	BIND('n',		aMoveSelectedItemsDown);
-	BIND('M',		aMoveSelectedItemsTo);
-	BIND('A',		aAdd);
-	BIND('S',		aSavePlaylist);
-	BIND('o',		aJumpToPlayingSong);
-	BIND('G',		aJumpToBrowser);
-	BIND('G',		aJumpToPlaylistEditor);
-	BIND('~',		aJumpToMediaLibrary);
-	BIND('E',		aJumpToTagEditor);
-	BIND('U',		aToggleAutoCenter);
-	BIND('p',		aToggleDisplayMode);
-	BIND('\\',		aToggleInterface);
-	BIND('!',		aToggleSeparatorsInPlaylist);
-	BIND('L',		aToggleLyricsFetcher);
-	BIND('F',		aToggleFetchingLyricsInBackground);
-	BIND(KEY_CTRL_L,	aToggleScreenLock);
-	BIND('`',		aToggleBrowserSortMode);
-	BIND('`',		aToggleLibraryTagType);
-	BIND('`',		aRefetchLyrics);
-	BIND('`',		aRefetchArtistInfo);
-	BIND('`',		aAddRandomItems);
-	BIND(KEY_CTRL_P,	aSetSelectedItemsPriority);
-	BIND('q',		aQuit);
-	BIND('k',		aScrollUp);
-	BIND('j',		aScrollDown);
-	BIND('d',		aDelete);
-	BIND('+',		aVolumeUp);
-	BIND('-',		aVolumeDown);
-	BIND(KEY_F1,		aShowHelp);
-	BIND(KEY_F2,		aShowPlaylist);
-	BIND(KEY_F3,		aShowBrowser);
-	BIND(KEY_F4,		aShowSearchEngine);
-	BIND(KEY_F5,		aShowMediaLibrary);
-	BIND(KEY_F6,		aShowPlaylistEditor);
-	BIND(KEY_F7,		aShowTagEditor);
-	BIND(KEY_F8,		aShowOutputs);
-	BIND(KEY_F9,		aShowVisualizer);
-	BIND(KEY_F10,		aShowClock);
-	BIND('Q',		aQuit);
-
-#	undef BIND
+	Bind_(KEY_MOUSE, ctNCurses, aMouseEvent);
+	Bind_(KEY_UP, ctNCurses, aScrollUp);
+	Bind_(KEY_DOWN, ctNCurses, aScrollDown);
+	Bind_('[', ctStandard, aScrollUpAlbum);
+	Bind_(']', ctStandard, aScrollDownAlbum);
+	Bind_('{', ctStandard, aScrollUpArtist);
+	Bind_('}', ctStandard, aScrollDownArtist);
+	Bind_(KEY_PPAGE, ctNCurses, aPageUp);
+	Bind_(KEY_NPAGE, ctNCurses, aPageDown);
+	Bind_(KEY_HOME, ctNCurses, aMoveHome);
+	Bind_(KEY_END, ctNCurses, aMoveEnd);
+	Bind_(KEY_SPACE, ctStandard, aPressSpace);
+	Bind_(KEY_ENTER, ctStandard, aPressEnter);
+	Bind_(KEY_DC, ctNCurses, aDelete);
+	Bind_(KEY_RIGHT, ctNCurses, aNextColumn);
+	Bind_(KEY_RIGHT, ctNCurses, aSlaveScreen);
+	Bind_(KEY_RIGHT, ctNCurses, aVolumeUp);
+	Bind_(KEY_LEFT, ctNCurses, aPreviousColumn);
+	Bind_(KEY_LEFT, ctNCurses, aMasterScreen);
+	Bind_(KEY_LEFT, ctNCurses, aVolumeDown);
+	Bind_(KEY_TAB, ctStandard, aNextScreen);
+	Bind_(KEY_SHIFT_TAB, ctNCurses, aPreviousScreen);
+	Bind_('1', ctStandard, aShowHelp);
+	Bind_('2', ctStandard, aShowPlaylist);
+	Bind_('3', ctStandard, aShowBrowser);
+	Bind_('4', ctStandard, aShowSearchEngine);
+	Bind_('5', ctStandard, aShowMediaLibrary);
+	Bind_('6', ctStandard, aShowPlaylistEditor);
+	Bind_('7', ctStandard, aShowTagEditor);
+	Bind_('8', ctStandard, aShowOutputs);
+	Bind_('9', ctStandard, aShowVisualizer);
+	Bind_('0', ctStandard, aShowClock);
+	Bind_('@', ctStandard, aShowServerInfo);
+	Bind_('s', ctStandard, aStop);
+	Bind_('P', ctStandard, aPause);
+	Bind_('>', ctStandard, aNextSong);
+	Bind_('<', ctStandard, aPreviousSong);
+	Bind_(KEY_CTRL_H, ctStandard, aJumpToParentDir);
+	Bind_(KEY_CTRL_H, ctStandard, aReplaySong);
+	Bind_(KEY_BACKSPACE, ctNCurses, aJumpToParentDir);
+	Bind_(KEY_BACKSPACE, ctNCurses, aReplaySong);
+	Bind_(KEY_BACKSPACE_2, ctStandard, aJumpToParentDir);
+	Bind_(KEY_BACKSPACE_2, ctStandard, aReplaySong);
+	Bind_('f', ctStandard, aSeekForward);
+	Bind_('b', ctStandard, aSeekBackward);
+	Bind_('r', ctStandard, aToggleRepeat);
+	Bind_('z', ctStandard, aToggleRandom);
+	Bind_('y', ctStandard, aSaveTagChanges);
+	Bind_('y', ctStandard, aStartSearching);
+	Bind_('y', ctStandard, aToggleSingle);
+	Bind_('R', ctStandard, aToggleConsume);
+	Bind_('Y', ctStandard, aToggleReplayGainMode);
+	Bind_('t', ctStandard, aToggleSpaceMode);
+	Bind_('T', ctStandard, aToggleAddMode);
+	Bind_('|', ctStandard, aToggleMouse);
+	Bind_('#', ctStandard, aToggleBitrateVisibility);
+	Bind_('Z', ctStandard, aShuffle);
+	Bind_('x', ctStandard, aToggleCrossfade);
+	Bind_('X', ctStandard, aSetCrossfade);
+	Bind_('u', ctStandard, aUpdateDatabase);
+	Bind_(KEY_CTRL_V, ctStandard, aSortPlaylist);
+	Bind_(KEY_CTRL_R, ctStandard, aReversePlaylist);
+	Bind_(KEY_CTRL_F, ctStandard, aApplyFilter);
+	Bind_(KEY_CTRL_G, ctStandard, aDisableFilter);
+	Bind_('/', ctStandard, aFind);
+	Bind_('/', ctStandard, aFindItemForward);
+	Bind_('?', ctStandard, aFind);
+	Bind_('?', ctStandard, aFindItemBackward);
+	Bind_('.', ctStandard, aNextFoundItem);
+	Bind_(',', ctStandard, aPreviousFoundItem);
+	Bind_('w', ctStandard, aToggleFindMode);
+	Bind_('e', ctStandard, aEditSong);
+	Bind_('e', ctStandard, aEditLibraryTag);
+	Bind_('e', ctStandard, aEditLibraryAlbum);
+	Bind_('e', ctStandard, aEditDirectoryName);
+	Bind_('e', ctStandard, aEditPlaylistName);
+	Bind_('e', ctStandard, aEditLyrics);
+	Bind_('i', ctStandard, aShowSongInfo);
+	Bind_('I', ctStandard, aShowArtistInfo);
+	Bind_('g', ctStandard, aJumpToPositionInSong);
+	Bind_('l', ctStandard, aShowLyrics);
+	Bind_('v', ctStandard, aReverseSelection);
+	Bind_('V', ctStandard, aDeselectItems);
+	Bind_('B', ctStandard, aSelectAlbum);
+	Bind_('a', ctStandard, aAddSelectedItems);
+	Bind_('c', ctStandard, aClearPlaylist);
+	Bind_('c', ctStandard, aClearMainPlaylist);
+	Bind_('C', ctStandard, aCropPlaylist);
+	Bind_('C', ctStandard, aCropMainPlaylist);
+	Bind_('m', ctStandard, aMoveSortOrderUp);
+	Bind_('m', ctStandard, aMoveSelectedItemsUp);
+	Bind_('n', ctStandard, aMoveSortOrderDown);
+	Bind_('n', ctStandard, aMoveSelectedItemsDown);
+	Bind_('M', ctStandard, aMoveSelectedItemsTo);
+	Bind_('A', ctStandard, aAdd);
+	Bind_('S', ctStandard, aSavePlaylist);
+	Bind_('o', ctStandard, aJumpToPlayingSong);
+	Bind_('G', ctStandard, aJumpToBrowser);
+	Bind_('G', ctStandard, aJumpToPlaylistEditor);
+	Bind_('~', ctStandard, aJumpToMediaLibrary);
+	Bind_('E', ctStandard, aJumpToTagEditor);
+	Bind_('U', ctStandard, aToggleAutoCenter);
+	Bind_('p', ctStandard, aToggleDisplayMode);
+	Bind_('\\', ctStandard, aToggleInterface);
+	Bind_('!', ctStandard, aToggleSeparatorsInPlaylist);
+	Bind_('L', ctStandard, aToggleLyricsFetcher);
+	Bind_('F', ctStandard, aToggleFetchingLyricsInBackground);
+	Bind_(KEY_CTRL_L, ctStandard, aToggleScreenLock);
+	Bind_('`', ctStandard, aToggleBrowserSortMode);
+	Bind_('`', ctStandard, aToggleLibraryTagType);
+	Bind_('`', ctStandard, aRefetchLyrics);
+	Bind_('`', ctStandard, aRefetchArtistInfo);
+	Bind_('`', ctStandard, aAddRandomItems);
+	Bind_(KEY_CTRL_P, ctStandard, aSetSelectedItemsPriority);
+	Bind_('q', ctStandard, aQuit);
+	
+	Bind_('k', ctStandard, aScrollUp);
+	Bind_('j', ctStandard, aScrollDown);
+	Bind_('d', ctStandard, aDelete);
+	Bind_('+', ctStandard, aVolumeUp);
+	Bind_('-', ctStandard, aVolumeDown);
+	Bind_(KEY_F1, ctNCurses, aShowHelp);
+	Bind_(KEY_F2, ctNCurses, aShowPlaylist);
+	Bind_(KEY_F3, ctNCurses, aShowBrowser);
+	Bind_(KEY_F4, ctNCurses, aShowSearchEngine);
+	Bind_(KEY_F5, ctNCurses, aShowMediaLibrary);
+	Bind_(KEY_F6, ctNCurses, aShowPlaylistEditor);
+	Bind_(KEY_F7, ctNCurses, aShowTagEditor);
+	Bind_(KEY_F8, ctNCurses, aShowOutputs);
+	Bind_(KEY_F9, ctNCurses, aShowVisualizer);
+	Bind_(KEY_F10, ctNCurses, aShowClock);
+	Bind_('Q', ctStandard, aQuit);
 }
 
-void NcmpcppConfig::SetDefaults()
+void Configuration::SetDefaults()
 {
 	mpd_host = "localhost";
 	empty_tag = "<empty>";
@@ -396,7 +394,7 @@ void NcmpcppConfig::SetDefaults()
 	screens_seq.push_back(myBrowser);
 }
 
-NcmpcppConfig::NcmpcppConfig()
+Configuration::Configuration()
 {
 #	ifdef WIN32
 	ncmpcpp_directory = GetHomeDirectory() + "ncmpcpp/";
@@ -408,7 +406,7 @@ NcmpcppConfig::NcmpcppConfig()
 	config_file_path = ncmpcpp_directory + "config";
 }
 
-const std::string &NcmpcppConfig::GetHomeDirectory()
+const std::string &Configuration::GetHomeDirectory()
 {
 	if (!home_directory.empty())
 		return home_directory;
@@ -426,7 +424,7 @@ const std::string &NcmpcppConfig::GetHomeDirectory()
 	return home_directory;
 }
 
-void NcmpcppConfig::CheckForCommandLineConfigFilePath(char **argv, int argc)
+void Configuration::CheckForCommandLineConfigFilePath(char **argv, int argc)
 {
 	if (argc < 3)
 		return;
@@ -441,7 +439,7 @@ void NcmpcppConfig::CheckForCommandLineConfigFilePath(char **argv, int argc)
 	}
 }
 
-void NcmpcppConfig::Read()
+void Configuration::Read()
 {
 	std::ifstream f(config_file_path.c_str());
 	std::string cl, v, name;
@@ -1086,7 +1084,7 @@ void NcmpcppConfig::Read()
 	f.close();
 }
 
-void NcmpcppConfig::GenerateColumns()
+void Configuration::GenerateColumns()
 {
 	columns.clear();
 	std::string width;
@@ -1154,7 +1152,7 @@ void NcmpcppConfig::GenerateColumns()
 		*song_in_columns_to_string_format.rbegin() = '}';
 }
 
-void NcmpcppConfig::MakeProperPath(std::string &dir)
+void Configuration::MakeProperPath(std::string &dir)
 {
 	if (dir.empty())
 		return;
