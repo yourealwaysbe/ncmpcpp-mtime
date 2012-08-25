@@ -133,11 +133,9 @@ void CreateDir(const std::string &dir)
 
 void KeyConfiguration::GenerateBindings()
 {
-#	define BIND(key, action) Bindings.insert(std::make_pair(key, Action::Get(action)))
-
     // until we get the keys file back
-    BIND('h',       aPreviousColumn);
-	BIND('l',       aNextColumn);
+    Bind_('h', ctStandard, aPreviousColumn);
+	Bind_('l', ctStandard, aNextColumn);
 
     // the usual
 	Bind_(KEY_MOUSE, ctNCurses, aMouseEvent);
