@@ -25,7 +25,9 @@
 #else
 # include <sys/stat.h>
 #endif // WIN32
+#include <algorithm>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -46,22 +48,46 @@
 #include "settings.h"
 #include "tag_editor.h"
 #include "visualizer.h"
+#include "utility/type_conversions.h"
 
 #ifdef HAVE_LANGINFO_H
 # include <langinfo.h>
 #endif
 
 Configuration Config;
-KeyConfiguration Keys;
 
 namespace
 {
-	Border IntoBorder(const std::string &color)
+	NC::Color stringToColor(const std::string &color)
 	{
-		return Border(IntoColor(color));
+		NC::Color result = NC::clDefault;
+		
+		if (color == "black")
+			result = NC::clBlack;
+		else if (color == "red")
+			result = NC::clRed;
+		else if (color == "green")
+			result = NC::clGreen;
+		else if (color == "yellow")
+			result = NC::clYellow;
+		else if (color == "blue")
+			result = NC::clBlue;
+		else if (color == "magenta")
+			result = NC::clMagenta;
+		else if (color == "cyan")
+			result = NC::clCyan;
+		else if (color == "white")
+			result = NC::clWhite;
+		
+		return result;
 	}
 	
-	BasicScreen *IntoScreen(int n)
+	NC::Border stringToBorder(const std::string &border)
+	{
+		return NC::Border(stringToColor(border));
+	}
+	
+	BasicScreen *intToScreen(int n)
 	{
 		switch (n)
 		{
@@ -104,7 +130,7 @@ namespace
 		if (equal == std::string::npos)
 			return "";
 		std::string result = s.substr(0, equal);
-		Trim(result);
+		trim(result);
 		return result;
 	}
 	
@@ -131,146 +157,6 @@ void CreateDir(const std::string &dir)
 	);
 }
 
-void KeyConfiguration::GenerateBindings()
-{
-    // until we get the keys file back
-    Bind_('h', ctStandard, aPreviousColumn);
-	Bind_('l', ctStandard, aNextColumn);
-
-    // the usual
-	Bind_(KEY_MOUSE, ctNCurses, aMouseEvent);
-	Bind_(KEY_UP, ctNCurses, aScrollUp);
-	Bind_(KEY_DOWN, ctNCurses, aScrollDown);
-	Bind_('[', ctStandard, aScrollUpAlbum);
-	Bind_(']', ctStandard, aScrollDownAlbum);
-	Bind_('{', ctStandard, aScrollUpArtist);
-	Bind_('}', ctStandard, aScrollDownArtist);
-	Bind_(KEY_PPAGE, ctNCurses, aPageUp);
-	Bind_(KEY_NPAGE, ctNCurses, aPageDown);
-	Bind_(KEY_HOME, ctNCurses, aMoveHome);
-	Bind_(KEY_END, ctNCurses, aMoveEnd);
-	Bind_(KEY_SPACE, ctStandard, aPressSpace);
-	Bind_(KEY_ENTER, ctStandard, aPressEnter);
-	Bind_(KEY_DC, ctNCurses, aDelete);
-	Bind_(KEY_RIGHT, ctNCurses, aNextColumn);
-	Bind_(KEY_RIGHT, ctNCurses, aSlaveScreen);
-	Bind_(KEY_RIGHT, ctNCurses, aVolumeUp);
-	Bind_(KEY_LEFT, ctNCurses, aPreviousColumn);
-	Bind_(KEY_LEFT, ctNCurses, aMasterScreen);
-	Bind_(KEY_LEFT, ctNCurses, aVolumeDown);
-	Bind_(KEY_TAB, ctStandard, aNextScreen);
-	Bind_(KEY_SHIFT_TAB, ctNCurses, aPreviousScreen);
-	Bind_('1', ctStandard, aShowHelp);
-	Bind_('2', ctStandard, aShowPlaylist);
-	Bind_('3', ctStandard, aShowBrowser);
-	Bind_('4', ctStandard, aShowSearchEngine);
-	Bind_('5', ctStandard, aShowMediaLibrary);
-	Bind_('6', ctStandard, aShowPlaylistEditor);
-	Bind_('7', ctStandard, aShowTagEditor);
-	Bind_('8', ctStandard, aShowOutputs);
-	Bind_('9', ctStandard, aShowVisualizer);
-	Bind_('0', ctStandard, aShowClock);
-	Bind_('@', ctStandard, aShowServerInfo);
-	Bind_('s', ctStandard, aStop);
-	Bind_('P', ctStandard, aPause);
-	Bind_('>', ctStandard, aNextSong);
-	Bind_('<', ctStandard, aPreviousSong);
-	Bind_(KEY_CTRL_H, ctStandard, aJumpToParentDir);
-	Bind_(KEY_CTRL_H, ctStandard, aReplaySong);
-	Bind_(KEY_BACKSPACE, ctNCurses, aJumpToParentDir);
-	Bind_(KEY_BACKSPACE, ctNCurses, aReplaySong);
-	Bind_(KEY_BACKSPACE_2, ctStandard, aJumpToParentDir);
-	Bind_(KEY_BACKSPACE_2, ctStandard, aReplaySong);
-	Bind_('f', ctStandard, aSeekForward);
-	Bind_('b', ctStandard, aSeekBackward);
-	Bind_('r', ctStandard, aToggleRepeat);
-	Bind_('z', ctStandard, aToggleRandom);
-	Bind_('y', ctStandard, aSaveTagChanges);
-	Bind_('y', ctStandard, aStartSearching);
-	Bind_('y', ctStandard, aToggleSingle);
-	Bind_('R', ctStandard, aToggleConsume);
-	Bind_('Y', ctStandard, aToggleReplayGainMode);
-	Bind_('t', ctStandard, aToggleSpaceMode);
-	Bind_('T', ctStandard, aToggleAddMode);
-	Bind_('|', ctStandard, aToggleMouse);
-	Bind_('#', ctStandard, aToggleBitrateVisibility);
-	Bind_('Z', ctStandard, aShuffle);
-	Bind_('x', ctStandard, aToggleCrossfade);
-	Bind_('X', ctStandard, aSetCrossfade);
-	Bind_('u', ctStandard, aUpdateDatabase);
-	Bind_(KEY_CTRL_V, ctStandard, aSortPlaylist);
-	Bind_(KEY_CTRL_R, ctStandard, aReversePlaylist);
-	Bind_(KEY_CTRL_F, ctStandard, aApplyFilter);
-	Bind_(KEY_CTRL_G, ctStandard, aDisableFilter);
-	Bind_('/', ctStandard, aFind);
-	Bind_('/', ctStandard, aFindItemForward);
-	Bind_('?', ctStandard, aFind);
-	Bind_('?', ctStandard, aFindItemBackward);
-	Bind_('.', ctStandard, aNextFoundItem);
-	Bind_(',', ctStandard, aPreviousFoundItem);
-	Bind_('w', ctStandard, aToggleFindMode);
-	Bind_('e', ctStandard, aEditSong);
-	Bind_('e', ctStandard, aEditLibraryTag);
-	Bind_('e', ctStandard, aEditLibraryAlbum);
-	Bind_('e', ctStandard, aEditDirectoryName);
-	Bind_('e', ctStandard, aEditPlaylistName);
-	Bind_('e', ctStandard, aEditLyrics);
-	Bind_('i', ctStandard, aShowSongInfo);
-	Bind_('I', ctStandard, aShowArtistInfo);
-	Bind_('g', ctStandard, aJumpToPositionInSong);
-	Bind_('l', ctStandard, aShowLyrics);
-	Bind_('v', ctStandard, aReverseSelection);
-	Bind_('V', ctStandard, aDeselectItems);
-	Bind_('B', ctStandard, aSelectAlbum);
-	Bind_('a', ctStandard, aAddSelectedItems);
-	Bind_('c', ctStandard, aClearPlaylist);
-	Bind_('c', ctStandard, aClearMainPlaylist);
-	Bind_('C', ctStandard, aCropPlaylist);
-	Bind_('C', ctStandard, aCropMainPlaylist);
-	Bind_('m', ctStandard, aMoveSortOrderUp);
-	Bind_('m', ctStandard, aMoveSelectedItemsUp);
-	Bind_('n', ctStandard, aMoveSortOrderDown);
-	Bind_('n', ctStandard, aMoveSelectedItemsDown);
-	Bind_('M', ctStandard, aMoveSelectedItemsTo);
-	Bind_('A', ctStandard, aAdd);
-	Bind_('S', ctStandard, aSavePlaylist);
-	Bind_('o', ctStandard, aJumpToPlayingSong);
-	Bind_('G', ctStandard, aJumpToBrowser);
-	Bind_('G', ctStandard, aJumpToPlaylistEditor);
-	Bind_('~', ctStandard, aJumpToMediaLibrary);
-	Bind_('E', ctStandard, aJumpToTagEditor);
-	Bind_('U', ctStandard, aToggleAutoCenter);
-	Bind_('p', ctStandard, aToggleDisplayMode);
-	Bind_('\\', ctStandard, aToggleInterface);
-	Bind_('!', ctStandard, aToggleSeparatorsInPlaylist);
-	Bind_('L', ctStandard, aToggleLyricsFetcher);
-	Bind_('F', ctStandard, aToggleFetchingLyricsInBackground);
-	Bind_(KEY_CTRL_L, ctStandard, aToggleScreenLock);
-	Bind_('`', ctStandard, aToggleBrowserSortMode);
-	Bind_('`', ctStandard, aToggleLibraryTagType);
-	Bind_('`', ctStandard, aRefetchLyrics);
-	Bind_('`', ctStandard, aRefetchArtistInfo);
-	Bind_('`', ctStandard, aAddRandomItems);
-	Bind_(KEY_CTRL_P, ctStandard, aSetSelectedItemsPriority);
-	Bind_('q', ctStandard, aQuit);
-	
-	Bind_('k', ctStandard, aScrollUp);
-	Bind_('j', ctStandard, aScrollDown);
-	Bind_('d', ctStandard, aDelete);
-	Bind_('+', ctStandard, aVolumeUp);
-	Bind_('-', ctStandard, aVolumeDown);
-	Bind_(KEY_F1, ctNCurses, aShowHelp);
-	Bind_(KEY_F2, ctNCurses, aShowPlaylist);
-	Bind_(KEY_F3, ctNCurses, aShowBrowser);
-	Bind_(KEY_F4, ctNCurses, aShowSearchEngine);
-	Bind_(KEY_F5, ctNCurses, aShowMediaLibrary);
-	Bind_(KEY_F6, ctNCurses, aShowPlaylistEditor);
-	Bind_(KEY_F7, ctNCurses, aShowTagEditor);
-	Bind_(KEY_F8, ctNCurses, aShowOutputs);
-	Bind_(KEY_F9, ctNCurses, aShowVisualizer);
-	Bind_(KEY_F10, ctNCurses, aShowClock);
-	Bind_('Q', ctStandard, aQuit);
-}
 
 void Configuration::SetDefaults()
 {
@@ -287,31 +173,31 @@ void Configuration::SetDefaults()
 	tag_editor_album_format = "{{(%y) }%b}";
 	new_header_first_line = "{$b$1$aqqu$/a$9 {%t}|{%f} $1$atqq$/a$9$/b}";
 	new_header_second_line = "{{{$4$b%a$/b$9}{ - $7%b$9}{ ($4%y$9)}}|{%D}}";
-	browser_playlist_prefix << clRed << "(playlist)" << clEnd << ' ';
+	browser_playlist_prefix << NC::clRed << "(playlist)" << NC::clEnd << ' ';
 	progressbar = U("=>\0");
 	visualizer_chars = U("◆│");
 	pattern = "%n - %t";
-	selected_item_prefix << clMagenta;
-	selected_item_suffix << clEnd;
-	now_playing_prefix << fmtBold;
-	now_playing_suffix << fmtBoldEnd;
-	color1 = clWhite;
-	color2 = clGreen;
-	empty_tags_color = clCyan;
-	header_color = clDefault;
-	volume_color = clDefault;
-	state_line_color = clDefault;
-	state_flags_color = clDefault;
-	main_color = clYellow;
+	selected_item_prefix << NC::clMagenta;
+	selected_item_suffix << NC::clEnd;
+	now_playing_prefix << NC::fmtBold;
+	now_playing_suffix << NC::fmtBoldEnd;
+	color1 = NC::clWhite;
+	color2 = NC::clGreen;
+	empty_tags_color = NC::clCyan;
+	header_color = NC::clDefault;
+	volume_color = NC::clDefault;
+	state_line_color = NC::clDefault;
+	state_flags_color = NC::clDefault;
+	main_color = NC::clYellow;
 	main_highlight_color = main_color;
-	progressbar_color = clDefault;
-	progressbar_elapsed_color = clDefault;
-	statusbar_color = clDefault;
-	alternative_ui_separator_color = clBlack;
-	active_column_color = clRed;
-	window_border = brGreen;
-	active_window_border = brRed;
-	visualizer_color = clYellow;
+	progressbar_color = NC::clDefault;
+	progressbar_elapsed_color = NC::clDefault;
+	statusbar_color = NC::clDefault;
+	alternative_ui_separator_color = NC::clBlack;
+	active_column_color = NC::clRed;
+	window_border = NC::brGreen;
+	active_window_border = NC::brRed;
+	visualizer_color = NC::clYellow;
 	media_lib_primary_tag = MPD_TAG_ARTIST;
 	enable_idle_notifications = true;
 	colors_enabled = true;
@@ -332,7 +218,6 @@ void Configuration::SetDefaults()
 	wrapped_search = true;
 	space_selects = false;
 	ncmpc_like_songs_adding = false;
-	albums_in_tag_editor = false;
 	incremental_seeking = true;
 	now_playing_lyrics = false;
 	fetch_lyrics_in_background = false;
@@ -373,7 +258,7 @@ void Configuration::SetDefaults()
 	playlist_disable_highlight_delay = 5;
 	message_delay_time = 4;
 	lyrics_db = 0;
-	regex_type = 0;
+	regex_type = REG_ICASE;
 	lines_scrolled = 2;
 	search_engine_default_search_mode = 0;
 	visualizer_sync_interval = 30;
@@ -452,7 +337,7 @@ void Configuration::Read()
 		if (!cl.empty() && cl[0] != '#')
 		{
 			name = GetOptionName(cl);
-			v = GetLineValue(cl);
+			v = getEnclosedString(cl, '"', '"', 0);
 			
 			if (name == "ncmpcpp_directory")
 			{
@@ -495,33 +380,33 @@ void Configuration::Read()
 			}
 			else if (name == "mpd_port")
 			{
-				if (StrToInt(v))
-					mpd_port = StrToInt(v);
+				if (stringToInt(v))
+					mpd_port = stringToInt(v);
 			}
 			else if (name == "mpd_connection_timeout")
 			{
-				if (StrToInt(v))
-					mpd_connection_timeout = StrToInt(v);
+				if (stringToInt(v))
+					mpd_connection_timeout = stringToInt(v);
 			}
 			else if (name == "mpd_crossfade_time")
 			{
-				if (StrToInt(v) > 0)
-					crossfade_time = StrToInt(v);
+				if (stringToInt(v) > 0)
+					crossfade_time = stringToInt(v);
 			}
 			else if (name == "seek_time")
 			{
-				if (StrToInt(v) > 0)
-					seek_time = StrToInt(v);
+				if (stringToInt(v) > 0)
+					seek_time = stringToInt(v);
 			}
 			else if (name == "playlist_disable_highlight_delay")
 			{
-				if (StrToInt(v) >= 0)
-					playlist_disable_highlight_delay = StrToInt(v);
+				if (stringToInt(v) >= 0)
+					playlist_disable_highlight_delay = stringToInt(v);
 			}
 			else if (name == "message_delay_time")
 			{
-				if (StrToInt(v) > 0)
-					message_delay_time = StrToInt(v);
+				if (stringToInt(v) > 0)
+					message_delay_time = stringToInt(v);
 			}
 			else if (name == "song_list_format")
 			{
@@ -548,9 +433,9 @@ void Configuration::Read()
 					// make version without colors
 					if (song_status_format.find("$") != std::string::npos)
 					{
-						Buffer status_no_colors;
+						NC::Buffer status_no_colors;
 						String2Buffer(song_status_format, status_no_colors);
-						song_status_format_no_colors = status_no_colors.Str();
+						song_status_format_no_colors = status_no_colors.str();
 					}
 					else
 						song_status_format_no_colors = song_status_format;
@@ -625,7 +510,7 @@ void Configuration::Read()
 			{
 				if (!v.empty())
 				{
-					browser_playlist_prefix.Clear();
+					browser_playlist_prefix.clear();
 					String2Buffer(v, browser_playlist_prefix);
 				}
 			}
@@ -661,47 +546,47 @@ void Configuration::Read()
 			{
 				if (!v.empty())
 				{
-					selected_item_prefix.Clear();
+					selected_item_prefix.clear();
 					String2Buffer(v, selected_item_prefix);
-					selected_item_prefix_length = Window::Length(TO_WSTRING(selected_item_prefix.Str()));
+					selected_item_prefix_length = NC::Window::length(TO_WSTRING(selected_item_prefix.str()));
 				}
 			}
 			else if (name == "selected_item_suffix")
 			{
 				if (!v.empty())
 				{
-					selected_item_suffix.Clear();
+					selected_item_suffix.clear();
 					String2Buffer(v, selected_item_suffix);
-					selected_item_suffix_length = Window::Length(TO_WSTRING(selected_item_suffix.Str()));
+					selected_item_suffix_length = NC::Window::length(TO_WSTRING(selected_item_suffix.str()));
 				}
 			}
 			else if (name == "now_playing_prefix")
 			{
 				if (!v.empty())
 				{
-					now_playing_prefix.Clear();
+					now_playing_prefix.clear();
 					String2Buffer(v, now_playing_prefix);
-					now_playing_prefix_length = Window::Length(TO_WSTRING(now_playing_prefix.Str()));
+					now_playing_prefix_length = NC::Window::length(TO_WSTRING(now_playing_prefix.str()));
 				}
 			}
 			else if (name == "now_playing_suffix")
 			{
 				if (!v.empty())
 				{
-					now_playing_suffix.Clear();
+					now_playing_suffix.clear();
 					String2Buffer(TO_WSTRING(v), now_playing_suffix);
-					now_playing_suffix_length = Window::Length(now_playing_suffix.Str());
+					now_playing_suffix_length = NC::Window::length(now_playing_suffix.str());
 				}
 			}
 			else if (name == "color1")
 			{
 				if (!v.empty())
-					color1 = IntoColor(v);
+					color1 = stringToColor(v);
 			}
 			else if (name == "color2")
 			{
 				if (!v.empty())
-					color2 = IntoColor(v);
+					color2 = stringToColor(v);
 			}
 			else if (name == "mpd_communication_mode")
 			{
@@ -775,7 +660,7 @@ void Configuration::Read()
 							++it;
 						if (it == v.end())
 							break;
-						if (BasicScreen *screen = IntoScreen(atoi(&*it)))
+						if (BasicScreen *screen = intToScreen(atoi(&*it)))
 							screens_seq.push_back(screen);
 						while (it != v.end() && isdigit(*it))
 							++it;
@@ -786,7 +671,7 @@ void Configuration::Read()
 			}
 			else if (name == "startup_screen")
 			{
-				startup_screen = IntoScreen(atoi(v.c_str()));
+				startup_screen = intToScreen(atoi(v.c_str()));
 				if (!startup_screen)
 					startup_screen = myPlaylist;
 			}
@@ -805,10 +690,6 @@ void Configuration::Read()
 			else if (name == "default_space_mode")
 			{
 				space_selects = v == "select";
-			}
-			else if (name == "default_tag_editor_left_col")
-			{
-				albums_in_tag_editor = v == "albums";
 			}
 			else if (name == "incremental_seeking")
 			{
@@ -934,25 +815,26 @@ void Configuration::Read()
 			}
 			else if (name == "regular_expressions")
 			{
-				regex_type = REG_EXTENDED * (v != "basic");
+				if (v != "basic")
+					regex_type |= REG_EXTENDED;
 			}
 			else if (name == "lines_scrolled")
 			{
 				if (!v.empty())
-					lines_scrolled = StrToInt(v);
+					lines_scrolled = stringToInt(v);
 			}
 			else if (name == "search_engine_default_search_mode")
 			{
 				if (!v.empty())
 				{
-					unsigned mode = StrToInt(v);
+					unsigned mode = stringToInt(v);
 					if (--mode < 3)
 						search_engine_default_search_mode = mode;
 				}
 			}
 			else if (name == "visualizer_sync_interval")
 			{
-				unsigned interval = StrToInt(v);
+				unsigned interval = stringToInt(v);
 				if (interval)
 					visualizer_sync_interval = interval;
 			}
@@ -967,7 +849,7 @@ void Configuration::Read()
 			}
 			else if (name == "locked_screen_width_part")
 			{
-				int part = StrToInt(v);
+				int part = stringToInt(v);
 				if (part)
 					locked_screen_width_part = part/100.0;
 			}
@@ -997,82 +879,82 @@ void Configuration::Read()
 			else if (name == "empty_tag_color")
 			{
 				if (!v.empty())
-					empty_tags_color = IntoColor(v);
+					empty_tags_color = stringToColor(v);
 			}
 			else if (name == "header_window_color")
 			{
 				if (!v.empty())
-					header_color = IntoColor(v);
+					header_color = stringToColor(v);
 			}
 			else if (name == "volume_color")
 			{
 				if (!v.empty())
-					volume_color = IntoColor(v);
+					volume_color = stringToColor(v);
 			}
 			else if (name == "state_line_color")
 			{
 				if (!v.empty())
-					state_line_color = IntoColor(v);
+					state_line_color = stringToColor(v);
 			}
 			else if (name == "state_flags_color")
 			{
 				if (!v.empty())
-					state_flags_color = IntoColor(v);
+					state_flags_color = stringToColor(v);
 			}
 			else if (name == "main_window_color")
 			{
 				if (!v.empty())
-					main_color = IntoColor(v);
+					main_color = stringToColor(v);
 			}
 			else if (name == "main_window_highlight_color")
 			{
 				if (!v.empty())
-					main_highlight_color = IntoColor(v);
+					main_highlight_color = stringToColor(v);
 			}
 			else if (name == "progressbar_color")
 			{
 				if (!v.empty())
-					progressbar_color = IntoColor(v);
+					progressbar_color = stringToColor(v);
 			}
 			else if (name == "progressbar_elapsed_color")
 			{
 				if (!v.empty())
-					progressbar_elapsed_color = IntoColor(v);
+					progressbar_elapsed_color = stringToColor(v);
 			}
 			else if (name == "statusbar_color")
 			{
 				if (!v.empty())
-					statusbar_color = IntoColor(v);
+					statusbar_color = stringToColor(v);
 			}
 			else if (name == "alternative_ui_separator_color")
 			{
 				if (!v.empty())
-					alternative_ui_separator_color = IntoColor(v);
+					alternative_ui_separator_color = stringToColor(v);
 			}
 			else if (name == "active_column_color")
 			{
 				if (!v.empty())
-					active_column_color = IntoColor(v);
+					active_column_color = stringToColor(v);
 			}
 			else if (name == "visualizer_color")
 			{
 				if (!v.empty())
-					visualizer_color = IntoColor(v);
+					visualizer_color = stringToColor(v);
 			}
 			else if (name == "window_border_color")
 			{
 				if (!v.empty())
-					window_border = IntoBorder(v);
+					window_border = stringToBorder(v);
 			}
 			else if (name == "active_window_border")
 			{
 				if (!v.empty())
-					active_window_border = IntoBorder(v);
+					active_window_border = stringToBorder(v);
 			}
 			else if (name == "media_library_left_column")
 			{
 				if (!v.empty())
-					media_lib_primary_tag = IntoTagItem(v[0]);
+					media_lib_primary_tag = charToTagType(v[0]);
 			}
 			else if (name == "media_library_sort_by_mtime")
 			{
@@ -1089,11 +971,12 @@ void Configuration::GenerateColumns()
 {
 	columns.clear();
 	std::string width;
-	while (!(width = GetLineValue(song_list_columns_format, '(', ')', 1)).empty())
+	size_t pos = 0;
+	while (!(width = getEnclosedString(song_list_columns_format, '(', ')', &pos)).empty())
 	{
 		Column col;
-		col.color = IntoColor(GetLineValue(song_list_columns_format, '[', ']', 1));
-		std::string tag_type = GetLineValue(song_list_columns_format, '{', '}', 1);
+		col.color = stringToColor(getEnclosedString(song_list_columns_format, '[', ']', &pos));
+		std::string tag_type = getEnclosedString(song_list_columns_format, '{', '}', &pos);
 		
 		col.fixed = *width.rbegin() == 'f';
 		
@@ -1131,7 +1014,7 @@ void Configuration::GenerateColumns()
 		else // empty column
 			col.display_empty_tag = 0;
 		
-		col.width = StrToInt(width);
+		col.width = stringToInt(width);
 		columns.push_back(col);
 	}
 	
@@ -1155,7 +1038,7 @@ void Configuration::GenerateColumns()
 	// generate format for converting tags in columns to string for Playlist::SongInColumnsToString()
 	char tag[] = "{% }|";
 	song_in_columns_to_string_format = "{";
-	for (std::vector<Column>::const_iterator it = columns.begin(); it != columns.end(); ++it)
+	for (auto it = columns.begin(); it != columns.end(); ++it)
 	{
 		for (std::string::const_iterator j = it->type.begin(); j != it->type.end(); ++j)
 		{
@@ -1176,7 +1059,7 @@ void Configuration::MakeProperPath(std::string &dir)
 		return;
 	if (dir[0] == '~')
 		dir.replace(0, 1, home_directory);
-	replace(dir.begin(), dir.end(), '\\', '/');
+	std::replace(dir.begin(), dir.end(), '\\', '/');
 	if (*dir.rbegin() != '/')
 		dir += '/';
 }

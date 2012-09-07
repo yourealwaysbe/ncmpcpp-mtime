@@ -21,40 +21,36 @@
 #ifndef _DISPLAY_H
 #define _DISPLAY_H
 
-#include "ncmpcpp.h"
+#include "interfaces.h"
 #include "menu.h"
-#include "mpdpp.h"
-#include "screen.h"
+#include "mutable_song.h"
+#include "search_engine.h"
 
 namespace Display
 {
-	struct ScreenFormat
-	{
-		BasicScreen *screen;
-		std::string *format;
-	};
-	
 	std::string Columns(size_t);
 	
-	template <typename T> void Generic(const T &t, void *, Menu<T> *menu)
+	template <typename T> void Default(NC::Menu<T> &menu)
 	{
-		*menu << t;
+		menu << menu.drawn()->value();
 	}
 	
-	template <typename A, typename B> void Pairs(const std::pair<A, B> &pair, void *, Menu< std::pair<A, B> > *menu)
+	template <typename A, typename B> void Pair(NC::Menu< std::pair<A, B> > &menu)
 	{
-		*menu << pair.first;
+		menu << menu.drawn()->value().first;
 	}
 	
-	void SongsInColumns(const MPD::Song &, void *, Menu<MPD::Song> *);
+	void SongsInColumns(NC::Menu<MPD::Song> &menu, HasSongs *screen);
 	
-	void Songs(const MPD::Song &, void *, Menu<MPD::Song> *);
+	void Songs(NC::Menu<MPD::Song> &menu, HasSongs *screen, const std::string &format);
 	
-	void Tags(const MPD::Song &, void *, Menu<MPD::Song> *);
+	void Tags(NC::Menu<MPD::MutableSong> &menu);
 	
-	void SearchEngine(const std::pair<Buffer *, MPD::Song *> &, void *, Menu< std::pair<Buffer *, MPD::Song *> > *);
+	void Outputs(NC::Menu<MPD::Output> &menu);
 	
-	void Items(const MPD::Item &, void *, Menu<MPD::Item> *);
+	void SearchEngine(NC::Menu<SEItem> &menu);
+	
+	void Items(NC::Menu<MPD::Item> &menu);
 }
 
 #endif

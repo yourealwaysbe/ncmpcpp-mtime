@@ -24,15 +24,11 @@
 #include <map>
 #include <set>
 
-#include "ncmpcpp.h"
 
-
-
-bool SortSongsByTrack(MPD::Song *, MPD::Song *);
-bool SortAllTracks(MPD::Song *, MPD::Song *);
 
 struct SearchConstraints
 {
+    SearchConstraints() { }
     SearchConstraints(const std::string &tag, const std::string &album, const std::string &date) : PrimaryTag(tag), Album(album), Date(date) { }
     SearchConstraints(const std::string &album, const std::string &date) : Album(album), Date(date) { }
     
@@ -42,14 +38,13 @@ struct SearchConstraints
 
     bool operator<(const SearchConstraints &a) const;
 };
+
+bool SortSongsByTrack(const MPD::Song &, const MPD::Song &);
+bool SortAllTracks(const MPD::Song &, const MPD::Song &);
+bool SortSearchConstraints(const SearchConstraints &a, const SearchConstraints &b);
+
+
 	
-struct SearchConstraintsSorting
-{
-    bool operator()(const SearchConstraints &a, 
-                    const SearchConstraints &b) const;
-};
-
-
 class MTimeArtistSorting 
 {
     public:

@@ -21,54 +21,110 @@
 #ifndef _SEARCH_ENGINE_H
 #define _SEARCH_ENGINE_H
 
-#include "mpdpp.h"
-#include "ncmpcpp.h"
+#include <cassert>
 
-class SearchEngine : public Screen< Menu< std::pair<Buffer *, MPD::Song *> > >
+#include "interfaces.h"
+#include "mpdpp.h"
+#include "screen.h"
+
+struct SEItem
+{
+	SEItem() : isThisSong(false), itsBuffer(0) { }
+	SEItem(NC::Buffer *buf) : isThisSong(false), itsBuffer(buf) { }
+	SEItem(const MPD::Song &s) : isThisSong(true), itsSong(s) { }
+	SEItem(const SEItem &ei) { *this = ei; }
+	~SEItem() {
+		if (!isThisSong)
+			delete itsBuffer;
+	}
+	
+	NC::Buffer &mkBuffer() {
+		assert(!isThisSong);
+		delete itsBuffer;
+		itsBuffer = new NC::Buffer();
+		return *itsBuffer;
+	}
+	
+	bool isSong() const { return isThisSong; }
+	
+	NC::Buffer &buffer() { assert(!isThisSong && itsBuffer); return *itsBuffer; }
+	MPD::Song &song() { assert(isThisSong); return itsSong; }
+	
+	const NC::Buffer &buffer() const { assert(!isThisSong && itsBuffer); return *itsBuffer; }
+	const MPD::Song &song() const { assert(isThisSong); return itsSong; }
+	
+	SEItem &operator=(const SEItem &se) {
+		if (this == &se)
+			return *this;
+		isThisSong = se.isThisSong;
+		if (se.isThisSong)
+			itsSong = se.itsSong;
+		else if (se.itsBuffer)
+			itsBuffer = new NC::Buffer(*se.itsBuffer);
+		else
+			itsBuffer = 0;
+		return *this;
+	}
+	
+	private:
+		bool isThisSong;
+		
+		NC::Buffer *itsBuffer;
+		MPD::Song itsSong;
+};
+
+class SearchEngine : public Screen< NC::Menu<SEItem> >, public Filterable, public HasSongs, public Searchable
 {
 	public:
-		virtual void Resize();
-		virtual void SwitchTo();
+		// Screen< NC::Menu<SEItem> > implementation
+		virtual void Resize() OVERRIDE;
+		virtual void SwitchTo() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void EnterPressed();
-		virtual void SpacePressed();
-		virtual void MouseButtonPressed(MEVENT);
-		virtual bool isTabbable() { return true; }
+		virtual void Update() OVERRIDE { }
 		
-		virtual MPD::Song *CurrentSong();
-		virtual MPD::Song *GetSong(size_t pos) { return !w->isSeparator(pos) ? w->at(pos).second : 0; }
+		virtual void EnterPressed() OVERRIDE;
+		virtual void SpacePressed() OVERRIDE;
+		virtual void MouseButtonPressed(MEVENT me) OVERRIDE;
 		
-		virtual bool allowsSelection() { return w->Choice() >= StaticOptions; }
-		virtual void ReverseSelection() { w->ReverseSelection(StaticOptions); }
-		virtual void GetSelectedSongs(MPD::SongList &);
+		virtual bool isTabbable() OVERRIDE { return true; }
+		virtual bool isMergable() OVERRIDE { return true; }
 		
-		virtual void ApplyFilter(const std::string &);
+		// Filterable implementation
+		virtual bool allowsFiltering() OVERRIDE;
+		virtual std::string currentFilter() OVERRIDE;
+		virtual void applyFilter(const std::string &filter) OVERRIDE;
 		
-		virtual List *GetList() { return w->Size() >= StaticOptions ? w : 0; }
+		// Searchable implementation
+		virtual bool allowsSearching() OVERRIDE;
+		virtual bool search(const std::string &constraint) OVERRIDE;
+		virtual void nextFound(bool wrap) OVERRIDE;
+		virtual void prevFound(bool wrap) OVERRIDE;
 		
-		virtual bool isMergable() { return true; }
+		// HasSongs implementation
+		virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
 		
-		void UpdateFoundList();
-		void SelectAlbum();
+		virtual bool allowsSelection() OVERRIDE;
+		virtual void reverseSelection() OVERRIDE;
+		virtual MPD::SongList getSelectedSongs() OVERRIDE;
+		
+		// private members
 		
 		static size_t StaticOptions;
 		static size_t SearchButton;
 		static size_t ResetButton;
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return true; }
 		
 	private:
 		void Prepare();
 		void Search();
-		void Reset();
+		void reset();
 		
 		const char **SearchMode;
-		
-		static std::string SearchEngineOptionToString(const std::pair<Buffer *, MPD::Song *> &, void *);
 		
 		static const char *SearchModes[];
 		

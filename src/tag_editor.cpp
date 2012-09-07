@@ -23,6 +23,7 @@
 #ifdef HAVE_TAGLIB_H
 
 #include <fstream>
+#include <sstream>
 #include <stdexcept>
 
 // taglib includes
@@ -31,13 +32,20 @@
 #include "mpegfile.h"
 #include "vorbisfile.h"
 #include "flacfile.h"
+#include "xiphcomment.h"
+#include "fileref.h"
+#include "tag.h"
 
 #include "browser.h"
 #include "charset.h"
 #include "display.h"
 #include "global.h"
+#include "helpers.h"
 #include "song_info.h"
 #include "playlist.h"
+#include "utility/comparators.h"
+
+using namespace std::placeholders;
 
 using Global::myScreen;
 using Global::MainHeight;
@@ -45,94 +53,105 @@ using Global::MainStartY;
 
 TagEditor *myTagEditor = new TagEditor;
 
-std::string TagEditor::PatternsFile = "patterns.list";
-std::list<std::string> TagEditor::Patterns;
+namespace {//
 
-size_t TagEditor::LeftColumnWidth;
-size_t TagEditor::LeftColumnStartX;
-size_t TagEditor::MiddleColumnWidth;
-size_t TagEditor::MiddleColumnStartX;
-size_t TagEditor::RightColumnWidth;
-size_t TagEditor::RightColumnStartX;
+size_t LeftColumnWidth;
+size_t LeftColumnStartX;
+size_t MiddleColumnWidth;
+size_t MiddleColumnStartX;
+size_t RightColumnWidth;
+size_t RightColumnStartX;
 
-size_t TagEditor::FParserDialogWidth;
-size_t TagEditor::FParserDialogHeight;
-size_t TagEditor::FParserWidth;
-size_t TagEditor::FParserWidthOne;
-size_t TagEditor::FParserWidthTwo;
-size_t TagEditor::FParserHeight;
+size_t FParserDialogWidth;
+size_t FParserDialogHeight;
+size_t FParserWidth;
+size_t FParserWidthOne;
+size_t FParserWidthTwo;
+size_t FParserHeight;
+
+std::list<std::string> Patterns;
+std::string PatternsFile = "patterns.list";
+
+std::string CapitalizeFirstLetters(const std::string &s);
+void CapitalizeFirstLetters(MPD::MutableSong &s);
+void LowerAllLetters(MPD::MutableSong &s);
+void GetTagList(TagLib::StringList &list, const MPD::MutableSong &s, MPD::Song::GetFunction f);
+
+template <typename T>
+void WriteID3v2(const TagLib::ByteVector &type, TagLib::ID3v2::Tag *tag, const T &list);
+void WriteXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag);
+
+void GetPatternList();
+void SavePatternList();
+
+MPD::MutableSong::SetFunction IntoSetFunction(char c);
+std::string GenerateFilename(const MPD::MutableSong &s, const std::string &pattern);
+std::string ParseFilename(MPD::MutableSong &s, std::string mask, bool preview);
+
+std::string SongToString(const MPD::MutableSong &s);
+bool DirEntryMatcher(const Regex &rx, const std::pair<std::string, std::string> &dir, bool filter);
+bool SongEntryMatcher(const Regex &rx, const MPD::MutableSong &s);
+
+}
 
 void TagEditor::Init()
 {
 	PatternsFile = Config.ncmpcpp_directory + "patterns.list";
 	SetDimensions(0, COLS);
 	
-	Albums = new Menu<string_pair>(0, MainStartY, LeftColumnWidth, MainHeight, Config.titles_visibility ? "Albums" : "", Config.main_color, brNone);
-	Albums->HighlightColor(Config.active_column_color);
-	Albums->CyclicScrolling(Config.use_cyclic_scrolling);
-	Albums->CenteredCursor(Config.centered_cursor);
-	Albums->SetItemDisplayer(Display::Pairs);
-	Albums->SetGetStringFunction(StringPairToString);
+	Dirs = new NC::Menu< std::pair<std::string, std::string> >(0, MainStartY, LeftColumnWidth, MainHeight, Config.titles_visibility ? "Directories" : "", Config.main_color, NC::brNone);
+	Dirs->setHighlightColor(Config.active_column_color);
+	Dirs->cyclicScrolling(Config.use_cyclic_scrolling);
+	Dirs->centeredCursor(Config.centered_cursor);
+	Dirs->setItemDisplayer(Display::Pair<std::string, std::string>);
 	
-	Dirs = new Menu<string_pair>(0, MainStartY, LeftColumnWidth, MainHeight, Config.titles_visibility ? "Directories" : "", Config.main_color, brNone);
-	Dirs->HighlightColor(Config.active_column_color);
-	Dirs->CyclicScrolling(Config.use_cyclic_scrolling);
-	Dirs->CenteredCursor(Config.centered_cursor);
-	Dirs->SetItemDisplayer(Display::Pairs);
-	Dirs->SetGetStringFunction(StringPairToString);
-	
-	LeftColumn = Config.albums_in_tag_editor ? Albums : Dirs;
-	
-	TagTypes = new Menu<std::string>(MiddleColumnStartX, MainStartY, MiddleColumnWidth, MainHeight, Config.titles_visibility ? "Tag types" : "", Config.main_color, brNone);
-	TagTypes->HighlightColor(Config.main_highlight_color);
-	TagTypes->CyclicScrolling(Config.use_cyclic_scrolling);
-	TagTypes->CenteredCursor(Config.centered_cursor);
-	TagTypes->SetItemDisplayer(Display::Generic);
+	TagTypes = new NC::Menu<std::string>(MiddleColumnStartX, MainStartY, MiddleColumnWidth, MainHeight, Config.titles_visibility ? "Tag types" : "", Config.main_color, NC::brNone);
+	TagTypes->setHighlightColor(Config.main_highlight_color);
+	TagTypes->cyclicScrolling(Config.use_cyclic_scrolling);
+	TagTypes->centeredCursor(Config.centered_cursor);
+	TagTypes->setItemDisplayer(Display::Default<std::string>);
 	
 	for (const SongInfo::Metadata *m = SongInfo::Tags; m->Name; ++m)
-		TagTypes->AddOption(m->Name);
-	TagTypes->AddSeparator();
-	TagTypes->AddOption("Filename");
-	TagTypes->AddSeparator();
+		TagTypes->addItem(m->Name);
+	TagTypes->addSeparator();
+	TagTypes->addItem("Filename");
+	TagTypes->addSeparator();
 	if (Config.titles_visibility)
-		TagTypes->AddOption("Options", 1, 1);
-	TagTypes->AddSeparator();
-	TagTypes->AddOption("Capitalize First Letters");
-	TagTypes->AddOption("lower all letters");
-	TagTypes->AddSeparator();
-	TagTypes->AddOption("Reset");
-	TagTypes->AddOption("Save");
+		TagTypes->addItem("Options", 1, 1);
+	TagTypes->addSeparator();
+	TagTypes->addItem("Capitalize First Letters");
+	TagTypes->addItem("lower all letters");
+	TagTypes->addSeparator();
+	TagTypes->addItem("Reset");
+	TagTypes->addItem("Save");
 	
-	Tags = new Menu<MPD::Song>(RightColumnStartX, MainStartY, RightColumnWidth, MainHeight, Config.titles_visibility ? "Tags" : "", Config.main_color, brNone);
-	Tags->HighlightColor(Config.main_highlight_color);
-	Tags->CyclicScrolling(Config.use_cyclic_scrolling);
-	Tags->CenteredCursor(Config.centered_cursor);
-	Tags->SetSelectPrefix(&Config.selected_item_prefix);
-	Tags->SetSelectSuffix(&Config.selected_item_suffix);
-	Tags->SetItemDisplayer(Display::Tags);
-	Tags->SetItemDisplayerUserData(TagTypes);
-	Tags->SetGetStringFunction(TagToString);
-	Tags->SetGetStringFunctionUserData(TagTypes);
+	Tags = new NC::Menu<MPD::MutableSong>(RightColumnStartX, MainStartY, RightColumnWidth, MainHeight, Config.titles_visibility ? "Tags" : "", Config.main_color, NC::brNone);
+	Tags->setHighlightColor(Config.main_highlight_color);
+	Tags->cyclicScrolling(Config.use_cyclic_scrolling);
+	Tags->centeredCursor(Config.centered_cursor);
+	Tags->setSelectedPrefix(Config.selected_item_prefix);
+	Tags->setSelectedSuffix(Config.selected_item_suffix);
+	Tags->setItemDisplayer(Display::Tags);
 	
-	FParserDialog = new Menu<std::string>((COLS-FParserDialogWidth)/2, (MainHeight-FParserDialogHeight)/2+MainStartY, FParserDialogWidth, FParserDialogHeight, "", Config.main_color, Config.window_border);
-	FParserDialog->CyclicScrolling(Config.use_cyclic_scrolling);
-	FParserDialog->CenteredCursor(Config.centered_cursor);
-	FParserDialog->SetItemDisplayer(Display::Generic);
-	FParserDialog->AddOption("Get tags from filename");
-	FParserDialog->AddOption("Rename files");
-	FParserDialog->AddSeparator();
-	FParserDialog->AddOption("Cancel");
+	FParserDialog = new NC::Menu<std::string>((COLS-FParserDialogWidth)/2, (MainHeight-FParserDialogHeight)/2+MainStartY, FParserDialogWidth, FParserDialogHeight, "", Config.main_color, Config.window_border);
+	FParserDialog->cyclicScrolling(Config.use_cyclic_scrolling);
+	FParserDialog->centeredCursor(Config.centered_cursor);
+	FParserDialog->setItemDisplayer(Display::Default<std::string>);
+	FParserDialog->addItem("Get tags from filename");
+	FParserDialog->addItem("Rename files");
+	FParserDialog->addSeparator();
+	FParserDialog->addItem("Cancel");
 	
-	FParser = new Menu<std::string>((COLS-FParserWidth)/2, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthOne, FParserHeight, "_", Config.main_color, Config.active_window_border);
-	FParser->CyclicScrolling(Config.use_cyclic_scrolling);
-	FParser->CenteredCursor(Config.centered_cursor);
-	FParser->SetItemDisplayer(Display::Generic);
+	FParser = new NC::Menu<std::string>((COLS-FParserWidth)/2, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthOne, FParserHeight, "_", Config.main_color, Config.active_window_border);
+	FParser->cyclicScrolling(Config.use_cyclic_scrolling);
+	FParser->centeredCursor(Config.centered_cursor);
+	FParser->setItemDisplayer(Display::Default<std::string>);
 	
-	FParserLegend = new Scrollpad((COLS-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthTwo, FParserHeight, "Legend", Config.main_color, Config.window_border);
+	FParserLegend = new NC::Scrollpad((COLS-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthTwo, FParserHeight, "Legend", Config.main_color, Config.window_border);
 	
-	FParserPreview = new Scrollpad((COLS-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthTwo, FParserHeight, "Preview", Config.main_color, Config.window_border);
+	FParserPreview = new NC::Scrollpad((COLS-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthTwo, FParserHeight, "Preview", Config.main_color, Config.window_border);
 	
-	w = LeftColumn;
+	w = Dirs;
 	isInitialized = 1;
 }
 
@@ -159,24 +178,22 @@ void TagEditor::Resize()
 	GetWindowResizeParams(x_offset, width);
 	SetDimensions(x_offset, width);
 	
-	Albums->Resize(LeftColumnWidth, MainHeight);
-	Dirs->Resize(LeftColumnWidth, MainHeight);
-	TagTypes->Resize(MiddleColumnWidth, MainHeight);
-	Tags->Resize(RightColumnWidth, MainHeight);
-	FParserDialog->Resize(FParserDialogWidth, FParserDialogHeight);
-	FParser->Resize(FParserWidthOne, FParserHeight);
-	FParserLegend->Resize(FParserWidthTwo, FParserHeight);
-	FParserPreview->Resize(FParserWidthTwo, FParserHeight);
+	Dirs->resize(LeftColumnWidth, MainHeight);
+	TagTypes->resize(MiddleColumnWidth, MainHeight);
+	Tags->resize(RightColumnWidth, MainHeight);
+	FParserDialog->resize(FParserDialogWidth, FParserDialogHeight);
+	FParser->resize(FParserWidthOne, FParserHeight);
+	FParserLegend->resize(FParserWidthTwo, FParserHeight);
+	FParserPreview->resize(FParserWidthTwo, FParserHeight);
 	
-	Albums->MoveTo(LeftColumnStartX, MainStartY);
-	Dirs->MoveTo(LeftColumnStartX, MainStartY);
-	TagTypes->MoveTo(MiddleColumnStartX, MainStartY);
-	Tags->MoveTo(RightColumnStartX, MainStartY);
+	Dirs->moveTo(LeftColumnStartX, MainStartY);
+	TagTypes->moveTo(MiddleColumnStartX, MainStartY);
+	Tags->moveTo(RightColumnStartX, MainStartY);
 	
-	FParserDialog->MoveTo(x_offset+(width-FParserDialogWidth)/2, (MainHeight-FParserDialogHeight)/2+MainStartY);
-	FParser->MoveTo(x_offset+(width-FParserWidth)/2, (MainHeight-FParserHeight)/2+MainStartY);
-	FParserLegend->MoveTo(x_offset+(width-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY);
-	FParserPreview->MoveTo(x_offset+(width-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY);
+	FParserDialog->moveTo(x_offset+(width-FParserDialogWidth)/2, (MainHeight-FParserDialogHeight)/2+MainStartY);
+	FParser->moveTo(x_offset+(width-FParserWidth)/2, (MainHeight-FParserHeight)/2+MainStartY);
+	FParserLegend->moveTo(x_offset+(width-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY);
+	FParserPreview->moveTo(x_offset+(width-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY);
 	
 	if (MainHeight < 5 && (w == FParserDialog || w == FParser || w == FParserHelper)) // screen too low
 		w = TagTypes; // fall back to main columns
@@ -208,131 +225,79 @@ void TagEditor::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = 1;
+	Global::RedrawHeader = true;
 	Refresh();
 }
 
 void TagEditor::Refresh()
 {
-	LeftColumn->Display();
+	Dirs->display();
 	mvvline(MainStartY, MiddleColumnStartX-1, 0, MainHeight);
-	TagTypes->Display();
+	TagTypes->display();
 	mvvline(MainStartY, RightColumnStartX-1, 0, MainHeight);
-	Tags->Display();
+	Tags->display();
 	
 	if (w == FParserDialog)
 	{
-		FParserDialog->Display();
+		FParserDialog->display();
 	}
 	else if (w == FParser || w == FParserHelper)
 	{
-		FParser->Display();
-		FParserHelper->Display();
+		FParser->display();
+		FParserHelper->display();
 	}
 }
 
 void TagEditor::Update()
 {
-	if (LeftColumn->ReallyEmpty())
+	if (Dirs->reallyEmpty())
 	{
-		LeftColumn->Window::Clear();
-		Tags->Clear();
-		MPD::TagList list;
-		if (Config.albums_in_tag_editor)
+		Dirs->Window::clear();
+		Tags->clear();
+		
+		int highlightme = -1;
+		auto dirs = Mpd.GetDirectories(itsBrowsedDir);
+		std::sort(dirs.begin(), dirs.end(), CaseInsensitiveSorting());
+		if (itsBrowsedDir != "/")
 		{
-			*Albums << XY(0, 0) << "Fetching albums...";
-			Albums->Window::Refresh();
-			Mpd.BlockIdle(1); // for the same reason as in media library
-			Mpd.GetList(list, MPD_TAG_ALBUM);
-			for (MPD::TagList::const_iterator it = list.begin(); it != list.end(); ++it)
-			{
-				MPD::SongList l;
-				Mpd.StartSearch(1);
-				Mpd.AddSearch(MPD_TAG_ALBUM, *it);
-				Mpd.CommitSearch(l);
-				if (!l.empty())
-				{
-					l[0]->Localize();
-					Albums->AddOption(std::make_pair(l[0]->toString(Config.tag_editor_album_format), *it));
-				}
-				MPD::FreeSongList(l);
-			}
-			Mpd.BlockIdle(0);
-			Albums->Sort<CaseInsensitiveSorting>();
+			size_t slash = itsBrowsedDir.rfind("/");
+			std::string parent = slash != std::string::npos ? itsBrowsedDir.substr(0, slash) : "/";
+			Dirs->addItem(make_pair("..", parent));
 		}
 		else
+			Dirs->addItem(std::make_pair(".", "/"));
+		for (auto dir = dirs.begin(); dir != dirs.end(); ++dir)
 		{
-			int highlightme = -1;
-			Mpd.GetDirectories(itsBrowsedDir, list);
-			sort(list.begin(), list.end(), CaseInsensitiveSorting());
-			if (itsBrowsedDir != "/")
-			{
-				size_t slash = itsBrowsedDir.rfind("/");
-				std::string parent = slash != std::string::npos ? itsBrowsedDir.substr(0, slash) : "/";
-				Dirs->AddOption(make_pair("[..]", parent));
-			}
-			else
-			{
-				Dirs->AddOption(std::make_pair(".", "/"));
-			}
-			for (MPD::TagList::const_iterator it = list.begin(); it != list.end(); ++it)
-			{
-				size_t slash = it->rfind("/");
-				std::string to_display = slash != std::string::npos ? it->substr(slash+1) : *it;
-				utf_to_locale(to_display);
-				Dirs->AddOption(make_pair(to_display, *it));
-				if (*it == itsHighlightedDir)
-					highlightme = Dirs->Size()-1;
-			}
-			if (highlightme != -1)
-				Dirs->Highlight(highlightme);
+			size_t slash = dir->rfind("/");
+			std::string to_display = slash != std::string::npos ? dir->substr(slash+1) : *dir;
+			Dirs->addItem(make_pair(to_display, *dir));
+			if (*dir == itsHighlightedDir)
+				highlightme = Dirs->size()-1;
 		}
-		LeftColumn->Display();
-		TagTypes->Refresh();
+		if (highlightme != -1)
+			Dirs->highlight(highlightme);
+		
+		Dirs->display();
 	}
 	
-	if (Tags->ReallyEmpty())
+	if (Tags->reallyEmpty())
 	{
-		Tags->Reset();
-		MPD::SongList list;
-		if (Config.albums_in_tag_editor)
-		{
-			if (!Albums->Empty())
-			{
-				Mpd.StartSearch(1);
-				Mpd.AddSearch(MPD_TAG_ALBUM, Albums->Current().second);
-				Mpd.CommitSearch(list);
-				sort(list.begin(), list.end(), CaseInsensitiveSorting());
-				for (MPD::SongList::iterator it = list.begin(); it != list.end(); ++it)
-				{
-					(*it)->Localize();
-					Tags->AddOption(**it);
-				}
-			}
-		}
-		else
-		{
-			Mpd.GetSongs(Dirs->Current().second, list);
-			sort(list.begin(), list.end(), CaseInsensitiveSorting());
-			for (MPD::SongList::const_iterator it = list.begin(); it != list.end(); ++it)
-			{
-				(*it)->Localize();
-				Tags->AddOption(**it);
-			}
-		}
-		MPD::FreeSongList(list);
-		Tags->Window::Clear();
-		Tags->Refresh();
+		Tags->reset();
+		auto songs = Mpd.GetSongs(Dirs->current().value().second);
+		std::sort(songs.begin(), songs.end(), CaseInsensitiveSorting());
+		for (auto s = songs.begin(); s != songs.end(); ++s)
+			Tags->addItem(*s);
+		Tags->refresh();
 	}
 	
-	if (w == TagTypes && TagTypes->Choice() < 13)
+	if (w == TagTypes && TagTypes->choice() < 13)
 	{
-		Tags->Refresh();
+		Tags->refresh();
 	}
-	else if (TagTypes->Choice() >= 13)
+	else if (TagTypes->choice() >= 13)
 	{
-		Tags->Window::Clear();
-		Tags->Window::Refresh();
+		Tags->Window::clear();
+		Tags->Window::refresh();
 	}
 }
 
@@ -342,22 +307,21 @@ void TagEditor::EnterPressed()
 	
 	if (w == Dirs)
 	{
-		MPD::TagList test;
-		Mpd.GetDirectories(LeftColumn->Current().second, test);
-		if (!test.empty())
+		auto dirs = Mpd.GetDirectories(Dirs->current().value().second);
+		if (!dirs.empty())
 		{
 			itsHighlightedDir = itsBrowsedDir;
-			itsBrowsedDir = LeftColumn->Current().second;
-			LeftColumn->Clear();
-			LeftColumn->Reset();
+			itsBrowsedDir = Dirs->current().value().second;
+			Dirs->clear();
+			Dirs->reset();
 		}
 		else
-			ShowMessage("No subdirs found");
+			ShowMessage("No subdirectories found");
 	}
 	else if (w == FParserDialog)
 	{
-		size_t choice = FParserDialog->RealChoice();
-		if (choice == 2) // cancel
+		size_t choice = FParserDialog->choice();
+		if (choice == 3) // cancel
 		{
 			w = TagTypes;
 			Refresh();
@@ -367,107 +331,107 @@ void TagEditor::EnterPressed()
 		
 		// prepare additional windows
 		
-		FParserLegend->Clear();
-		*FParserLegend << "%a - artist\n";
-		*FParserLegend << "%A - album artist\n";
-		*FParserLegend << "%t - title\n";
-		*FParserLegend << "%b - album\n";
-		*FParserLegend << "%y - date\n";
-		*FParserLegend << "%n - track number\n";
-		*FParserLegend << "%g - genre\n";
-		*FParserLegend << "%c - composer\n";
-		*FParserLegend << "%p - performer\n";
-		*FParserLegend << "%d - disc\n";
-		*FParserLegend << "%C - comment\n\n";
-		*FParserLegend << fmtBold << "Files:\n" << fmtBoldEnd;
-		for (MPD::SongList::const_iterator it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
-			*FParserLegend << Config.color2 << " * " << clEnd << (*it)->GetName() << "\n";
-		FParserLegend->Flush();
+		FParserLegend->clear();
+		*FParserLegend << U("%a - artist\n");
+		*FParserLegend << U("%A - album artist\n");
+		*FParserLegend << U("%t - title\n");
+		*FParserLegend << U("%b - album\n");
+		*FParserLegend << U("%y - date\n");
+		*FParserLegend << U("%n - track number\n");
+		*FParserLegend << U("%g - genre\n");
+		*FParserLegend << U("%c - composer\n");
+		*FParserLegend << U("%p - performer\n");
+		*FParserLegend << U("%d - disc\n");
+		*FParserLegend << U("%C - comment\n\n");
+		*FParserLegend << NC::fmtBold << U("Files:\n") << NC::fmtBoldEnd;
+		for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
+			*FParserLegend << Config.color2 << U(" * ") << NC::clEnd << (*it)->getName() << '\n';
+		FParserLegend->flush();
 		
 		if (!Patterns.empty())
 			Config.pattern = Patterns.front();
-		FParser->Clear();
-		FParser->Reset();
-		FParser->AddOption("Pattern: " + Config.pattern);
-		FParser->AddOption("Preview");
-		FParser->AddOption("Legend");
-		FParser->AddSeparator();
-		FParser->AddOption("Proceed");
-		FParser->AddOption("Cancel");
+		FParser->clear();
+		FParser->reset();
+		FParser->addItem("Pattern: " + Config.pattern);
+		FParser->addItem("Preview");
+		FParser->addItem("Legend");
+		FParser->addSeparator();
+		FParser->addItem("Proceed");
+		FParser->addItem("Cancel");
 		if (!Patterns.empty())
 		{
-			FParser->AddSeparator();
-			FParser->AddOption("Recent patterns", 1, 1);
-			FParser->AddSeparator();
+			FParser->addSeparator();
+			FParser->addItem("Recent patterns", 1, 1);
+			FParser->addSeparator();
 			for (std::list<std::string>::const_iterator it = Patterns.begin(); it != Patterns.end(); ++it)
-				FParser->AddOption(*it);
+				FParser->addItem(*it);
 		}
 		
-		FParser->SetTitle(choice == 0 ? "Get tags from filename" : "Rename files");
+		FParser->setTitle(choice == 0 ? "Get tags from filename" : "Rename files");
 		w = FParser;
 		FParserUsePreview = 1;
 		FParserHelper = FParserLegend;
-		FParserHelper->Display();
+		FParserHelper->display();
 	}
 	else if (w == FParser)
 	{
 		bool quit = 0;
-		size_t pos = FParser->RealChoice();
+		size_t pos = FParser->choice();
 		
-		if (pos == 3) // save
+		if (pos == 4) // save
 			FParserUsePreview = 0;
 		
 		if (pos == 0) // change pattern
 		{
 			LockStatusbar();
 			Statusbar() << "Pattern: ";
-			std::string new_pattern = wFooter->GetString(Config.pattern);
+			std::string new_pattern = wFooter->getString(Config.pattern);
 			UnlockStatusbar();
 			if (!new_pattern.empty())
 			{
 				Config.pattern = new_pattern;
-				FParser->at(0) = "Pattern: ";
-				FParser->at(0) += Config.pattern;
+				FParser->at(0).value() = "Pattern: ";
+				FParser->at(0).value() += Config.pattern;
 			}
 		}
-		else if (pos == 1 || pos == 3) // preview or proceed
+		else if (pos == 1 || pos == 4) // preview or proceed
 		{
 			bool success = 1;
 			ShowMessage("Parsing...");
-			FParserPreview->Clear();
-			for (MPD::SongList::iterator it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
+			FParserPreview->clear();
+			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 			{
-				MPD::Song &s = **it;
-				if (FParserDialog->Choice() == 0) // get tags from filename
+				MPD::MutableSong &s = **it;
+				if (FParserDialog->choice() == 0) // get tags from filename
 				{
 					if (FParserUsePreview)
 					{
-						*FParserPreview << fmtBold << s.GetName() << ":\n" << fmtBoldEnd;
-						*FParserPreview << ParseFilename(s, Config.pattern, FParserUsePreview) << "\n";
+						*FParserPreview << NC::fmtBold << s.getName() << U(":\n") << NC::fmtBoldEnd;
+						*FParserPreview << ParseFilename(s, Config.pattern, FParserUsePreview) << '\n';
 					}
 					else
 						ParseFilename(s, Config.pattern, FParserUsePreview);
 				}
 				else // rename files
 				{
-					std::string file = s.GetName();
+					std::string file = s.getName();
 					size_t last_dot = file.rfind(".");
 					std::string extension = file.substr(last_dot);
 					std::string new_file = GenerateFilename(s, "{" + Config.pattern + "}");
 					if (new_file.empty() && !FParserUsePreview)
 					{
-						ShowMessage("File \"%s\" would have an empty name", s.GetName().c_str());
+						ShowMessage("File \"%s\" would have an empty name", s.getName().c_str());
 						FParserUsePreview = 1;
 						success = 0;
 					}
 					if (!FParserUsePreview)
-						s.SetNewName(new_file + extension);
-					*FParserPreview << file << Config.color2 << " -> " << clEnd;
+						s.setNewURI(new_file + extension);
+					*FParserPreview << file << Config.color2 << U(" -> ") << NC::clEnd;
 					if (new_file.empty())
-						*FParserPreview << Config.empty_tags_color << Config.empty_tag << clEnd;
+						*FParserPreview << Config.empty_tags_color << Config.empty_tag << NC::clEnd;
 					else
 						*FParserPreview << new_file << extension;
-					*FParserPreview << "\n\n";
+					*FParserPreview << '\n' << '\n';
 					if (!success)
 						break;
 				}
@@ -475,8 +439,8 @@ void TagEditor::EnterPressed()
 			if (FParserUsePreview)
 			{
 				FParserHelper = FParserPreview;
-				FParserHelper->Flush();
-				FParserHelper->Display();
+				FParserHelper->flush();
+				FParserHelper->display();
 			}
 			else if (success)
 			{
@@ -484,22 +448,22 @@ void TagEditor::EnterPressed()
 				Patterns.insert(Patterns.begin(), Config.pattern);
 				quit = 1;
 			}
-			if (pos != 3 || success)
+			if (pos != 4 || success)
 				ShowMessage("Operation finished");
 		}
 		else if (pos == 2) // show legend
 		{
 			FParserHelper = FParserLegend;
-			FParserHelper->Display();
+			FParserHelper->display();
 		}
-		else if (pos == 4) // cancel
+		else if (pos == 5) // cancel
 		{
 			quit = 1;
 		}
 		else // list of patterns
 		{
-			Config.pattern = FParser->Current();
-			FParser->at(0) = "Pattern: " + Config.pattern;
+			Config.pattern = FParser->current().value();
+			FParser->at(0).value() = "Pattern: " + Config.pattern;
 		}
 		
 		if (quit)
@@ -511,35 +475,36 @@ void TagEditor::EnterPressed()
 		}
 	}
 	
-	if ((w != TagTypes && w != Tags) || Tags->Empty()) // after this point we start dealing with tags
+	if ((w != TagTypes && w != Tags) || Tags->empty()) // after this point we start dealing with tags
 		return;
 	
 	EditedSongs.clear();
 	if (Tags->hasSelected()) // if there are selected songs, perform operations only on them
 	{
-		std::vector<size_t> selected;
-		Tags->GetSelected(selected);
-		for (std::vector<size_t>::const_iterator it = selected.begin(); it != selected.end(); ++it)
-			EditedSongs.push_back(&(*Tags)[*it]);
+		for (auto it = Tags->begin(); it != Tags->end(); ++it)
+			if (it->isSelected())
+				EditedSongs.push_back(&it->value());
 	}
 	else
-		for (size_t i = 0; i < Tags->Size(); ++i)
-			EditedSongs.push_back(&(*Tags)[i]);
+	{
+		for (auto it = Tags->begin(); it != Tags->end(); ++it)
+			EditedSongs.push_back(&it->value());
+	}
 	
-	size_t id = TagTypes->RealChoice();
+	size_t id = TagTypes->choice();
 	
 	if (w == TagTypes && id == 5)
 	{
 		bool yes = Action::AskYesNoQuestion("Number tracks?", TraceMpdStatus);
 		if (yes)
 		{
-			MPD::SongList::iterator it = EditedSongs.begin();
+			auto it = EditedSongs.begin();
 			for (unsigned i = 1; i <= EditedSongs.size(); ++i, ++it)
 			{
 				if (Config.tag_editor_extended_numeration)
-					(*it)->SetTrack(IntoStr(i) + "/" + IntoStr(EditedSongs.size()));
+					(*it)->setTrack(unsignedIntTo<std::string>::apply(i) + "/" + unsignedIntTo<std::string>::apply(EditedSongs.size()));
 				else
-					(*it)->SetTrack(i);
+					(*it)->setTrack(unsignedIntTo<std::string>::apply(i));
 			}
 			ShowMessage("Tracks numbered");
 		}
@@ -551,30 +516,30 @@ void TagEditor::EnterPressed()
 	if (id < 11)
 	{
 		MPD::Song::GetFunction get = SongInfo::Tags[id].Get;
-		MPD::Song::SetFunction set = SongInfo::Tags[id].Set;
+		MPD::MutableSong::SetFunction set = SongInfo::Tags[id].Set;
 		if (id > 0 && w == TagTypes)
 		{
 			LockStatusbar();
-			Statusbar() << fmtBold << TagTypes->Current() << fmtBoldEnd << ": ";
-			std::string new_tag = wFooter->GetString(Tags->Current().GetTags(get));
+			Statusbar() << NC::fmtBold << TagTypes->current().value() << NC::fmtBoldEnd << ": ";
+			std::string new_tag = wFooter->getString(Tags->current().value().getTags(get));
 			UnlockStatusbar();
-			for (MPD::SongList::iterator it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
-				(*it)->SetTags(set, new_tag);
+			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
+				(*it)->setTag(set, new_tag);
 		}
 		else if (w == Tags)
 		{
 			LockStatusbar();
-			Statusbar() << fmtBold << TagTypes->Current() << fmtBoldEnd << ": ";
-			std::string new_tag = wFooter->GetString(Tags->Current().GetTags(get));
+			Statusbar() << NC::fmtBold << TagTypes->current().value() << NC::fmtBoldEnd << ": ";
+			std::string new_tag = wFooter->getString(Tags->current().value().getTags(get));
 			UnlockStatusbar();
-			if (new_tag != Tags->Current().GetTags(get))
-				Tags->Current().SetTags(set, new_tag);
-			Tags->Scroll(wDown);
+			if (new_tag != Tags->current().value().getTags(get))
+				Tags->current().value().setTag(set, new_tag);
+			Tags->scroll(NC::wDown);
 		}
 	}
 	else
 	{
-		if (id == 11) // filename related options
+		if (id == 12) // filename related options
 		{
 			if (w == TagTypes)
 			{
@@ -583,55 +548,55 @@ void TagEditor::EnterPressed()
 					ShowMessage("Screen is too small to display additional windows");
 					return;
 				}
-				FParserDialog->Reset();
+				FParserDialog->reset();
 				w = FParserDialog;
 			}
 			else if (w == Tags)
 			{
-				MPD::Song &s = Tags->Current();
-				std::string old_name = s.GetNewName().empty() ? s.GetName() : s.GetNewName();
+				MPD::MutableSong &s = Tags->current().value();
+				std::string old_name = s.getNewURI().empty() ? s.getName() : s.getNewURI();
 				size_t last_dot = old_name.rfind(".");
 				std::string extension = old_name.substr(last_dot);
 				old_name = old_name.substr(0, last_dot);
 				LockStatusbar();
-				Statusbar() << fmtBold << "New filename: " << fmtBoldEnd;
-				std::string new_name = wFooter->GetString(old_name);
+				Statusbar() << NC::fmtBold << "New filename: " << NC::fmtBoldEnd;
+				std::string new_name = wFooter->getString(old_name);
 				UnlockStatusbar();
 				if (!new_name.empty() && new_name != old_name)
-					s.SetNewName(new_name + extension);
-				Tags->Scroll(wDown);
+					s.setNewURI(new_name + extension);
+				Tags->scroll(NC::wDown);
 			}
 		}
-		else if (id == 12) // capitalize first letters
+		else if (id == 16) // capitalize first letters
 		{
 			ShowMessage("Processing...");
-			for (MPD::SongList::iterator it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
+			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 				CapitalizeFirstLetters(**it);
 			ShowMessage("Done");
 		}
-		else if (id == 13) // lower all letters
+		else if (id == 17) // lower all letters
 		{
 			ShowMessage("Processing...");
-			for (MPD::SongList::iterator it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
+			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 				LowerAllLetters(**it);
 			ShowMessage("Done");
 		}
-		else if (id == 14) // reset
+		else if (id == 19) // reset
 		{
-			Tags->Clear();
+			Tags->clear();
 			ShowMessage("Changes reset");
 		}
-		else if (id == 15) // save
+		else if (id == 20) // save
 		{
 			bool success = 1;
 			ShowMessage("Writing changes...");
-			for (MPD::SongList::iterator it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
+			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 			{
-				ShowMessage("Writing tags in \"%s\"...", (*it)->GetName().c_str());
+				ShowMessage("Writing tags in \"%s\"...", (*it)->getName().c_str());
 				if (!WriteTags(**it))
 				{
 					const char msg[] = "Error while writing tags in \"%s\"";
-					ShowMessage(msg, Shorten(TO_WSTRING((*it)->GetFile()), COLS-static_strlen(msg)).c_str());
+					ShowMessage(msg, Shorten(TO_WSTRING((*it)->getURI()), COLS-const_strlen(msg)).c_str());
 					success = 0;
 					break;
 				}
@@ -639,35 +604,26 @@ void TagEditor::EnterPressed()
 			if (success)
 			{
 				ShowMessage("Tags updated");
-				TagTypes->HighlightColor(Config.main_highlight_color);
-				TagTypes->Reset();
-				w->Refresh();
-				w = LeftColumn;
-				LeftColumn->HighlightColor(Config.active_column_color);
-				Mpd.UpdateDirectory(locale_to_utf_cpy(FindSharedDir(Tags)));
+				TagTypes->setHighlightColor(Config.main_highlight_color);
+				TagTypes->reset();
+				w->refresh();
+				w = Dirs;
+				Dirs->setHighlightColor(Config.active_column_color);
+				Mpd.UpdateDirectory(getSharedDirectory(Tags->beginV(), Tags->endV()));
 			}
 			else
-				Tags->Clear();
+				Tags->clear();
 		}
 	}
 }
 
 void TagEditor::SpacePressed()
 {
-	if (w == Tags && !Tags->Empty())
+	if (w == Tags && !Tags->empty())
 	{
-		Tags->Select(Tags->Choice(), !Tags->isSelected());
-		w->Scroll(wDown);
-		return;
+		Tags->current().setSelected(!Tags->current().isSelected());
+		w->scroll(NC::wDown);
 	}
-	if (w != LeftColumn)
-		return;
-	
-	Config.albums_in_tag_editor = !Config.albums_in_tag_editor;
-	w = LeftColumn = Config.albums_in_tag_editor ? Albums : Dirs;
-	ShowMessage("Switched to %s view", Config.albums_in_tag_editor ? "albums" : "directories");
-	LeftColumn->Display();
-	Tags->Clear();
 }
 
 void TagEditor::MouseButtonPressed(MEVENT me)
@@ -683,7 +639,7 @@ void TagEditor::MouseButtonPressed(MEVENT me)
 					EnterPressed();
 			}
 			else
-				Screen<Window>::MouseButtonPressed(me);
+				Screen<NC::Window>::MouseButtonPressed(me);
 		}
 	}
 	else if (w == FParser || w == FParserHelper)
@@ -692,123 +648,200 @@ void TagEditor::MouseButtonPressed(MEVENT me)
 		{
 			if (w != FParser)
 				PrevColumn();
-			if (size_t(me.y) < FParser->Size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
+			if (size_t(me.y) < FParser->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 			{
 				FParser->Goto(me.y);
 				if (me.bstate & BUTTON3_PRESSED)
 					EnterPressed();
 			}
 			else
-				Screen<Window>::MouseButtonPressed(me);
+				Screen<NC::Window>::MouseButtonPressed(me);
 		}
 		else if (FParserHelper->hasCoords(me.x, me.y))
 		{
 			if (w != FParserHelper)
 				NextColumn();
-			reinterpret_cast<Screen<Scrollpad> *>(this)->Screen<Scrollpad>::MouseButtonPressed(me);
+			ScrollpadMouseButtonPressed(FParserHelper, me);
 		}
 	}
-	else if (!LeftColumn->Empty() && LeftColumn->hasCoords(me.x, me.y))
+	else if (!Dirs->empty() && Dirs->hasCoords(me.x, me.y))
 	{
-		if (w != LeftColumn)
+		if (w != Dirs)
 		{
 			PrevColumn();
 			PrevColumn();
 		}
-		if (size_t(me.y) < LeftColumn->Size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
+		if (size_t(me.y) < Dirs->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
-			LeftColumn->Goto(me.y);
+			Dirs->Goto(me.y);
 			if (me.bstate & BUTTON1_PRESSED)
 				EnterPressed();
 			else
 				SpacePressed();
 		}
 		else
-			Screen<Window>::MouseButtonPressed(me);
-		Tags->Clear();
+			Screen<NC::Window>::MouseButtonPressed(me);
+		Tags->clear();
 	}
-	else if (!TagTypes->Empty() && TagTypes->hasCoords(me.x, me.y))
+	else if (!TagTypes->empty() && TagTypes->hasCoords(me.x, me.y))
 	{
 		if (w != TagTypes)
-			w == LeftColumn ? NextColumn() : PrevColumn();
-		if (size_t(me.y) < TagTypes->Size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
+			w == Dirs ? NextColumn() : PrevColumn();
+		if (size_t(me.y) < TagTypes->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			if (!TagTypes->Goto(me.y))
 				return;
-			TagTypes->Refresh();
-			Tags->Refresh();
+			TagTypes->refresh();
+			Tags->refresh();
 			if (me.bstate & BUTTON3_PRESSED)
 				EnterPressed();
 		}
 		else
-			Screen<Window>::MouseButtonPressed(me);
+			Screen<NC::Window>::MouseButtonPressed(me);
 	}
-	else if (!Tags->Empty() && Tags->hasCoords(me.x, me.y))
+	else if (!Tags->empty() && Tags->hasCoords(me.x, me.y))
 	{
 		if (w != Tags)
 		{
 			NextColumn();
 			NextColumn();
 		}
-		if (size_t(me.y) < Tags->Size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
+		if (size_t(me.y) < Tags->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			Tags->Goto(me.y);
-			Tags->Refresh();
+			Tags->refresh();
 			if (me.bstate & BUTTON3_PRESSED)
 				EnterPressed();
 		}
 		else
-			Screen<Window>::MouseButtonPressed(me);
+			Screen<NC::Window>::MouseButtonPressed(me);
 	}
 }
 
-MPD::Song *TagEditor::CurrentSong()
+/***********************************************************************/
+
+bool TagEditor::allowsFiltering()
 {
-	return w == Tags && !Tags->Empty() ? &Tags->Current() : 0;
+	return w == Dirs || w == Tags;
 }
 
-void TagEditor::GetSelectedSongs(MPD::SongList &v)
+std::string TagEditor::currentFilter()
 {
-	if (w != Tags || Tags->Empty())
-		return;
-	std::vector<size_t> selected;
-	Tags->GetSelected(selected);
-	if (selected.empty())
-		selected.push_back(Tags->Choice());
-	for (std::vector<size_t>::const_iterator it = selected.begin(); it != selected.end(); ++it)
-		v.push_back(new MPD::Song(Tags->at(*it)));
+	std::string filter;
+	if (w == Dirs)
+		filter = RegexFilter< std::pair<std::string, std::string> >::currentFilter(*Dirs);
+	else if (w == Tags)
+		filter = RegexFilter<MPD::MutableSong>::currentFilter(*Tags);
+	return filter;
 }
 
-void TagEditor::ApplyFilter(const std::string &s)
+void TagEditor::applyFilter(const std::string &filter)
 {
 	if (w == Dirs)
-		Dirs->ApplyFilter(s, 1, REG_ICASE | Config.regex_type);
-	else if (w == Albums)
-		Albums->ApplyFilter(s, 0, REG_ICASE | Config.regex_type);
+	{
+		Dirs->showAll();
+		auto fun = std::bind(DirEntryMatcher, _1, _2, true);
+		auto rx = RegexFilter< std::pair<std::string, std::string> >(filter, Config.regex_type, fun);
+		Dirs->filter(Dirs->begin(), Dirs->end(), rx);
+	}
 	else if (w == Tags)
-		Tags->ApplyFilter(s, 0, REG_ICASE | Config.regex_type);
+	{
+		Tags->showAll();
+		auto rx = RegexFilter<MPD::MutableSong>(filter, Config.regex_type, SongEntryMatcher);
+		Tags->filter(Tags->begin(), Tags->end(), rx);
+	}
 }
 
-List *TagEditor::GetList()
+/***********************************************************************/
+
+bool TagEditor::allowsSearching()
 {
-	if (w == LeftColumn)
-		return LeftColumn;
-	else if (w == Tags)
-		return Tags;
-	else
-		return 0;
+	return w == Dirs || w == Tags;
 }
+
+bool TagEditor::search(const std::string &constraint)
+{
+	bool result = false;
+	if (w == Dirs)
+	{
+		auto fun = std::bind(DirEntryMatcher, _1, _2, false);
+		auto rx = RegexFilter< std::pair<std::string, std::string> >(constraint, Config.regex_type, fun);
+		result = Dirs->search(Dirs->begin(), Dirs->end(), rx);
+	}
+	else if (w == Tags)
+	{
+		auto rx = RegexFilter<MPD::MutableSong>(constraint, Config.regex_type, SongEntryMatcher);
+		result = Tags->search(Tags->begin(), Tags->end(), rx);
+	}
+	return result;
+}
+
+void TagEditor::nextFound(bool wrap)
+{
+	if (w == Dirs)
+		Dirs->nextFound(wrap);
+	else if (w == Tags)
+		Tags->nextFound(wrap);
+}
+
+void TagEditor::prevFound(bool wrap)
+{
+	if (w == Dirs)
+		Dirs->prevFound(wrap);
+	else if (w == Tags)
+		Tags->prevFound(wrap);
+}
+
+/***********************************************************************/
+
+std::shared_ptr<ProxySongList> TagEditor::getProxySongList()
+{
+	auto ptr = nullProxySongList();
+	if (w == Tags)
+		ptr = mkProxySongList(*Tags, [](NC::Menu<MPD::MutableSong>::Item &item) {
+			return &item.value();
+		});
+	return ptr;
+}
+
+bool TagEditor::allowsSelection()
+{
+	return w == Tags;
+}
+
+void TagEditor::reverseSelection()
+{
+	if (w == Tags)
+		reverseSelectionHelper(Tags->begin(), Tags->end());
+}
+
+MPD::SongList TagEditor::getSelectedSongs()
+{
+	MPD::SongList result;
+	if (w == Tags)
+	{
+		for (auto it = Tags->begin(); it != Tags->end(); ++it)
+			if (it->isSelected())
+				result.push_back(it->value());
+		// if no song was selected, add current one
+		if (result.empty() && !Tags->empty())
+			result.push_back(Tags->current().value());
+	}
+	return result;
+}
+
+/***********************************************************************/
 
 bool TagEditor::isNextColumnAvailable()
 {
-	if (w == LeftColumn)
+	if (w == Dirs)
 	{
-		if (!TagTypes->ReallyEmpty() && !Tags->ReallyEmpty())
+		if (!TagTypes->reallyEmpty() && !Tags->reallyEmpty())
 			return true;
 	}
 	else if (w == TagTypes)
 	{
-		if (!Tags->ReallyEmpty())
+		if (!Tags->reallyEmpty())
 			return true;
 	}
 	else if (w == FParser)
@@ -820,29 +853,29 @@ bool TagEditor::isNextColumnAvailable()
 
 bool TagEditor::NextColumn()
 {
-	if (w == LeftColumn)
+	if (w == Dirs)
 	{
-		LeftColumn->HighlightColor(Config.main_highlight_color);
-		w->Refresh();
+		Dirs->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
 		w = TagTypes;
-		TagTypes->HighlightColor(Config.active_column_color);
+		TagTypes->setHighlightColor(Config.active_column_color);
 		return true;
 	}
-	else if (w == TagTypes && TagTypes->Choice() < 13 && !Tags->ReallyEmpty())
+	else if (w == TagTypes && TagTypes->choice() < 13 && !Tags->reallyEmpty())
 	{
-		TagTypes->HighlightColor(Config.main_highlight_color);
-		w->Refresh();
+		TagTypes->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
 		w = Tags;
-		Tags->HighlightColor(Config.active_column_color);
+		Tags->setHighlightColor(Config.active_column_color);
 		return true;
 	}
 	else if (w == FParser)
 	{
-		FParser->SetBorder(Config.window_border);
-		FParser->Display();
+		FParser->setBorder(Config.window_border);
+		FParser->display();
 		w = FParserHelper;
-		FParserHelper->SetBorder(Config.active_window_border);
-		FParserHelper->Display();
+		FParserHelper->setBorder(Config.active_window_border);
+		FParserHelper->display();
 		return true;
 	}
 	return false;
@@ -852,12 +885,12 @@ bool TagEditor::isPrevColumnAvailable()
 {
 	if (w == Tags)
 	{
-		if (!TagTypes->ReallyEmpty() && !LeftColumn->ReallyEmpty())
+		if (!TagTypes->reallyEmpty() && !Dirs->reallyEmpty())
 			return true;
 	}
 	else if (w == TagTypes)
 	{
-		if (!LeftColumn->ReallyEmpty())
+		if (!Dirs->reallyEmpty())
 			return true;
 	}
 	else if (w == FParserHelper)
@@ -871,27 +904,27 @@ bool TagEditor::PrevColumn()
 {
 	if (w == Tags)
 	{
-		Tags->HighlightColor(Config.main_highlight_color);
-		w->Refresh();
+		Tags->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
 		w = TagTypes;
-		TagTypes->HighlightColor(Config.active_column_color);
+		TagTypes->setHighlightColor(Config.active_column_color);
 		return true;
 	}
 	else if (w == TagTypes)
 	{
-		TagTypes->HighlightColor(Config.main_highlight_color);
-		w->Refresh();
-		w = LeftColumn;
-		LeftColumn->HighlightColor(Config.active_column_color);
+		TagTypes->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
+		w = Dirs;
+		Dirs->setHighlightColor(Config.active_column_color);
 		return true;
 	}
 	else if (w == FParserHelper)
 	{
-		FParserHelper->SetBorder(Config.window_border);
-		FParserHelper->Display();
+		FParserHelper->setBorder(Config.window_border);
+		FParserHelper->display();
 		w = FParser;
-		FParser->SetBorder(Config.active_window_border);
-		FParser->Display();
+		FParser->setBorder(Config.active_window_border);
+		FParser->display();
 		return true;
 	}
 	return false;
@@ -902,24 +935,16 @@ void TagEditor::LocateSong(const MPD::Song &s)
 	if (myScreen == this)
 		return;
 	
-	if (s.GetDirectory().empty())
+	if (s.getDirectory().empty())
 		return;
 	
-	if (LeftColumn == Albums)
-	{
-		Config.albums_in_tag_editor = false;
-		if (w == LeftColumn)
-			w = Dirs;
-		LeftColumn = Dirs;
-	}
-		
 	if (Global::myScreen != this)
 		SwitchTo();
 	
 	// go to right directory
-	if (itsBrowsedDir != s.GetDirectory())
+	if (itsBrowsedDir != s.getDirectory())
 	{
-		itsBrowsedDir = s.GetDirectory();
+		itsBrowsedDir = s.getDirectory();
 		size_t last_slash = itsBrowsedDir.rfind('/');
 		if (last_slash != std::string::npos)
 			itsBrowsedDir = itsBrowsedDir.substr(0, last_slash);
@@ -927,23 +952,23 @@ void TagEditor::LocateSong(const MPD::Song &s)
 			itsBrowsedDir = "/";
 		if (itsBrowsedDir.empty())
 			itsBrowsedDir = "/";
-		Dirs->Clear();
+		Dirs->clear();
 		Update();
 	}
 	if (itsBrowsedDir == "/")
-		Dirs->Reset(); // go to the first pos, which is "." (music dir root)
+		Dirs->reset(); // go to the first pos, which is "." (music dir root)
 	
 	// highlight directory we need and get files from it
-	std::string dir = ExtractTopName(s.GetDirectory());
-	for (size_t i = 0; i < Dirs->Size(); ++i)
+	std::string dir = getBasename(s.getDirectory());
+	for (size_t i = 0; i < Dirs->size(); ++i)
 	{
-		if ((*Dirs)[i].first == dir)
+		if ((*Dirs)[i].value().first == dir)
 		{
-			Dirs->Highlight(i);
+			Dirs->highlight(i);
 			break;
 		}
 	}
-	Tags->Clear();
+	Tags->clear();
 	Update();
 	
 	// go to the right column
@@ -951,111 +976,78 @@ void TagEditor::LocateSong(const MPD::Song &s)
 	NextColumn();
 	
 	// highlight our file
-	for (size_t i = 0; i < Tags->Size(); ++i)
+	for (size_t i = 0; i < Tags->size(); ++i)
 	{
-		if ((*Tags)[i].GetHash() == s.GetHash())
+		if ((*Tags)[i].value().getHash() == s.getHash())
 		{
-			Tags->Highlight(i);
+			Tags->highlight(i);
 			break;
 		}
 	}
 }
 
-void TagEditor::ReadTags(MPD::Song &s)
+void TagEditor::ReadTags(MPD::MutableSong &s)
 {
-	TagLib::FileRef f(s.GetFile().c_str());
+	TagLib::FileRef f(s.getURI().c_str());
 	if (f.isNull())
 		return;
 	
 	TagLib::MPEG::File *mpegf = dynamic_cast<TagLib::MPEG::File *>(f.file());
-
-	s.SetArtist(f.tag()->artist().to8Bit(1));
-	s.SetTitle(f.tag()->title().to8Bit(1));
-	s.SetAlbum(f.tag()->album().to8Bit(1));
-	s.SetTrack(IntoStr(f.tag()->track()));
-	s.SetDate(IntoStr(f.tag()->year()));
-	s.SetGenre(f.tag()->genre().to8Bit(1));
+	s.setDuration(f.audioProperties()->length());
+	
+	s.setArtist(f.tag()->artist().to8Bit(1));
+	s.setTitle(f.tag()->title().to8Bit(1));
+	s.setAlbum(f.tag()->album().to8Bit(1));
+	s.setTrack(intTo<std::string>::apply(f.tag()->track()));
+	s.setDate(intTo<std::string>::apply(f.tag()->year()));
+	s.setGenre(f.tag()->genre().to8Bit(1));
 	if (mpegf)
 	{
-		s.SetAlbumArtist(!mpegf->ID3v2Tag()->frameListMap()["TPE2"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TPE2"].front()->toString().to8Bit(1) : "");
-		s.SetComposer(!mpegf->ID3v2Tag()->frameListMap()["TCOM"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TCOM"].front()->toString().to8Bit(1) : "");
-		s.SetPerformer(!mpegf->ID3v2Tag()->frameListMap()["TOPE"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TOPE"].front()->toString().to8Bit(1) : "");
-		s.SetDisc(!mpegf->ID3v2Tag()->frameListMap()["TPOS"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TPOS"].front()->toString().to8Bit(1) : "");
+		s.setAlbumArtist(!mpegf->ID3v2Tag()->frameListMap()["TPE2"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TPE2"].front()->toString().to8Bit(1) : "");
+		s.setComposer(!mpegf->ID3v2Tag()->frameListMap()["TCOM"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TCOM"].front()->toString().to8Bit(1) : "");
+		s.setPerformer(!mpegf->ID3v2Tag()->frameListMap()["TOPE"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TOPE"].front()->toString().to8Bit(1) : "");
+		s.setDisc(!mpegf->ID3v2Tag()->frameListMap()["TPOS"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TPOS"].front()->toString().to8Bit(1) : "");
 	}
-	s.SetComment(f.tag()->comment().to8Bit(1));
+	s.setComment(f.tag()->comment().to8Bit(1));
 }
 
-namespace
-{
-	template <typename T> void WriteID3v2(const TagLib::ByteVector &type, TagLib::ID3v2::Tag *tag, const T &list)
-	{
-		using TagLib::ID3v2::TextIdentificationFrame;
-		tag->removeFrames(type);
-		TextIdentificationFrame *frame = new TextIdentificationFrame(type, TagLib::String::UTF8);
-		frame->setText(list);
-		tag->addFrame(frame);
-	}
-}
-
-void TagEditor::WriteXiphComments(const MPD::Song &s, TagLib::Ogg::XiphComment *tag)
-{
-	TagLib::StringList list;
-	
-	tag->addField("DISCNUMBER", ToWString(s.GetDisc())); // disc
-	
-	tag->removeField("ALBUM ARTIST"); // album artist
-	GetTagList(list, s, &MPD::Song::GetAlbumArtist);
-	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
-		tag->addField("ALBUM ARTIST", *it, 0);
-	
-	tag->removeField("COMPOSER"); // composer
-	GetTagList(list, s, &MPD::Song::GetComposer);
-	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
-		tag->addField("COMPOSER", *it, 0);
-	
-	tag->removeField("PERFORMER"); // performer
-	GetTagList(list, s, &MPD::Song::GetPerformer);
-	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
-		tag->addField("PERFORMER", *it, 0);
-}
-
-bool TagEditor::WriteTags(MPD::Song &s)
+bool TagEditor::WriteTags(MPD::MutableSong &s)
 {
 	std::string path_to_file;
-	bool file_is_from_db = s.isFromDB();
+	bool file_is_from_db = s.isFromDatabase();
 	if (file_is_from_db)
 		path_to_file += Config.mpd_music_dir;
-	path_to_file += s.GetFile();
+	path_to_file += s.getURI();
 	TagLib::FileRef f(path_to_file.c_str());
 	if (!f.isNull())
 	{
-		f.tag()->setTitle(ToWString(s.GetTitle()));
-		f.tag()->setArtist(ToWString(s.GetArtist()));
-		f.tag()->setAlbum(ToWString(s.GetAlbum()));
-		f.tag()->setYear(StrToInt(s.GetDate()));
-		f.tag()->setTrack(StrToInt(s.GetTrack()));
-		f.tag()->setGenre(ToWString(s.GetGenre()));
-		f.tag()->setComment(ToWString(s.GetComment()));
+		f.tag()->setTitle(ToWString(s.getTitle()));
+		f.tag()->setArtist(ToWString(s.getArtist()));
+		f.tag()->setAlbum(ToWString(s.getAlbum()));
+		f.tag()->setYear(stringToInt(s.getDate()));
+		f.tag()->setTrack(stringToInt(s.getTrack()));
+		f.tag()->setGenre(ToWString(s.getGenre()));
+		f.tag()->setComment(ToWString(s.getComment()));
 		if (TagLib::MPEG::File *mp3_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
 		{
 			TagLib::ID3v2::Tag *tag = mp3_file->ID3v2Tag(1);
 			TagLib::StringList list;
 			
-			WriteID3v2("TIT2", tag, ToWString(s.GetTitle()));  // title
-			WriteID3v2("TPE1", tag, ToWString(s.GetArtist())); // artist
-			WriteID3v2("TALB", tag, ToWString(s.GetAlbum()));  // album
-			WriteID3v2("TDRC", tag, ToWString(s.GetDate()));   // date
-			WriteID3v2("TRCK", tag, ToWString(s.GetTrack()));  // track
-			WriteID3v2("TCON", tag, ToWString(s.GetGenre()));  // genre
-			WriteID3v2("TPOS", tag, ToWString(s.GetDisc()));   // disc
+			WriteID3v2("TIT2", tag, ToWString(s.getTitle()));  // title
+			WriteID3v2("TPE1", tag, ToWString(s.getArtist())); // artist
+			WriteID3v2("TALB", tag, ToWString(s.getAlbum()));  // album
+			WriteID3v2("TDRC", tag, ToWString(s.getDate()));   // date
+			WriteID3v2("TRCK", tag, ToWString(s.getTrack()));  // track
+			WriteID3v2("TCON", tag, ToWString(s.getGenre()));  // genre
+			WriteID3v2("TPOS", tag, ToWString(s.getDisc()));   // disc
 			
-			GetTagList(list, s, &MPD::Song::GetAlbumArtist);
+			GetTagList(list, s, &MPD::Song::getAlbumArtist);
 			WriteID3v2("TPE2", tag, list); // album artist
 			
-			GetTagList(list, s, &MPD::Song::GetComposer);
+			GetTagList(list, s, &MPD::Song::getComposer);
 			WriteID3v2("TCOM", tag, list); // composer
 			
-			GetTagList(list, s, &MPD::Song::GetPerformer);
+			GetTagList(list, s, &MPD::Song::getPerformer);
 			// in >=mpd-0.16 treating TOPE frame as performer tag
 			// was dropped in favor of TPE3/TPE4 frames, so we have
 			// to write frame accurate to used mpd version
@@ -1072,12 +1064,12 @@ bool TagEditor::WriteTags(MPD::Song &s)
 		if (!f.save())
 			return false;
 		
-		if (!s.GetNewName().empty())
+		if (!s.getNewURI().empty())
 		{
 			std::string new_name;
 			if (file_is_from_db)
 				new_name += Config.mpd_music_dir;
-			new_name += s.GetDirectory() + "/" + s.GetNewName();
+			new_name += s.getDirectory() + "/" + s.getNewURI();
 			locale_to_utf(new_name);
 			if (rename(path_to_file.c_str(), new_name.c_str()) == 0 && !file_is_from_db)
 			{
@@ -1085,14 +1077,14 @@ bool TagEditor::WriteTags(MPD::Song &s)
 				{
 					// if we rename local file, it won't get updated
 					// so just remove it from playlist and add again
-					size_t pos = myPlaylist->Items->Choice();
+					size_t pos = myPlaylist->Items->choice();
 					Mpd.StartCommandsList();
 					Mpd.Delete(pos);
 					int id = Mpd.AddSong("file://" + new_name);
 					if (id >= 0)
 					{
-						s = myPlaylist->Items->Back();
-						Mpd.Move(s.GetPosition(), pos);
+						s = myPlaylist->Items->back().value();
+						Mpd.Move(s.getPosition(), pos);
 					}
 					Mpd.CommitCommandsList();
 				}
@@ -1106,7 +1098,9 @@ bool TagEditor::WriteTags(MPD::Song &s)
 		return false;
 }
 
-std::string TagEditor::CapitalizeFirstLetters(const std::string &s)
+namespace {//
+
+std::string CapitalizeFirstLetters(const std::string &s)
 {
 	if (s.empty())
 		return "";
@@ -1121,7 +1115,7 @@ std::string TagEditor::CapitalizeFirstLetters(const std::string &s)
 	return result;
 }
 
-void TagEditor::CapitalizeFirstLetters(MPD::Song &s)
+void CapitalizeFirstLetters(MPD::MutableSong &s)
 {
 	for (const SongInfo::Metadata *m = SongInfo::Tags; m->Name; ++m)
 	{
@@ -1131,20 +1125,20 @@ void TagEditor::CapitalizeFirstLetters(MPD::Song &s)
 	}
 }
 
-void TagEditor::LowerAllLetters(MPD::Song &s)
+void LowerAllLetters(MPD::MutableSong &s)
 {
 	for (const SongInfo::Metadata *m = SongInfo::Tags; m->Name; ++m)
 	{
 		unsigned i = 0;
 		for (std::string tag; !(tag = (s.*m->Get)(i)).empty(); ++i)
 		{
-			ToLower(tag);
+			lowercase(tag);
 			(s.*m->Set)(tag, i);
 		}
 	}
 }
 
-void TagEditor::GetTagList(TagLib::StringList &list, const MPD::Song &s, MPD::Song::GetFunction f)
+void GetTagList(TagLib::StringList &list, const MPD::MutableSong &s, MPD::Song::GetFunction f)
 {
 	list.clear();
 	unsigned pos = 0;
@@ -1152,18 +1146,38 @@ void TagEditor::GetTagList(TagLib::StringList &list, const MPD::Song &s, MPD::So
 		list.append(ToWString(value));
 }
 
-std::string TagEditor::TagToString(const MPD::Song &s, void *data)
+template <typename T> void WriteID3v2(const TagLib::ByteVector &type, TagLib::ID3v2::Tag *tag, const T &list)
 {
-	std::string result;
-	size_t i = static_cast<Menu<std::string> *>(data)->Choice();
-	if (i < 11)
-		result = (s.*SongInfo::Tags[i].Get)(0);
-	else if (i == 12)
-		result = s.GetNewName().empty() ? s.GetName() : s.GetName() + " -> " + s.GetNewName();
-	return result.empty() ? Config.empty_tag : result;
+	using TagLib::ID3v2::TextIdentificationFrame;
+	tag->removeFrames(type);
+	TextIdentificationFrame *frame = new TextIdentificationFrame(type, TagLib::String::UTF8);
+	frame->setText(list);
+	tag->addFrame(frame);
 }
 
-void TagEditor::GetPatternList()
+void WriteXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag)
+{
+	TagLib::StringList list;
+	
+	tag->addField("DISCNUMBER", ToWString(s.getDisc())); // disc
+	
+	tag->removeField("ALBUM ARTIST"); // album artist
+	GetTagList(list, s, &MPD::Song::getAlbumArtist);
+	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
+		tag->addField("ALBUM ARTIST", *it, 0);
+	
+	tag->removeField("COMPOSER"); // composer
+	GetTagList(list, s, &MPD::Song::getComposer);
+	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
+		tag->addField("COMPOSER", *it, 0);
+	
+	tag->removeField("PERFORMER"); // performer
+	GetTagList(list, s, &MPD::Song::getPerformer);
+	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
+		tag->addField("PERFORMER", *it, 0);
+}
+
+void GetPatternList()
 {
 	if (Patterns.empty())
 	{
@@ -1174,12 +1188,12 @@ void TagEditor::GetPatternList()
 			while (getline(input, line))
 				if (!line.empty())
 					Patterns.push_back(line);
-			input.close();
+				input.close();
 		}
 	}
 }
 
-void TagEditor::SavePatternList()
+void SavePatternList()
 {
 	std::ofstream output(PatternsFile.c_str());
 	if (output.is_open())
@@ -1190,51 +1204,50 @@ void TagEditor::SavePatternList()
 		output.close();
 	}
 }
-
-MPD::Song::SetFunction TagEditor::IntoSetFunction(char c)
+MPD::MutableSong::SetFunction IntoSetFunction(char c)
 {
 	switch (c)
 	{
 		case 'a':
-			return &MPD::Song::SetArtist;
+			return &MPD::MutableSong::setArtist;
 		case 'A':
-			return &MPD::Song::SetAlbumArtist;
+			return &MPD::MutableSong::setAlbumArtist;
 		case 't':
-			return &MPD::Song::SetTitle;
+			return &MPD::MutableSong::setTitle;
 		case 'b':
-			return &MPD::Song::SetAlbum;
+			return &MPD::MutableSong::setAlbum;
 		case 'y':
-			return &MPD::Song::SetDate;
+			return &MPD::MutableSong::setDate;
 		case 'n':
-			return &MPD::Song::SetTrack;
+			return &MPD::MutableSong::setTrack;
 		case 'g':
-			return &MPD::Song::SetGenre;
+			return &MPD::MutableSong::setGenre;
 		case 'c':
-			return &MPD::Song::SetComposer;
+			return &MPD::MutableSong::setComposer;
 		case 'p':
-			return &MPD::Song::SetPerformer;
+			return &MPD::MutableSong::setPerformer;
 		case 'd':
-			return &MPD::Song::SetDisc;
+			return &MPD::MutableSong::setDisc;
 		case 'C':
-			return &MPD::Song::SetComment;
+			return &MPD::MutableSong::setComment;
 		default:
 			return 0;
 	}
 }
 
-std::string TagEditor::GenerateFilename(const MPD::Song &s, const std::string &pattern)
+std::string GenerateFilename(const MPD::MutableSong &s, const std::string &pattern)
 {
 	std::string result = s.toString(pattern);
-	EscapeUnallowedChars(result);
+	removeInvalidCharsFromFilename(result);
 	return result;
 }
 
-std::string TagEditor::ParseFilename(MPD::Song &s, std::string mask, bool preview)
+std::string ParseFilename(MPD::MutableSong &s, std::string mask, bool preview)
 {
 	std::ostringstream result;
 	std::vector<std::string> separators;
 	std::vector< std::pair<char, std::string> > tags;
-	std::string file = s.GetName().substr(0, s.GetName().rfind("."));
+	std::string file = s.getName().substr(0, s.getName().rfind("."));
 	
 	for (size_t i = mask.find("%"); i != std::string::npos; i = mask.find("%"))
 	{
@@ -1245,7 +1258,7 @@ std::string TagEditor::ParseFilename(MPD::Song &s, std::string mask, bool previe
 			separators.push_back(mask.substr(0, i));
 	}
 	size_t i = 0;
-	for (std::vector<std::string>::const_iterator it = separators.begin(); it != separators.end(); ++it, ++i)
+	for (auto it = separators.begin(); it != separators.end(); ++it, ++i)
 	{
 		size_t j = file.find(*it);
 		tags.at(i).second = file.substr(0, j);
@@ -1266,22 +1279,47 @@ std::string TagEditor::ParseFilename(MPD::Song &s, std::string mask, bool previe
 		return "Error while parsing filename!\n";
 	}
 	
-	for (std::vector< std::pair<char, std::string> >::iterator it = tags.begin(); it != tags.end(); ++it)
+	for (auto it = tags.begin(); it != tags.end(); ++it)
 	{
 		for (std::string::iterator j = it->second.begin(); j != it->second.end(); ++j)
 			if (*j == '_')
 				*j = ' ';
-		
-		if (!preview)
-		{
-			MPD::Song::SetFunction set = IntoSetFunction(it->first);
-			if (set)
-				s.SetTags(set, it->second);
-		}
-		else
-			result << "%" << it->first << ": " << it->second << "\n";
+			
+			if (!preview)
+			{
+				MPD::MutableSong::SetFunction set = IntoSetFunction(it->first);
+				if (set)
+					s.setTag(set, it->second);
+			}
+			else
+				result << "%" << it->first << ": " << it->second << "\n";
 	}
 	return result.str();
+}
+
+std::string SongToString(const MPD::MutableSong &s)
+{
+	std::string result;
+	size_t i = myTagEditor->TagTypes->choice();
+	if (i < 11)
+		result = (s.*SongInfo::Tags[i].Get)(0);
+	else if (i == 12)
+		result = s.getNewURI().empty() ? s.getName() : s.getName() + " -> " + s.getNewURI();
+	return result.empty() ? Config.empty_tag : result;
+}
+
+bool DirEntryMatcher(const Regex &rx, const std::pair<std::string, std::string> &dir, bool filter)
+{
+	if (dir.first == "." || dir.first == "..")
+		return filter;
+	return rx.match(dir.first);
+}
+
+bool SongEntryMatcher(const Regex &rx, const MPD::MutableSong &s)
+{
+	return rx.match(SongToString(s));
+}
+
 }
 
 #endif

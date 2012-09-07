@@ -22,8 +22,6 @@
 
 #ifdef ENABLE_VISUALIZER
 
-#include "global.h"
-
 #include <cerrno>
 #include <cmath>
 #include <cstring>
@@ -32,6 +30,10 @@
 #include <fcntl.h>
 #include <sys/time.h>
 #include <unistd.h>
+
+#include "global.h"
+#include "settings.h"
+#include "status.h"
 
 using Global::MainStartY;
 using Global::MainHeight;
@@ -42,7 +44,7 @@ const int Visualizer::WindowTimeout = 1000/25; /* 25 fps */
 
 void Visualizer::Init()
 {
-	w = new Window(0, MainStartY, COLS, MainHeight, "", Config.visualizer_color, brNone);
+	w = new NC::Window(0, MainStartY, COLS, MainHeight, "", Config.visualizer_color, NC::brNone);
 	
 	ResetFD();
 	itsSamples = Config.visualizer_in_stereo ? 4096 : 2048;
@@ -79,7 +81,7 @@ void Visualizer::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	w->Clear();
+	w->clear();
 	
 	SetFD();
 	
@@ -87,16 +89,16 @@ void Visualizer::SwitchTo()
 	itsTimer.tv_usec = 0;
 	
 	if (itsFifo >= 0)
-		Global::wFooter->SetTimeout(WindowTimeout);
-	Global::RedrawHeader = 1;
+		Global::wFooter->setTimeout(WindowTimeout);
+	Global::RedrawHeader = true;
 }
 
 void Visualizer::Resize()
 {
 	size_t x_offset, width;
 	GetWindowResizeParams(x_offset, width);
-	w->Resize(width, MainHeight);
-	w->MoveTo(x_offset, MainStartY);
+	w->resize(width, MainHeight);
+	w->moveTo(x_offset, MainStartY);
 	hasToBeResized = 0;
 }
 
@@ -132,7 +134,7 @@ void Visualizer::Update()
 #	endif // HAVE_FFTW3_H
 		draw = &Visualizer::DrawSoundWave;
 	
-	w->Clear();
+	w->clear();
 	ssize_t samples_read = data/sizeof(int16_t);
 	if (Config.visualizer_in_stereo)
 	{
@@ -148,7 +150,7 @@ void Visualizer::Update()
 	}
 	else
 		(this->*draw)(buf, samples_read, 0, MainHeight);
-	w->Refresh();
+	w->refresh();
 }
 
 void Visualizer::SpacePressed()
@@ -161,10 +163,10 @@ void Visualizer::SpacePressed()
 
 void Visualizer::DrawSoundWave(int16_t *buf, ssize_t samples, size_t y_offset, size_t height)
 {
-	const int samples_per_col = samples/w->GetWidth();
+	const int samples_per_col = samples/w->getWidth();
 	const int half_height = height/2;
 	double prev_point_pos = 0;
-	const size_t win_width = w->GetWidth();
+	const size_t win_width = w->getWidth();
 	for (size_t i = 0; i < win_width; ++i)
 	{
 		double point_pos = 0;
@@ -173,7 +175,7 @@ void Visualizer::DrawSoundWave(int16_t *buf, ssize_t samples, size_t y_offset, s
 		point_pos /= samples_per_col;
 		point_pos /= std::numeric_limits<int16_t>::max();
 		point_pos *= half_height;
-		*w << XY(i, y_offset+half_height+point_pos) << Config.visualizer_chars[0];
+		*w << NC::XY(i, y_offset+half_height+point_pos) << Config.visualizer_chars[0];
 		if (i && abs(prev_point_pos-point_pos) > 2)
 		{
 			// if gap is too big. intermediate values are needed
@@ -181,7 +183,7 @@ void Visualizer::DrawSoundWave(int16_t *buf, ssize_t samples, size_t y_offset, s
 			const int breakpoint = std::max(prev_point_pos, point_pos);
 			const int half = (prev_point_pos+point_pos)/2;
 			for (int k = std::min(prev_point_pos, point_pos)+1; k < breakpoint; k += 2)
-				*w << XY(i-(k < half), y_offset+half_height+k) << Config.visualizer_chars[0];
+				*w << NC::XY(i-(k < half), y_offset+half_height+k) << Config.visualizer_chars[0];
 		}
 		prev_point_pos = point_pos;
 	}
@@ -204,7 +206,7 @@ void Visualizer::DrawFrequencySpectrum(int16_t *buf, ssize_t samples, size_t y_o
 	for (unsigned i = 0; i < itsFFTResults; ++i)
 		itsFreqsMagnitude[i] = sqrt(itsOutput[i][0]*itsOutput[i][0] + itsOutput[i][1]*itsOutput[i][1])/1e5*height/5;
 	
-	const size_t win_width = w->GetWidth();
+	const size_t win_width = w->getWidth();
 	const int freqs_per_col = itsFFTResults/win_width /* cut bandwidth a little to achieve better look */ * 7/10;
 	for (size_t i = 0; i < win_width; ++i)
 	{
@@ -213,9 +215,9 @@ void Visualizer::DrawFrequencySpectrum(int16_t *buf, ssize_t samples, size_t y_o
 			bar_height += itsFreqsMagnitude[i*freqs_per_col+j];
 		bar_height = std::min(bar_height/freqs_per_col, height);
 		const size_t start_y = y_offset > 0 ? y_offset : height-bar_height;
-		const size_t stop_y = std::min(bar_height+start_y, w->GetHeight());
+		const size_t stop_y = std::min(bar_height+start_y, w->getHeight());
 		for (size_t j = start_y; j < stop_y; ++j)
-			*w << XY(i, j) << Config.visualizer_chars[1];
+			*w << NC::XY(i, j) << Config.visualizer_chars[1];
 	}
 }
 #endif // HAVE_FFTW3_H
@@ -236,10 +238,10 @@ void Visualizer::FindOutputID()
 	itsOutputID = -1;
 	if (!Config.visualizer_output_name.empty())
 	{
-		MPD::OutputList outputs;
-		Mpd.GetOutputs(outputs);
-		for (unsigned i = 0; i < outputs.size(); ++i)
-			if (outputs[i].first == Config.visualizer_output_name)
+		size_t i = 0;
+		auto outputs = Mpd.GetOutputs();
+		for (auto o = outputs.begin(); o != outputs.end(); ++o, ++i)
+			if (o->name() == Config.visualizer_output_name)
 				itsOutputID = i;
 		if (itsOutputID == -1)
 			ShowMessage("There is no output named \"%s\"", Config.visualizer_output_name.c_str());

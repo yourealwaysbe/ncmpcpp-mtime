@@ -21,44 +21,44 @@
 #ifndef _TINY_TAG_EDITOR_H
 #define _TINY_TAG_EDITOR_H
 
-#ifdef HAVE_CONFIG_H
-# include <config.h>
-#endif
+#include "config.h"
 
 #ifdef HAVE_TAGLIB_H
 
 // taglib includes
 #include "tfile.h"
 
+#include "mutable_song.h"
 #include "screen.h"
 
-class TinyTagEditor : public Screen< Menu<Buffer> >
+class TinyTagEditor : public Screen< NC::Menu<NC::Buffer> >
 {
 	public:
-		virtual void Resize();
-		virtual void SwitchTo();
+		// Screen< NC::Menu<NC::Buffer> > implementation
+		virtual void Resize() OVERRIDE;
+		virtual void SwitchTo() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void EnterPressed();
-		virtual void SpacePressed() { }
-		virtual void MouseButtonPressed(MEVENT);
+		virtual void Update() OVERRIDE { }
 		
-		virtual bool allowsSelection() { return false; }
+		virtual void EnterPressed() OVERRIDE;
+		virtual void SpacePressed() OVERRIDE { }
+		virtual void MouseButtonPressed(MEVENT me) OVERRIDE;
 		
-		virtual List *GetList() { return 0; }
+		virtual bool isMergable() OVERRIDE { return true; }
+		virtual bool isTabbable() OVERRIDE { return false; }
 		
-		virtual bool isMergable() { return true; }
-		
+		// private members
 		void SetEdited(const MPD::Song &);
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return true; }
 		
 	private:
-		bool GetTags();
-		MPD::Song itsEdited;
+		bool getTags();
+		MPD::MutableSong itsEdited;
 		
 		static bool extendedTagsSupported(TagLib::File *);
 };

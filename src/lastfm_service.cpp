@@ -22,9 +22,9 @@
 
 #ifdef HAVE_CURL_CURL_H
 
-#include "conv.h"
 #include "curl_handle.h"
 #include "settings.h"
+#include "utility/html.h"
 
 const char *LastfmService::baseURL = "http://ws.audioscrobbler.com/2.0/?api_key=d94e5b6e26469a2d1ffae8ef20131b79&method=";
 
@@ -55,7 +55,7 @@ LastfmService::Result LastfmService::fetch(Args &args)
 	
 	if (actionFailed(data))
 	{
-		StripHtmlTags(data);
+		stripHtmlTags(data);
 		result.second = data;
 		return result;
 	}
@@ -91,8 +91,8 @@ bool LastfmService::actionFailed(const std::string &data)
 
 void LastfmService::postProcess(std::string &data)
 {
-	StripHtmlTags(data);
-	Trim(data);
+	stripHtmlTags(data);
+	trim(data);
 }
 
 /***********************************************************************/
@@ -102,12 +102,12 @@ bool ArtistInfo::checkArgs(const Args &args)
 	return args.find("artist") != args.end();
 }
 
-void ArtistInfo::colorizeOutput(NCurses::Scrollpad &w)
+void ArtistInfo::colorizeOutput(NC::Scrollpad &w)
 {
-	w.SetFormatting(fmtBold, U("\n\nSimilar artists:\n"), fmtBoldEnd, false);
-	w.SetFormatting(Config.color2, U("\n * "), clEnd, true);
-	// below is used so format won't be removed using RemoveFormatting() by accident.
-	w.ForgetFormatting();
+	w.setFormatting(NC::fmtBold, U("\n\nSimilar artists:\n"), NC::fmtBoldEnd, false);
+	w.setFormatting(Config.color2, U("\n * "), NC::clEnd, true);
+	// below is used so format won't be removed using removeFormatting() by accident.
+	w.forgetFormatting();
 }
 
 bool ArtistInfo::parse(std::string &data)
@@ -117,7 +117,7 @@ bool ArtistInfo::parse(std::string &data)
 	
 	if ((a = data.find("<content>")) != std::string::npos)
 	{
-		a += static_strlen("<content>");
+		a += const_strlen("<content>");
 		if ((b = data.find("</content>")) == std::string::npos)
 			parse_failed = true;
 	}
@@ -141,17 +141,17 @@ bool ArtistInfo::parse(std::string &data)
 		    i != std::string::npos; i = data.find("<name>", i), k = data.find("<url>", k))
 	{
 		j = data.find("</name>", i);
-		i += static_strlen("<name>");
+		i += const_strlen("<name>");
 		
 		l = data.find("</url>", k);
-		k += static_strlen("<url>");
+		k += const_strlen("<url>");
 		
 		similars.push_back(std::make_pair(data.substr(i, j-i), data.substr(k, l-k)));
-		StripHtmlTags(similars.back().first);
+		stripHtmlTags(similars.back().first);
 	}
 	
-	a += static_strlen("<![CDATA[");
-	b -= static_strlen("]]>");
+	a += const_strlen("<![CDATA[");
+	b -= const_strlen("]]>");
 	data = data.substr(a, b-a);
 	
 	postProcess(data);

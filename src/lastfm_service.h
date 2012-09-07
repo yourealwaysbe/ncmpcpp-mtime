@@ -21,9 +21,7 @@
 #ifndef _LASTFM_SERVICE_H
 #define _LASTFM_SERVICE_H
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+#include "config.h"
 
 #ifdef HAVE_CURL_CURL_H
 
@@ -41,7 +39,7 @@ struct LastfmService
 	virtual Result fetch(Args &args);
 	
 	virtual bool checkArgs(const Args &args) = 0;
-	virtual void colorizeOutput(NCurses::Scrollpad &w) = 0;
+	virtual void colorizeOutput(NC::Scrollpad &w) = 0;
 	
 	protected:
 		virtual bool actionFailed(const std::string &data);
@@ -60,7 +58,7 @@ struct ArtistInfo : public LastfmService
 	virtual const char *name() { return "Artist info"; }
 	
 	virtual bool checkArgs(const Args &args);
-	virtual void colorizeOutput(NCurses::Scrollpad &w);
+	virtual void colorizeOutput(NC::Scrollpad &w);
 	
 	protected:
 		virtual bool parse(std::string &data);

@@ -18,18 +18,25 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#include <algorithm>
-#include <wctype.h>
+#include "global.h"
 
-#include "tolower.h"
+BasicScreen *Global::myScreen;
+BasicScreen *Global::myOldScreen;
+BasicScreen *Global::myPrevScreen;
+BasicScreen *Global::myLockedScreen;
+BasicScreen *Global::myInactiveScreen;
 
-void ToLower(std::string &s)
-{
-	transform(s.begin(), s.end(), s.begin(), tolower);
-}
+NC::Window *Global::wHeader;
+NC::Window *Global::wFooter;
 
-void ToLower(std::wstring &s)
-{
-	transform(s.begin(), s.end(), s.begin(), towlower);
-}
+size_t Global::MainStartY;
+size_t Global::MainHeight;
 
+bool Global::ShowMessages = false;
+bool Global::SeekingInProgress = false;
+
+bool Global::RedrawHeader = true;
+bool Global::RedrawStatusbar = true;
+
+std::string Global::VolumeState;
+timeval Global::Timer;

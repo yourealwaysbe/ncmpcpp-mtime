@@ -19,8 +19,14 @@
  ***************************************************************************/
 
 #include "global.h"
+#include "helpers.h"
 #include "song_info.h"
 #include "tag_editor.h"
+
+#ifdef HAVE_TAGLIB_H
+# include "fileref.h"
+# include "tag.h"
+#endif // HAVE_TAGLIB_H
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -29,23 +35,23 @@ SongInfo *mySongInfo = new SongInfo;
 
 const SongInfo::Metadata SongInfo::Tags[] =
 {
- { "Title",		&MPD::Song::GetTitle,		&MPD::Song::SetTitle		},
- { "Artist",		&MPD::Song::GetArtist,		&MPD::Song::SetArtist		},
- { "Album Artist",	&MPD::Song::GetAlbumArtist,	&MPD::Song::SetAlbumArtist	},
- { "Album",		&MPD::Song::GetAlbum,		&MPD::Song::SetAlbum		},
- { "Date",		&MPD::Song::GetDate,		&MPD::Song::SetDate		},
- { "Track",		&MPD::Song::GetTrack,		&MPD::Song::SetTrack		},
- { "Genre",		&MPD::Song::GetGenre,		&MPD::Song::SetGenre		},
- { "Composer",		&MPD::Song::GetComposer,	&MPD::Song::SetComposer		},
- { "Performer",		&MPD::Song::GetPerformer,	&MPD::Song::SetPerformer	},
- { "Disc",		&MPD::Song::GetDisc,		&MPD::Song::SetDisc		},
- { "Comment",		&MPD::Song::GetComment,		&MPD::Song::SetComment		},
- { 0,			0,				0				}
+ { "Title",        &MPD::Song::getTitle,       &MPD::MutableSong::setTitle       },
+ { "Artist",       &MPD::Song::getArtist,      &MPD::MutableSong::setArtist      },
+ { "Album Artist", &MPD::Song::getAlbumArtist, &MPD::MutableSong::setAlbumArtist },
+ { "Album",        &MPD::Song::getAlbum,       &MPD::MutableSong::setAlbum       },
+ { "Date",         &MPD::Song::getDate,        &MPD::MutableSong::setDate        },
+ { "Track",        &MPD::Song::getTrack,       &MPD::MutableSong::setTrack       },
+ { "Genre",        &MPD::Song::getGenre,       &MPD::MutableSong::setGenre       },
+ { "Composer",     &MPD::Song::getComposer,    &MPD::MutableSong::setComposer    },
+ { "Performer",    &MPD::Song::getPerformer,   &MPD::MutableSong::setPerformer   },
+ { "Disc",         &MPD::Song::getDisc,        &MPD::MutableSong::setDisc        },
+ { "Comment",      &MPD::Song::getComment,     &MPD::MutableSong::setComment     },
+ { 0,              0,                          0                                  }
 };
 
 void SongInfo::Init()
 {
-	w = new Scrollpad(0, MainStartY, COLS, MainHeight, "", Config.main_color, brNone);
+	w = new NC::Scrollpad(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone);
 	isInitialized = 1;
 }
 
@@ -53,8 +59,8 @@ void SongInfo::Resize()
 {
 	size_t x_offset, width;
 	GetWindowResizeParams(x_offset, width);
-	w->Resize(width, MainHeight);
-	w->MoveTo(x_offset, MainStartY);
+	w->resize(width, MainHeight);
+	w->moveTo(x_offset, MainStartY);
 	hasToBeResized = 0;
 }
 
@@ -78,8 +84,7 @@ void SongInfo::SwitchTo()
 	if (myLockedScreen)
 		UpdateInactiveScreen(this);
 	
-	MPD::Song *s = myScreen->CurrentSong();
-	
+	auto s = currentSong(myScreen);
 	if (!s)
 		return;
 	
@@ -89,45 +94,42 @@ void SongInfo::SwitchTo()
 	myOldScreen = myScreen;
 	myScreen = this;
 	
-	Global::RedrawHeader = 1;
+	Global::RedrawHeader = true;
 	
-	w->Clear();
-	w->Reset();
+	w->clear();
+	w->reset();
 	PrepareSong(*s);
-	w->Flush();
+	w->flush();
 }
 
 void SongInfo::PrepareSong(MPD::Song &s)
 {
 #	ifdef HAVE_TAGLIB_H
 	std::string path_to_file;
-	if (s.isFromDB())
+	if (s.isFromDatabase())
 		path_to_file += Config.mpd_music_dir;
-	path_to_file += s.GetFile();
+	path_to_file += s.getURI();
 	TagLib::FileRef f(path_to_file.c_str());
-	if (!f.isNull())
-		s.SetComment(f.tag()->comment().to8Bit(1));
 #	endif // HAVE_TAGLIB_H
 	
-	*w << fmtBold << Config.color1 << "Filename: " << fmtBoldEnd << Config.color2 << s.GetName() << "\n" << clEnd;
-	*w << fmtBold << "Directory: " << fmtBoldEnd << Config.color2;
-	ShowTag(*w, s.GetDirectory());
-	*w << "\n\n" << clEnd;
-	*w << fmtBold << "Length: " << fmtBoldEnd << Config.color2 << s.GetLength() << "\n" << clEnd;
+	*w << NC::fmtBold << Config.color1 << U("Filename: ") << NC::fmtBoldEnd << Config.color2 << s.getName() << '\n' << NC::clEnd;
+	*w << NC::fmtBold << U("Directory: ") << NC::fmtBoldEnd << Config.color2;
+	ShowTag(*w, s.getDirectory());
+	*w << U("\n\n") << NC::clEnd;
+	*w << NC::fmtBold << U("Length: ") << NC::fmtBoldEnd << Config.color2 << s.getLength() << '\n' << NC::clEnd;
 #	ifdef HAVE_TAGLIB_H
 	if (!f.isNull())
 	{
-		*w << fmtBold << "Bitrate: " << fmtBoldEnd << Config.color2 << f.audioProperties()->bitrate() << " kbps\n" << clEnd;
-		*w << fmtBold << "Sample rate: " << fmtBoldEnd << Config.color2 << f.audioProperties()->sampleRate() << " Hz\n" << clEnd;
-		*w << fmtBold << "Channels: " << fmtBoldEnd << Config.color2 << (f.audioProperties()->channels() == 1 ? "Mono" : "Stereo") << "\n" << clDefault;
+		*w << NC::fmtBold << U("Bitrate: ") << NC::fmtBoldEnd << Config.color2 << f.audioProperties()->bitrate() << U(" kbps\n") << NC::clEnd;
+		*w << NC::fmtBold << U("Sample rate: ") << NC::fmtBoldEnd << Config.color2 << f.audioProperties()->sampleRate() << U(" Hz\n") << NC::clEnd;
+		*w << NC::fmtBold << U("Channels: ") << NC::fmtBoldEnd << Config.color2 << (f.audioProperties()->channels() == 1 ? U("Mono") : U("Stereo")) << '\n' << NC::clDefault;
 	}
 #	endif // HAVE_TAGLIB_H
-	*w << clDefault;
+	*w << NC::clDefault;
 	
 	for (const Metadata *m = Tags; m->Name; ++m)
 	{
-		*w << fmtBold << "\n" << m->Name << ": " << fmtBoldEnd;
-		ShowTag(*w, s.GetTags(m->Get));
+		*w << NC::fmtBold << '\n' << TO_WSTRING(m->Name) << U(": ") << NC::fmtBoldEnd;
+		ShowTag(*w, s.getTags(m->Get));
 	}
 }
-

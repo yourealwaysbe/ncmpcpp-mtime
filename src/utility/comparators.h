@@ -18,55 +18,55 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#ifndef _CONV_H
-#define _CONV_H
+#ifndef _UTILITY_COMPARATORS
+#define _UTILITY_COMPARATORS
 
-#include <cstring>
 #include <string>
+#include "mpdpp.h"
 
-#include "actions.h"
-#include "window.h"
-#include "song.h"
-
-template <size_t N> inline size_t static_strlen(const char (&)[N])
+class CaseInsensitiveStringComparison
 {
-	return N-1;
-}
+	bool m_ignore_the;
+	
+	bool hasTheWord(const char *s) const;
+	
+public:
+	CaseInsensitiveStringComparison(bool ignore_the) : m_ignore_the(ignore_the) { }
+	
+	int operator()(const char *a, const char *b) const;
+	
+	int operator()(const char *a, const std::string &b) const {
+		return (*this)(a, b.c_str());
+	}
+	int operator()(const std::string &a, const char *b) const {
+		return (*this)(a.c_str(), b);
+	}
+	int operator()(const std::string &a, const std::string &b) const {
+		return (*this)(a.c_str(), b.c_str());
+	}
+};
 
-template <size_t N> void Replace(std::string &s, const char (&from)[N], const char *to)
+class CaseInsensitiveSorting
 {
-	size_t to_len = strlen(to);
-	for (size_t i = 0; (i = s.find(from, i)) != std::string::npos; i += to_len)
-		s.replace(i, N-1, to);
-}
+	CaseInsensitiveStringComparison cmp;
+	
+public:
+	CaseInsensitiveSorting();
+	
+	bool operator()(const std::string &a, const std::string &b) const {
+		return cmp(a, b) < 0;
+	}
+	
+	bool operator()(const MPD::Song &a, const MPD::Song &b) const {
+		return cmp(a.getName(), b.getName()) < 0;
+	}
+	
+	template <typename A, typename B>
+	bool operator()(const std::pair<A, B> &a, const std::pair<A, B> &b) const {
+		return cmp(a.first, b.first) < 0;
+	}
+	
+	bool operator()(const MPD::Item &a, const MPD::Item &b) const;
+};
 
-int StrToInt(const std::string &);
-long StrToLong(const std::string &);
-
-std::string IntoStr(int);
-std::string IntoStr(mpd_tag_type);
-std::string IntoStr(NCurses::Color);
-std::string IntoStr(const Action::Key &key, bool *print_backspace = 0);
-
-NCurses::Color IntoColor(const std::string &);
-
-mpd_tag_type IntoTagItem(char);
-
-MPD::Song::GetFunction toGetFunction(char c);
-
-#ifdef HAVE_TAGLIB_H
-MPD::Song::SetFunction IntoSetFunction(mpd_tag_type);
-#endif // HAVE_TAGLIB_H
-
-std::string Shorten(const std::basic_string<my_char_t> &s, size_t max_length);
-
-void EscapeUnallowedChars(std::string &);
-
-std::string unescapeHtmlUtf8(const std::string &data);
-
-void StripHtmlTags(std::string &s);
-
-void Trim(std::string &s);
-
-#endif
-
+#endif // _UTILITY_COMPARATORS

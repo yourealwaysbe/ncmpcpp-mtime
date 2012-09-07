@@ -30,9 +30,11 @@
 
 #include <cassert>
 #include <cerrno>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
+#include "helpers.h"
 #include "charset.h"
 #include "global.h"
 
@@ -43,7 +45,7 @@ Lastfm *myLastfm = new Lastfm;
 
 void Lastfm::Init()
 {
-	w = new Scrollpad(0, MainStartY, COLS, MainHeight, "", Config.main_color, brNone);
+	w = new NC::Scrollpad(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone);
 	isInitialized = 1;
 }
 
@@ -51,8 +53,8 @@ void Lastfm::Resize()
 {
 	size_t x_offset, width;
 	GetWindowResizeParams(x_offset, width);
-	w->Resize(width, MainHeight);
-	w->MoveTo(x_offset, MainStartY);
+	w->resize(width, MainHeight);
+	w->moveTo(x_offset, MainStartY);
 	hasToBeResized = 0;
 }
 
@@ -71,8 +73,8 @@ void Lastfm::Take()
 {
 	assert(isReadyToTake);
 	pthread_join(itsDownloader, 0);
-	w->Flush();
-	w->Refresh();
+	w->flush();
+	w->refresh();
 	isDownloadInProgress = 0;
 	isReadyToTake = 0;
 }
@@ -104,7 +106,7 @@ void Lastfm::SwitchTo()
 	myOldScreen = myScreen;
 	myScreen = this;
 	
-	Global::RedrawHeader = 1;
+	Global::RedrawHeader = true;
 }
 
 void Lastfm::Load()
@@ -117,15 +119,15 @@ void Lastfm::Load()
 	
 	SetTitleAndFolder();
 	
-	w->Clear();
-	w->Reset();
+	w->clear();
+	w->reset();
 	
 	std::string artist = itsArgs.find("artist")->second;
 	locale_to_utf(artist);
 	
 	std::string file = artist + ".txt";
-	ToLower(file);
-	EscapeUnallowedChars(file);
+	lowercase(file);
+	removeInvalidCharsFromFilename(file);
 	
 	itsFilename = itsFolder + "/" + file;
 	
@@ -143,7 +145,7 @@ void Lastfm::Load()
 		while (getline(input, line))
 		{
 			if (!first)
-				*w << "\n";
+				*w << '\n';
 			utf_to_locale(line);
 			*w << line;
 			first = 0;
@@ -153,11 +155,11 @@ void Lastfm::Load()
 	}
 	else
 	{
-		*w << "Fetching informations... ";
+		*w << U("Fetching informations... ");
 		pthread_create(&itsDownloader, 0, DownloadWrapper, this);
 		isDownloadInProgress = 1;
 	}
-	w->Flush();
+	w->flush();
 }
 
 void Lastfm::SetTitleAndFolder()
@@ -183,13 +185,13 @@ void Lastfm::Download()
 	if (result.first)
 	{
 		Save(result.second);
-		w->Clear();
+		w->clear();
 		utf_to_locale(result.second);
 		*w << result.second;
 		itsService->colorizeOutput(*w);
 	}
 	else
-		*w << clRed << result.second << clEnd;
+		*w << NC::clRed << result.second << NC::clEnd;
 	
 	isReadyToTake = 1;
 }
@@ -211,7 +213,7 @@ void Lastfm::Refetch()
 	if (remove(itsFilename.c_str()) && errno != ENOENT)
 	{
 		const char msg[] = "Couldn't remove \"%s\": %s";
-		ShowMessage(msg, Shorten(TO_WSTRING(itsFilename), COLS-static_strlen(msg)-25).c_str(), strerror(errno));
+		ShowMessage(msg, Shorten(TO_WSTRING(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 		return;
 	}
 	Load();

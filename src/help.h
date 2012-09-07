@@ -21,30 +21,28 @@
 #ifndef _HELP_H
 #define _HELP_H
 
-#include "ncmpcpp.h"
+#include "actions.h"
 #include "screen.h"
 
-class Help : public Screen<Scrollpad>
+class Help : public Screen<NC::Scrollpad>
 {
 	public:
-		virtual void Resize();
-		virtual void SwitchTo();
+		virtual void Resize() OVERRIDE;
+		virtual void SwitchTo() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void EnterPressed() { }
-		virtual void SpacePressed() { }
-		virtual bool isTabbable() { return true; }
+		virtual void Update() OVERRIDE { }
 		
-		virtual bool allowsSelection() { return false; }
+		virtual void EnterPressed() OVERRIDE { }
+		virtual void SpacePressed() OVERRIDE { }
 		
-		virtual List *GetList() { return 0; }
-		
-		virtual bool isMergable() { return true; }
+		virtual bool isTabbable() OVERRIDE { return true; }
+		virtual bool isMergable() OVERRIDE { return true; }
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return true; }
 		
 	private:
 		void KeysSection(const char *title) { Section("Keys", title); }

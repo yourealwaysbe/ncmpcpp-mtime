@@ -21,40 +21,48 @@
 #ifndef _H_MEDIA_LIBRARY
 #define _H_MEDIA_LIBRARY
 
-#include "ncmpcpp.h"
+#include "interfaces.h"
 #include "screen.h"
 #include "media_library_sorting.h"
 
-class MediaLibrary : public Screen<Window>
+class MediaLibrary : public Screen<NC::Window>, public Filterable, public HasSongs, public Searchable
 {
 	public:
-		virtual void SwitchTo();
-		virtual void Resize();
+		virtual void SwitchTo() OVERRIDE;
+		virtual void Resize() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void Refresh();
-		virtual void Update();
+		virtual void Refresh() OVERRIDE;
+		virtual void Update() OVERRIDE;
 		
-		virtual void EnterPressed() { AddToPlaylist(1); }
-		virtual void SpacePressed();
-		virtual void MouseButtonPressed(MEVENT);
-		virtual bool isTabbable() { return true; }
+		virtual void EnterPressed() OVERRIDE;
+		virtual void SpacePressed() OVERRIDE;
+		virtual void MouseButtonPressed(MEVENT me) OVERRIDE;
 		
-		virtual MPD::Song *CurrentSong();
-		virtual MPD::Song *GetSong(size_t pos) { return w == Songs ? &Songs->at(pos) : 0; }
+		virtual bool isTabbable() OVERRIDE { return true; }
+		virtual bool isMergable() OVERRIDE { return true; }
 		
-		virtual bool allowsSelection() { return true; }
-		virtual void ReverseSelection();
-		virtual void GetSelectedSongs(MPD::SongList &);
+		/// Filterable implementation
+		virtual bool allowsFiltering() OVERRIDE;
+		virtual std::string currentFilter() OVERRIDE;
+		virtual void applyFilter(const std::string &filter) OVERRIDE;
 		
-		virtual void ApplyFilter(const std::string &);
+		/// Searchable implementation
+		virtual bool allowsSearching() OVERRIDE;
+		virtual bool search(const std::string &constraint) OVERRIDE;
+		virtual void nextFound(bool wrap) OVERRIDE;
+		virtual void prevFound(bool wrap) OVERRIDE;
 		
-		virtual List *GetList();
+		/// HasSongs implementation
+		virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
 		
-		virtual bool isMergable() { return true; }
+		virtual bool allowsSelection() OVERRIDE;
+		virtual void reverseSelection() OVERRIDE;
+		virtual MPD::SongList getSelectedSongs() OVERRIDE;
 		
-		int Columns() { return hasTwoColumns ? 2 : 3; }
+		// private members
+		int Columns();
 		bool isNextColumnAvailable();
 		void NextColumn();
 		bool isPrevColumnAvailable();
@@ -62,35 +70,20 @@ class MediaLibrary : public Screen<Window>
 		
 		void LocateSong(const MPD::Song &);
 		
-		Menu<std::string> *Artists;
-		Menu<SearchConstraints> *Albums;
-		Menu<MPD::Song> *Songs;
-
+		std::shared_ptr<ProxySongList> songsProxyList();
+		
+		NC::Menu<std::string> *Tags;
+		NC::Menu<SearchConstraints> *Albums;
+		NC::Menu<MPD::Song> *Songs;
+        
         void DatabaseUpdated();
-
+		
 	protected:
 		virtual void Init();
 		virtual bool isLockable() { return true; }
 		
 	private:
 		void AddToPlaylist(bool);
-		
-		static std::string SongToString(const MPD::Song &s, void *);
-		
-		static std::string AlbumToString(const SearchConstraints &, void *);
-		static void DisplayAlbums(const SearchConstraints &, void *, Menu<SearchConstraints> *);
-		static void DisplayPrimaryTags(const std::string &artist, void *, Menu<std::string> *menu);
-		
-	
-		static bool hasTwoColumns;
-		static size_t itsLeftColStartX;
-		static size_t itsLeftColWidth;
-		static size_t itsMiddleColWidth;
-		static size_t itsMiddleColStartX;
-		static size_t itsRightColWidth;
-		static size_t itsRightColStartX;
-		
-		static const char AllTracksMarker[];
 };
 
 extern MediaLibrary *myLibrary;

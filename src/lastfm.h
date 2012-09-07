@@ -21,9 +21,7 @@
 #ifndef _H_LASTFM
 #define _H_LASTFM
 
-#ifdef HAVE_CONFIG_H
-# include "config.h"
-#endif
+#include "config.h"
 
 #ifdef HAVE_CURL_CURL_H
 
@@ -33,35 +31,34 @@
 #include "lastfm_service.h"
 #include "screen.h"
 
-class Lastfm : public Screen<Scrollpad>
+class Lastfm : public Screen<NC::Scrollpad>
 {
 	public:
 		Lastfm() : isReadyToTake(0), isDownloadInProgress(0) { }
 		
-		virtual void SwitchTo();
-		virtual void Resize();
+		// Screen<NC::Scrollpad>
+		virtual void SwitchTo() OVERRIDE;
+		virtual void Resize() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void Update();
+		virtual void Update() OVERRIDE;
 		
-		virtual void EnterPressed() { }
-		virtual void SpacePressed() { }
+		virtual void EnterPressed() OVERRIDE { }
+		virtual void SpacePressed() OVERRIDE { }
 		
-		virtual bool allowsSelection() { return false; }
+		virtual bool isMergable() OVERRIDE { return true; }
+		virtual bool isTabbable() OVERRIDE { return false; }
 		
-		virtual List *GetList() { return 0; }
-		
-		virtual bool isMergable() { return true; }
-		
+		// private members
 		void Refetch();
 		
 		bool isDownloading() { return isDownloadInProgress && !isReadyToTake; }
 		bool SetArtistInfoArgs(const std::string &artist, const std::string &lang = "");
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return false; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return false; }
 		
 	private:
 		std::basic_string<my_char_t> itsTitle;

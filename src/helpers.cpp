@@ -39,16 +39,6 @@
 #include "outputs.h"
 #include "visualizer.h"
 
-bool ConnectToMPD()
-{
-	if (!Mpd.Connect())
-	{
-		std::cout << "Couldn't connect to MPD (host = " << Mpd.GetHostname() << ", port = " << Mpd.GetPort() << "): " << Mpd.GetErrorMessage() << std::endl;
-		return false;
-	}
-	return true;
-}
-
 void ParseArgv(int argc, char **argv)
 {
 	bool quit = 0;
@@ -143,7 +133,7 @@ void ParseArgv(int argc, char **argv)
 			exit(0);
 		}
 		
-		if (!ConnectToMPD())
+		if (!Action::ConnectToMPD())
 			exit(1);
 		
 		if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "--screen"))
@@ -203,8 +193,8 @@ void ParseArgv(int argc, char **argv)
 						now_playing_format = "{";
 						now_playing_format += argv[i];
 						now_playing_format += "}";
-						Replace(now_playing_format, "\\n", "\n");
-						Replace(now_playing_format, "\\t", "\t");
+						replace(now_playing_format, "\\n", "\n");
+						replace(now_playing_format, "\\t", "\t");
 					}
 				}
 				std::cout << utf_to_locale_cpy(Mpd.GetCurrentlyPlayingSong().toString(now_playing_format)) << "\n";
@@ -280,59 +270,6 @@ void ParseArgv(int argc, char **argv)
 		exit(0);
 }
 
-int CaseInsensitiveStringComparison::operator()(const std::string &a, const std::string &b)
-{
-	const char *i = a.c_str();
-	const char *j = b.c_str();
-	if (Config.ignore_leading_the)
-	{
-		if (hasTheWord(a))
-			i += 4;
-		if (hasTheWord(b))
-			j += 4;
-	}
-	int dist;
-	while (!(dist = tolower(*i)-tolower(*j)) && *j)
-		++i, ++j;
-	return dist;
-}
-
-bool CaseInsensitiveSorting::operator()(const MPD::Item &a, const MPD::Item &b)
-{
-	bool result = false;
-	if (a.type == b.type)
-	{
-		switch (a.type)
-		{
-			case MPD::itDirectory:
-				result = cmp(ExtractTopName(a.name), ExtractTopName(b.name)) < 0;
-				break;
-			case MPD::itPlaylist:
-				result = cmp(a.name, b.name) < 0;
-				break;
-			case MPD::itSong:
-				switch (Config.browser_sort_mode)
-				{
-					case smName:
-						result = operator()(a.song, b.song);
-						break;
-					case smMTime:
-						result = a.song->GetMTime() > b.song->GetMTime();
-						break;
-					case smCustomFormat:
-						result = cmp(a.song->toString(Config.browser_sort_format), b.song->toString(Config.browser_sort_format)) < 0;
-						break;
-				}
-				break;
-			default: // there is no other option, silence compiler
-				assert(false);
-		}
-	}
-	else
-		result = a.type < b.type;
-	return result;
-}
-
 std::string Timestamp(time_t t)
 {
 	char result[32];
@@ -345,108 +282,12 @@ std::string Timestamp(time_t t)
 	return result;
 }
 
-void UpdateSongList(Menu<MPD::Song> *menu)
+void markSongsInPlaylist(std::shared_ptr<ProxySongList> pl)
 {
-	bool bold = 0;
-	for (size_t i = 0; i < menu->Size(); ++i)
-	{
-		for (size_t j = 0; j < myPlaylist->Items->Size(); ++j)
-		{
-			if (myPlaylist->Items->at(j).GetHash() == menu->at(i).GetHash())
-			{
-				bold = 1;
-				break;
-			}
-		}
-		menu->Bold(i, bold);
-		bold = 0;
-	}
-	menu->Refresh();
-}
-
-#ifdef HAVE_TAGLIB_H
-std::string FindSharedDir(Menu<MPD::Song> *menu)
-{
-	MPD::SongList list;
-	for (size_t i = 0; i < menu->Size(); ++i)
-		list.push_back(&(*menu)[i]);
-	return FindSharedDir(list);
-}
-
-std::string FindSharedDir(const MPD::SongList &v)
-{
-	if (v.empty()) // this should never happen, but in case...
-		FatalError("empty SongList passed to FindSharedDir(const SongList &)!");
-	size_t i = -1;
-	std::string first = v.front()->GetDirectory();
-	for (MPD::SongList::const_iterator it = ++v.begin(); it != v.end(); ++it)
-	{
-		size_t j = 0;
-		std::string dir = (*it)->GetDirectory();
-		size_t length = std::min(first.length(), dir.length());
-		while (!first.compare(j, 1, dir, j, 1) && j < length && j < i)
-			++j;
-		i = j;
-	}
-	return i ? first.substr(0, i) : "/";
-}
-#endif // HAVE_TAGLIB_H
-
-std::string FindSharedDir(const std::string &one, const std::string &two)
-{
-	if (one == two)
-		return one;
-	size_t i = 0;
-	while (!one.compare(i, 1, two, i, 1))
-		++i;
-	i = one.rfind("/", i);
-	return i != std::string::npos ? one.substr(0, i) : "/";
-}
-
-std::string GetLineValue(std::string &line, char a, char b, bool once)
-{
-	int pos[2] = { -1, -1 };
-	char x = a;
-	size_t i = 0;
-	while ((i = line.find(x, i)) != std::string::npos && pos[1] < 0)
-	{
-		if (i && line[i-1] == '\\')
-		{
-			i++;
-			continue;
-		}
-		if (once)
-			line[i] = 0;
-		pos[pos[0] >= 0] = i++;
-		if (x == a)
-			x = b;
-	}
-	++pos[0];
-	std::string result = pos[0] >= 0 && pos[1] >= 0 ? line.substr(pos[0], pos[1]-pos[0]) : "";
-	
-	// replace \a and \b with a and b respectively
-	char r1[] = "\\ ", r2[] = " ";
-	r1[1] = r2[0] = a;
-	Replace(result, r1, r2);
-	if (a != b)
-	{
-		r1[1] = r2[0] = b;
-		Replace(result, r1, r2);
-	}
-	
-	return result;
-}
-
-std::string ExtractTopName(const std::string &s)
-{
-	size_t slash = s.rfind("/");
-	return slash != std::string::npos ? s.substr(++slash) : s;
-}
-
-std::string PathGoDownOneLevel(const std::string &path)
-{
-	size_t i = path.rfind('/');
-	return i == std::string::npos ? "/" : path.substr(0, i);
+	size_t list_size = pl->size();
+	for (size_t i = 0; i < list_size; ++i)
+		if (auto s = pl->getSong(i))
+			pl->setBold(i, myPlaylist->checkForSong(*s));
 }
 
 std::basic_string<my_char_t> Scroller(const std::basic_string<my_char_t> &str, size_t &pos, size_t width)
@@ -455,14 +296,14 @@ std::basic_string<my_char_t> Scroller(const std::basic_string<my_char_t> &str, s
 	if (!Config.header_text_scrolling)
 		return s;
 	std::basic_string<my_char_t> result;
-	size_t len = Window::Length(s);
+	size_t len = NC::Window::length(s);
 	
 	if (len > width)
 	{
 		s += U(" ** ");
 		len = 0;
-		std::basic_string<my_char_t>::const_iterator b = s.begin(), e = s.end();
-		for (std::basic_string<my_char_t>::const_iterator it = b+pos; it < e && len < width; ++it)
+		auto b = s.begin(), e = s.end();
+		for (auto it = b+pos; it < e && len < width; ++it)
 		{
 			if ((len += wcwidth(*it)) > width)
 				break;
@@ -482,13 +323,14 @@ std::basic_string<my_char_t> Scroller(const std::basic_string<my_char_t> &str, s
 	return result;
 }
 
-bool isInteger(const char *s)
+std::string Shorten(const std::basic_string<my_char_t> &s, size_t max_length)
 {
-	assert(s);
-	if (*s == '\0')
-		return false;
-	for (const char *it = s; *it != '\0'; ++it)
-		if (!isdigit(*it) && (it != s || *it != '-'))
-			return false;
-	return true;
+	if (s.length() <= max_length)
+		return TO_STRING(s);
+	if (max_length < 2)
+		return "";
+	std::basic_string<my_char_t> result(s, 0, max_length/2-!(max_length%2));
+	result += U("..");
+	result += s.substr(s.length()-max_length/2+1);
+	return TO_STRING(result);
 }

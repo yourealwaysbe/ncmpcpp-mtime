@@ -18,18 +18,18 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#ifndef _NCMPCPP_H
-#define _NCMPCPP_H
+#ifndef _UTILITY_TYPE_CONVERSIONS
+#define _UTILITY_TYPE_CONVERSIONS
 
-#include "window.h"
-#include "menu.h"
-#include "scrollpad.h"
+#include "mpdpp.h"
+#include "mutable_song.h"
 
-using namespace NCurses;
+std::string tagTypeToString(mpd_tag_type tag);
+MPD::MutableSong::SetFunction tagTypeToSetFunction(mpd_tag_type tag);
 
-typedef std::pair<std::string, std::string> string_pair;
+mpd_tag_type charToTagType(char c);
+MPD::Song::GetFunction charToGetFunction(char c);
 
-const int ncmpcpp_window_timeout = 500;
+std::string itemTypeToString(MPD::ItemType type);
 
-#endif
-
+#endif // _UTILITY_TYPE_CONVERSIONS

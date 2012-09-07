@@ -21,8 +21,8 @@
 #ifndef _STATUS_CHECKER_H
 #define _STATUS_CHECKER_H
 
+#include "interfaces.h"
 #include "mpdpp.h"
-#include "ncmpcpp.h"
 
 #ifndef USE_PDCURSES
  void WindowTitle(const std::string &);
@@ -40,13 +40,24 @@ void TraceMpdStatus();
 void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges, void *);
 void NcmpcppErrorCallback(MPD::Connection *, int, const char *, void *);
 
-Window &Statusbar();
+NC::Window &Statusbar();
 void DrawProgressbar(unsigned elapsed, unsigned time);
 void ShowMessage(const char *, ...) GNUC_PRINTF(1, 2);
 
 void StatusbarMPDCallback();
-void StatusbarGetStringHelper(const std::wstring &);
-void StatusbarApplyFilterImmediately(const std::wstring &);
+void StatusbargetStringHelper(const std::wstring &);
+
+struct StatusbarApplyFilterImmediately
+{
+	StatusbarApplyFilterImmediately(Filterable *f, const std::wstring &filter)
+	: m_f(f), m_ws(filter) { }
+	
+	void operator()(const std::wstring &ws);
+	
+private:
+	Filterable *m_f;
+	std::wstring m_ws;
+};
 
 #endif
 

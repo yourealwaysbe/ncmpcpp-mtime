@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <utility>
+#include <array>
 
 #include "charset.h"
 #include "display.h"
@@ -31,6 +32,7 @@
 #include "mpdpp.h"
 #include "playlist.h"
 #include "status.h"
+#include "utility/comparators.h"
 
 
 ///////////////////////////////////////////////////////////
@@ -75,36 +77,45 @@ bool SearchConstraints::operator<(const SearchConstraints &a) const {
                   Date, a.Date);
 }
 
-bool SearchConstraintsSorting::operator()(const SearchConstraints &a, 
-                                          const SearchConstraints &b) const {
-    int result;
-	CaseInsensitiveStringComparison cmp;
-	result = cmp(a.PrimaryTag,  b.PrimaryTag);
+
+
+bool SortSearchConstraints(const SearchConstraints &a, const SearchConstraints &b)
+{
+	int result;
+	CaseInsensitiveStringComparison cmp(Config.ignore_leading_the);
+	result = cmp(a.PrimaryTag, b.PrimaryTag);
 	if (result != 0)
 		return result < 0;
 	result = cmp(a.Date, b.Date);
-	return (result == 0 ? cmp(a.Album, b.Album) : result) < 0;
+	if (result != 0)
+		return result < 0;
+	return cmp(a.Album, b.Album) < 0;
 }
 
-
-bool SortSongsByTrack(MPD::Song *a, MPD::Song *b)
+bool SortSongsByTrack(const MPD::Song &a, const MPD::Song &b)
 {
-	if (a->GetDisc() == b->GetDisc())
-		return StrToInt(a->GetTrack()) < StrToInt(b->GetTrack());
-	else
-		return StrToInt(a->GetDisc()) < StrToInt(b->GetDisc());
+	int cmp = a.getDisc().compare(a.getDisc());
+	if (cmp != 0)
+		return cmp;
+	return a.getTrack() < b.getTrack();
 }
 
-bool SortAllTracks(MPD::Song *a, MPD::Song *b)
+bool SortAllTracks(const MPD::Song &a, const MPD::Song &b)
 {
-	static MPD::Song::GetFunction gets[] = { &MPD::Song::GetDate, &MPD::Song::GetAlbum, &MPD::Song::GetDisc, 0 };
-	CaseInsensitiveStringComparison cmp;
-	for (MPD::Song::GetFunction *get = gets; *get; ++get)
-		if (int ret = cmp(a->GetTags(*get), b->GetTags(*get)))
+	const std::array<MPD::Song::GetFunction, 3> gets = {{
+		&MPD::Song::getDate,
+		&MPD::Song::getAlbum,
+		&MPD::Song::getDisc
+	}};
+	CaseInsensitiveStringComparison cmp(Config.ignore_leading_the);
+	for (auto get = gets.begin(); get != gets.end(); ++get)
+	{
+		int ret = cmp(a.getTags(*get), b.getTags(*get));
+		if (ret != 0)
 			return ret < 0;
-	return a->GetTrack() < b->GetTrack();
+	}
+	return a.getTrack() < b.getTrack();
 }
-
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -155,14 +166,13 @@ time_t MTimeArtistSorting::getAddArtistMTime(const mpd_tag_type primary_tag,
 
 void MTimeArtistSorting::forceInitedArtistMTimeMap(const mpd_tag_type primary_tag) {
     if (initedArtistMTimeMaps.count(primary_tag) == 0) {
-        MPD::SongList list;
-        Mpd.GetDirectoryRecursive("/", list);
+        auto list = Mpd.GetDirectoryRecursive("/");
         for (MPD::SongList::const_iterator it = list.begin(); 
              it != list.end(); 
             ++it) {
             updateArtistMTimeMap(primary_tag,
-                                 (*it)->GetTag(primary_tag),
-                                 (*it)->GetMTime());
+                                 (*it).getTag(primary_tag),
+                                 (*it).getMTime());
         }
 
         initedArtistMTimeMaps.insert(primary_tag);
@@ -192,17 +202,15 @@ void MTimeArtistSorting::updateArtistMTimeMap(const mpd_tag_type primary_tag,
 
 time_t MTimeArtistSorting::getArtistMTime(const mpd_tag_type primary_tag,
                                           const std::string &a) {
-    MPD::SongList list;
-		
     Mpd.StartSearch(1);
 	Mpd.AddSearch(primary_tag, locale_to_utf_cpy(a));
-    Mpd.CommitSearch(list);
+    auto list = Mpd.CommitSearchSongs();
 		
     time_t time = 0;
     for (MPD::SongList::const_iterator it = list.begin(); 
          it != list.end(); 
          ++it) {
-        time = std::max(time, (*it)->GetMTime());
+        time = std::max(time, (*it).getMTime());
 	}
     return time;
 }
@@ -243,13 +251,13 @@ void MTimeAlbumSorting::InitMapsWith(mpd_tag_type primary_tag,
     for (MPD::SongList::const_iterator it = list.begin(); 
          it != list.end(); 
         ++it) {
-        std::string date = display_date ? (*it)->GetDate() : "";
+        std::string date = display_date ? (*it).getDate() : "";
         updateAlbumMTimeMap(primary_tag,
                             display_date,
-                            SearchConstraints((*it)->GetTag(primary_tag),
-                                              (*it)->GetAlbum(),
+                            SearchConstraints((*it).getTag(primary_tag),
+                                              (*it).getAlbum(),
                                               date),
-                            (*it)->GetMTime());
+                            (*it).getMTime());
 	}
 
     initedAlbumMTimeMaps.insert(f);
@@ -291,8 +299,6 @@ time_t MTimeAlbumSorting::getAlbumMTime(const mpd_tag_type primary_tag,
                                         const bool display_date,
                                         const SearchConstraints &a) {
     // make this the newest song with same album tag
-    MPD::SongList list;
-		
     Mpd.StartSearch(1);
     Mpd.AddSearch(MPD_TAG_ALBUM, locale_to_utf_cpy(a.Album));
     Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Date));
@@ -304,13 +310,13 @@ time_t MTimeAlbumSorting::getAlbumMTime(const mpd_tag_type primary_tag,
     if (display_date) {
 	    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Date));
     }
-    Mpd.CommitSearch(list);
+    auto list = Mpd.CommitSearchSongs();
 		
     time_t time = 0;
     for (MPD::SongList::const_iterator it = list.begin(); 
          it != list.end(); 
          ++it) {
-        time = std::max(time, (*it)->GetMTime());
+        time = std::max(time, (*it).getMTime());
 	}
     return time;
 }
@@ -319,8 +325,7 @@ void MTimeAlbumSorting::forceInitedAlbumMTimeMap(const mpd_tag_type primary_tag,
                                                  const bool display_date) {
     AlbumMTimeFlags f = AlbumMTimeFlags(primary_tag, display_date);
     if (initedAlbumMTimeMaps.count(f) == 0) {
-        MPD::SongList list;
-        Mpd.GetDirectoryRecursive("/", list);
+        auto list = Mpd.GetDirectoryRecursive("/");
         InitMapsWith(primary_tag, display_date, list);
     }
 }

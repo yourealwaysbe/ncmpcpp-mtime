@@ -21,9 +21,7 @@
 #ifndef _OUTPUTS_H
 #define _OUTPUTS_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
 #ifdef ENABLE_OUTPUTS
 
@@ -31,30 +29,31 @@
 #include "mpdpp.h"
 #include "screen.h"
 
-class Outputs : public Screen< Menu<MPD::Output> >
+class Outputs : public Screen< NC::Menu<MPD::Output> >
 {
 	public:
-		virtual void SwitchTo();
-		virtual void Resize();
 		
-		virtual std::basic_string<my_char_t> Title();
+		// Screen< NC::Menu<MPD::Output> > implementation
+		virtual void SwitchTo() OVERRIDE;
+		virtual void Resize() OVERRIDE;
 		
-		virtual void EnterPressed();
-		virtual void SpacePressed() { }
-		virtual void MouseButtonPressed(MEVENT);
-		virtual bool isTabbable() { return true; }
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual bool allowsSelection() { return false; }
+		virtual void Update() OVERRIDE { }
 		
-		virtual List *GetList() { return w; }
+		virtual void EnterPressed() OVERRIDE;
+		virtual void SpacePressed() OVERRIDE { }
+		virtual void MouseButtonPressed(MEVENT me) OVERRIDE;
 		
-		virtual bool isMergable() { return true; }
+		virtual bool isTabbable() OVERRIDE { return true; }
+		virtual bool isMergable() OVERRIDE { return true; }
 		
+		// private members
 		void FetchList();
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return true; }
 };
 
 extern Outputs *myOutputs;

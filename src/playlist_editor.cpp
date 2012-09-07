@@ -30,16 +30,27 @@
 #include "mpdpp.h"
 #include "status.h"
 #include "tag_editor.h"
+#include "utility/comparators.h"
+
+using namespace std::placeholders;
 
 using Global::MainHeight;
 using Global::MainStartY;
 
 PlaylistEditor *myPlaylistEditor = new PlaylistEditor;
 
-size_t PlaylistEditor::LeftColumnStartX;
-size_t PlaylistEditor::LeftColumnWidth;
-size_t PlaylistEditor::RightColumnStartX;
-size_t PlaylistEditor::RightColumnWidth;
+namespace {//
+
+size_t LeftColumnStartX;
+size_t LeftColumnWidth;
+size_t RightColumnStartX;
+size_t RightColumnWidth;
+
+std::string SongToString(const MPD::Song &s);
+bool PlaylistEntryMatcher(const Regex &rx, const std::string &playlist);
+bool SongEntryMatcher(const Regex &rx, const MPD::Song &s);
+
+}
 
 void PlaylistEditor::Init()
 {
@@ -47,24 +58,24 @@ void PlaylistEditor::Init()
 	RightColumnStartX = LeftColumnWidth+1;
 	RightColumnWidth = COLS-LeftColumnWidth-1;
 	
-	Playlists = new Menu<std::string>(0, MainStartY, LeftColumnWidth, MainHeight, Config.titles_visibility ? "Playlists" : "", Config.main_color, brNone);
-	Playlists->HighlightColor(Config.active_column_color);
-	Playlists->CyclicScrolling(Config.use_cyclic_scrolling);
-	Playlists->CenteredCursor(Config.centered_cursor);
-	Playlists->SetItemDisplayer(Display::Generic);
+	Playlists = new NC::Menu<std::string>(0, MainStartY, LeftColumnWidth, MainHeight, Config.titles_visibility ? "Playlists" : "", Config.main_color, NC::brNone);
+	Playlists->setHighlightColor(Config.active_column_color);
+	Playlists->cyclicScrolling(Config.use_cyclic_scrolling);
+	Playlists->centeredCursor(Config.centered_cursor);
+	Playlists->setSelectedPrefix(Config.selected_item_prefix);
+	Playlists->setSelectedSuffix(Config.selected_item_suffix);
+	Playlists->setItemDisplayer(Display::Default<std::string>);
 	
-	static Display::ScreenFormat sf = { this, &Config.song_list_format };
-	
-	Content = new Menu<MPD::Song>(RightColumnStartX, MainStartY, RightColumnWidth, MainHeight, Config.titles_visibility ? "Playlist's content" : "", Config.main_color, brNone);
-	Content->HighlightColor(Config.main_highlight_color);
-	Content->CyclicScrolling(Config.use_cyclic_scrolling);
-	Content->CenteredCursor(Config.centered_cursor);
-	Content->SetSelectPrefix(&Config.selected_item_prefix);
-	Content->SetSelectSuffix(&Config.selected_item_suffix);
-	Content->SetItemDisplayer(Config.columns_in_playlist_editor ? Display::SongsInColumns : Display::Songs);
-	Content->SetItemDisplayerUserData(&sf);
-	Content->SetGetStringFunction(Config.columns_in_playlist_editor ? Playlist::SongInColumnsToString : Playlist::SongToString);
-	Content->SetGetStringFunctionUserData(&Config.song_list_format_dollar_free);
+	Content = new NC::Menu<MPD::Song>(RightColumnStartX, MainStartY, RightColumnWidth, MainHeight, Config.titles_visibility ? "Playlist content" : "", Config.main_color, NC::brNone);
+	Content->setHighlightColor(Config.main_highlight_color);
+	Content->cyclicScrolling(Config.use_cyclic_scrolling);
+	Content->centeredCursor(Config.centered_cursor);
+	Content->setSelectedPrefix(Config.selected_item_prefix);
+	Content->setSelectedSuffix(Config.selected_item_suffix);
+	if (Config.columns_in_playlist_editor)
+		Content->setItemDisplayer(std::bind(Display::SongsInColumns, _1, this));
+	else
+		Content->setItemDisplayer(std::bind(Display::Songs, _1, this, Config.song_list_format));
 	
 	w = Playlists;
 	isInitialized = 1;
@@ -80,11 +91,11 @@ void PlaylistEditor::Resize()
 	RightColumnStartX = LeftColumnStartX+LeftColumnWidth+1;
 	RightColumnWidth = width-LeftColumnWidth-1;
 	
-	Playlists->Resize(LeftColumnWidth, MainHeight);
-	Content->Resize(RightColumnWidth, MainHeight);
+	Playlists->resize(LeftColumnWidth, MainHeight);
+	Content->resize(RightColumnWidth, MainHeight);
 	
-	Playlists->MoveTo(LeftColumnStartX, MainStartY);
-	Content->MoveTo(RightColumnStartX, MainStartY);
+	Playlists->moveTo(LeftColumnStartX, MainStartY);
+	Content->moveTo(RightColumnStartX, MainStartY);
 	
 	hasToBeResized = 0;
 }
@@ -96,9 +107,9 @@ std::basic_string<my_char_t> PlaylistEditor::Title()
 
 void PlaylistEditor::Refresh()
 {
-	Playlists->Display();
+	Playlists->display();
 	mvvline(MainStartY, RightColumnStartX-1, 0, MainHeight);
-	Content->Display();
+	Content->display();
 }
 
 void PlaylistEditor::SwitchTo()
@@ -121,155 +132,76 @@ void PlaylistEditor::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = 1;
+	Global::RedrawHeader = true;
+	markSongsInPlaylist(contentProxyList());
 	Refresh();
-	UpdateSongList(Content);
 }
 
 void PlaylistEditor::Update()
 {
-	if (Playlists->ReallyEmpty())
+	if (Playlists->reallyEmpty() || playlistsUpdateRequested)
 	{
-		Content->Clear();
-		MPD::TagList list;
-		Mpd.GetPlaylists(list);
-		sort(list.begin(), list.end(), CaseInsensitiveSorting());
-		for (MPD::TagList::iterator it = list.begin(); it != list.end(); ++it)
-		{
-			utf_to_locale(*it);
-			Playlists->AddOption(*it);
-		}
-		Playlists->Window::Clear();
-		Playlists->Refresh();
+		playlistsUpdateRequested = false;
+		Playlists->clearSearchResults();
+		withUnfilteredMenuReapplyFilter(*Playlists, [this]() {
+			auto list = Mpd.GetPlaylists();
+			std::sort(list.begin(), list.end(), CaseInsensitiveSorting());
+			auto playlist = list.begin();
+			if (Playlists->size() > list.size())
+				Playlists->resizeList(list.size());
+			for (auto it = Playlists->begin(); it != Playlists->end(); ++it, ++playlist)
+				it->value() = *playlist;
+			for (; playlist != list.end(); ++playlist)
+				Playlists->addItem(*playlist);
+		});
+		Playlists->refresh();
 	}
 	
-	if (!Playlists->Empty() && Content->ReallyEmpty())
+	if (!Playlists->empty() && (Content->reallyEmpty() || contentUpdateRequested))
 	{
-		Content->Reset();
-		MPD::SongList list;
-		Mpd.GetPlaylistContent(locale_to_utf_cpy(Playlists->Current()), list);
-		if (!list.empty())
-		{
-			std::string title = Config.titles_visibility ? "Playlist's content (" + IntoStr(list.size()) + " item" + (list.size() == 1 ? ")" : "s)") : "";
-			title.resize(Content->GetWidth());
-			Content->SetTitle(title);
-		}
-		else
-			Content->SetTitle(Config.titles_visibility ? "Playlist's content" : "");
-		bool bold = 0;
-		for (MPD::SongList::const_iterator it = list.begin(); it != list.end(); ++it)
-		{
-			for (size_t j = 0; j < myPlaylist->Items->Size(); ++j)
+		contentUpdateRequested = false;
+		Content->clearSearchResults();
+		withUnfilteredMenuReapplyFilter(*Content, [this]() {
+			auto list = Mpd.GetPlaylistContent(Playlists->current().value());
+			auto song = list.begin();
+			if (Content->size() > list.size())
+				Content->resizeList(list.size());
+			for (auto it = Content->begin(); it != Content->end(); ++it, ++song)
 			{
-				if ((*it)->GetHash() == myPlaylist->Items->at(j).GetHash())
-				{
-					bold = 1;
-					break;
-				}
+				it->value() = *song;
+				it->setBold(myPlaylist->checkForSong(*song));
 			}
-			Content->AddOption(**it, bold);
-			bold = 0;
-		}
-		MPD::FreeSongList(list);
-		Content->Window::Clear();
-		Content->Display();
+			for (; song != list.end(); ++song)
+				Content->addItem(*song, myPlaylist->checkForSong(*song));
+			std::string title;
+			if (Config.titles_visibility)
+			{
+				title = "Playlist content";
+				title += " (";
+				title += unsignedLongIntTo<std::string>::apply(list.size());
+				title += " item";
+				if (list.size() == 1)
+					title += ")";
+				else
+					title += "s)";
+				title.resize(Content->getWidth());
+			}
+			Content->setTitle(title);
+		});
+		Content->display();
 	}
 	
-	if (w == Content && Content->ReallyEmpty())
+	if (w == Content && Content->reallyEmpty())
 	{
-		Content->HighlightColor(Config.main_highlight_color);
-		Playlists->HighlightColor(Config.active_column_color);
+		Content->setHighlightColor(Config.main_highlight_color);
+		Playlists->setHighlightColor(Config.active_column_color);
 		w = Playlists;
 	}
 	
-	if (Content->ReallyEmpty())
+	if (Playlists->empty() && Content->reallyEmpty())
 	{
-		*Content << XY(0, 0) << "Playlist is empty.";
-		Content->Window::Refresh();
-	}
-}
-
-void PlaylistEditor::MoveSelectedItems(Playlist::Movement where)
-{
-	if (Content->Empty())
-		return;
-	
-	// remove search results as we may move them to different positions, but
-	// search rememebers positions and may point to wrong ones after that.
-	Content->Search("");
-	
-	switch (where)
-	{
-		case Playlist::mUp:
-		{
-			if (Content->hasSelected())
-			{
-				std::vector<size_t> list;
-				Content->GetSelected(list);
-					
-				if (list.front() > 0)
-				{
-					Mpd.StartCommandsList();
-					std::vector<size_t>::const_iterator it = list.begin();
-					for (; it != list.end(); ++it)
-						Mpd.Move(Playlists->Current(), *it-1, *it);
-					if (Mpd.CommitCommandsList())
-					{
-						for (it = list.begin(); it != list.end(); ++it)
-							Content->Swap(*it-1, *it);
-						Content->Highlight(list[(list.size()-1)/2]-1);
-					}
-				}
-			}
-			else
-			{
-				size_t pos = Content->Choice();
-				if (pos > 0)
-				{
-					if (Mpd.Move(Playlists->Current(), pos-1, pos))
-					{
-						Content->Scroll(wUp);
-						Content->Swap(pos-1, pos);
-					}
-				}
-			}
-			break;
-		}
-		case Playlist::mDown:
-		{
-			if (Content->hasSelected())
-			{
-				std::vector<size_t> list;
-				Content->GetSelected(list);
-				
-				if (list.back() < Content->Size()-1)
-				{
-					Mpd.StartCommandsList();
-					std::vector<size_t>::const_reverse_iterator it = list.rbegin();
-					for (; it != list.rend(); ++it)
-						Mpd.Move(Playlists->Current(), *it, *it+1);
-					if (Mpd.CommitCommandsList())
-					{
-						Content->Highlight(list[(list.size()-1)/2]+1);
-						for (it = list.rbegin(); it != list.rend(); ++it)
-							Content->Swap(*it, *it+1);
-					}
-				}
-			}
-			else
-			{
-				size_t pos = Content->Choice();
-				if (pos < Content->Size()-1)
-				{
-					if (Mpd.Move(Playlists->Current(), pos, pos+1))
-					{
-						Content->Scroll(wDown);
-						Content->Swap(pos, pos+1);
-					}
-				}
-			}
-			break;
-		}
+		Content->Window::clear();
+		Content->Window::display();
 	}
 }
 
@@ -283,12 +215,11 @@ bool PlaylistEditor::isContentFiltered()
 	return false;
 }
 
-
 bool PlaylistEditor::isNextColumnAvailable()
 {
 	if (w == Playlists)
 	{
-		if (!Content->ReallyEmpty())
+		if (!Content->reallyEmpty())
 			return true;
 	}
 	return false;
@@ -298,10 +229,10 @@ bool PlaylistEditor::NextColumn()
 {
 	if (w == Playlists)
 	{
-		Playlists->HighlightColor(Config.main_highlight_color);
-		w->Refresh();
+		Playlists->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
 		w = Content;
-		Content->HighlightColor(Config.active_column_color);
+		Content->setHighlightColor(Config.active_column_color);
 		return true;
 	}
 	return false;
@@ -311,7 +242,7 @@ bool PlaylistEditor::isPrevColumnAvailable()
 {
 	if (w == Content)
 	{
-		if (!Playlists->ReallyEmpty())
+		if (!Playlists->reallyEmpty())
 			return true;
 	}
 	return false;
@@ -321,133 +252,285 @@ bool PlaylistEditor::PrevColumn()
 {
 	if (w == Content)
 	{
-		Content->HighlightColor(Config.main_highlight_color);
-		w->Refresh();
+		Content->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
 		w = Playlists;
-		Playlists->HighlightColor(Config.active_column_color);
+		Playlists->setHighlightColor(Config.active_column_color);
 		return true;
 	}
 	return false;
+}
+
+std::shared_ptr<ProxySongList> PlaylistEditor::contentProxyList()
+{
+	return mkProxySongList(*Content, [](NC::Menu<MPD::Song>::Item &item) {
+		return &item.value();
+	});
 }
 
 void PlaylistEditor::AddToPlaylist(bool add_n_play)
 {
 	MPD::SongList list;
 	
-	if (w == Playlists && !Playlists->Empty())
+	if (w == Playlists && !Playlists->empty())
 	{
-		if (Mpd.LoadPlaylist(utf_to_locale_cpy(Playlists->Current())))
+		if (Mpd.LoadPlaylist(utf_to_locale_cpy(Playlists->current().value())))
 		{
-			ShowMessage("Playlist \"%s\" loaded", Playlists->Current().c_str());
+			ShowMessage("Playlist \"%s\" loaded", Playlists->current().value().c_str());
 			if (add_n_play)
 				myPlaylist->PlayNewlyAddedSongs();
 		}
 	}
-	else if (w == Content && !Content->Empty())
-		Content->Bold(Content->Choice(), myPlaylist->Add(Content->Current(), Content->isBold(), add_n_play));
+	else if (w == Content && !Content->empty())
+		myPlaylist->Add(Content->current().value(), add_n_play);
 	
-	FreeSongList(list);
 	if (!add_n_play)
-		w->Scroll(wDown);
+		w->scroll(NC::wDown);
+}
+
+void PlaylistEditor::EnterPressed()
+{
+	AddToPlaylist(true);
 }
 
 void PlaylistEditor::SpacePressed()
 {
-	if (Config.space_selects && w == Content)
+	if (Config.space_selects)
 	{
-		Content->Select(Content->Choice(), !Content->isSelected());
-		w->Scroll(wDown);
+		if (w == Playlists)
+		{
+			if (!Playlists->empty())
+			{
+				Playlists->current().setSelected(!Playlists->current().isSelected());
+				Playlists->scroll(NC::wDown);
+			}
+		}
+		else if (w == Content)
+		{
+			if (!Content->empty())
+			{
+				Content->current().setSelected(!Content->current().isSelected());
+				Content->scroll(NC::wDown);
+			}
+		}
 	}
 	else
-		AddToPlaylist(0);
+		AddToPlaylist(false);
 }
 
 void PlaylistEditor::MouseButtonPressed(MEVENT me)
 {
-	if (!Playlists->Empty() && Playlists->hasCoords(me.x, me.y))
+	if (!Playlists->empty() && Playlists->hasCoords(me.x, me.y))
 	{
 		if (w != Playlists)
 			PrevColumn();
-		if (size_t(me.y) < Playlists->Size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
+		if (size_t(me.y) < Playlists->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			Playlists->Goto(me.y);
 			if (me.bstate & BUTTON3_PRESSED)
 			{
-				size_t pos = Playlists->Choice();
+				size_t pos = Playlists->choice();
 				SpacePressed();
-				if (pos < Playlists->Size()-1)
-					Playlists->Scroll(wUp);
+				if (pos < Playlists->size()-1)
+					Playlists->scroll(NC::wUp);
 			}
 		}
 		else
-			Screen<Window>::MouseButtonPressed(me);
-		Content->Clear();
+			Screen<NC::Window>::MouseButtonPressed(me);
+		Content->clear();
 	}
-	else if (!Content->Empty() && Content->hasCoords(me.x, me.y))
+	else if (!Content->empty() && Content->hasCoords(me.x, me.y))
 	{
 		if (w != Content)
 			NextColumn();
-		if (size_t(me.y) < Content->Size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
+		if (size_t(me.y) < Content->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			Content->Goto(me.y);
 			if (me.bstate & BUTTON1_PRESSED)
 			{
-				size_t pos = Content->Choice();
+				size_t pos = Content->choice();
 				SpacePressed();
-				if (pos < Content->Size()-1)
-					Content->Scroll(wUp);
+				if (pos < Content->size()-1)
+					Content->scroll(NC::wUp);
 			}
 			else
 				EnterPressed();
 		}
 		else
-			Screen<Window>::MouseButtonPressed(me);
+			Screen<NC::Window>::MouseButtonPressed(me);
 	}
 }
 
-MPD::Song *PlaylistEditor::CurrentSong()
+/***********************************************************************/
+
+bool PlaylistEditor::allowsFiltering()
 {
-	return w == Content && !Content->Empty() ? &Content->Current() : 0;
+	return true;
 }
 
-void PlaylistEditor::GetSelectedSongs(MPD::SongList &v)
+std::string PlaylistEditor::currentFilter()
 {
-	std::vector<size_t> selected;
-	Content->GetSelected(selected);
-	if (selected.empty())
-		selected.push_back(Content->Choice());
-	for (std::vector<size_t>::const_iterator it = selected.begin(); it != selected.end(); ++it)
-		v.push_back(new MPD::Song(Content->at(*it)));
+	std::string filter;
+	if (w == Playlists)
+		filter = RegexFilter<std::string>::currentFilter(*Playlists);
+	else if (w == Content)
+		filter = RegexFilter<MPD::Song>::currentFilter(*Content);
+	return filter;
 }
 
-void PlaylistEditor::ApplyFilter(const std::string &s)
+void PlaylistEditor::applyFilter(const std::string &filter)
 {
-	GetList()->ApplyFilter(s, 0, REG_ICASE | Config.regex_type);
+	if (w == Playlists)
+	{
+		Playlists->showAll();
+		auto rx = RegexFilter<std::string>(filter, Config.regex_type, PlaylistEntryMatcher);
+		Playlists->filter(Playlists->begin(), Playlists->end(), rx);
+	}
+	else if (w == Content)
+	{
+		Content->showAll();
+		auto rx = RegexFilter<MPD::Song>(filter, Config.regex_type, SongEntryMatcher);
+		Content->filter(Content->begin(), Content->end(), rx);
+	}
 }
+
+/***********************************************************************/
+
+bool PlaylistEditor::allowsSearching()
+{
+	return true;
+}
+
+bool PlaylistEditor::search(const std::string &constraint)
+{
+	bool result = false;
+	if (w == Playlists)
+	{
+		auto rx = RegexFilter<std::string>(constraint, Config.regex_type, PlaylistEntryMatcher);
+		result = Playlists->search(Playlists->begin(), Playlists->end(), rx);
+	}
+	else if (w == Content)
+	{
+		auto rx = RegexFilter<MPD::Song>(constraint, Config.regex_type, SongEntryMatcher);
+		result = Content->search(Content->begin(), Content->end(), rx);
+	}
+	return result;
+}
+
+void PlaylistEditor::nextFound(bool wrap)
+{
+	if (w == Playlists)
+		Playlists->nextFound(wrap);
+	else if (w == Content)
+		Content->nextFound(wrap);
+}
+
+void PlaylistEditor::prevFound(bool wrap)
+{
+	if (w == Playlists)
+		Playlists->prevFound(wrap);
+	else if (w == Content)
+		Content->prevFound(wrap);
+}
+
+/***********************************************************************/
+
+std::shared_ptr<ProxySongList> PlaylistEditor::getProxySongList()
+{
+	auto ptr = nullProxySongList();
+	if (w == Content)
+		ptr = contentProxyList();
+	return ptr;
+}
+
+bool PlaylistEditor::allowsSelection()
+{
+	return true;
+}
+
+void PlaylistEditor::reverseSelection()
+{
+	if (w == Playlists)
+		reverseSelectionHelper(Playlists->begin(), Playlists->end());
+	else if (w == Content)
+		reverseSelectionHelper(Content->begin(), Content->end());
+}
+
+MPD::SongList PlaylistEditor::getSelectedSongs()
+{
+	MPD::SongList result;
+	if (w == Playlists)
+	{
+		bool any_selected = false;
+		for (auto it = Playlists->begin(); it != Playlists->end(); ++it)
+		{
+			if (it->isSelected())
+			{
+				any_selected = true;
+				auto songs = Mpd.GetPlaylistContent(it->value());
+				result.insert(result.end(), songs.begin(), songs.end());
+			}
+		}
+		// we don't check for empty result here as it's possible that
+		// all selected playlists are empty.
+		if (!any_selected && !Content->empty())
+		{
+			withUnfilteredMenu(*Content, [this, &result]() {
+				result.insert(result.end(), Content->beginV(), Content->endV());
+			});
+		}
+	}
+	else if (w == Content)
+	{
+		for (auto it = Content->begin(); it != Content->end(); ++it)
+			if (it->isSelected())
+				result.push_back(it->value());
+		// if no item is selected, add current one
+		if (result.empty() && !Content->empty())
+			result.push_back(Content->current().value());
+	}
+	return result;
+}
+
+/***********************************************************************/
 
 void PlaylistEditor::Locate(const std::string &name)
 {
 	if (!isInitialized)
 		Init();
 	Update();
-	for (size_t i = 0; i < Playlists->Size(); ++i)
+	for (size_t i = 0; i < Playlists->size(); ++i)
 	{
-		if (name == (*Playlists)[i])
+		if (name == (*Playlists)[i].value())
 		{
-			Playlists->Highlight(i);
-			Content->Clear();
+			Playlists->highlight(i);
+			Content->clear();
 			break;
 		}
 	}
 	SwitchTo();
 }
 
-List *PlaylistEditor::GetList()
+namespace {//
+
+std::string SongToString(const MPD::Song &s)
 {
-	if (w == Playlists)
-		return Playlists;
-	else if (w == Content)
-		return Content;
-	else // silence compiler
-		assert(false);
+	std::string result;
+	if (Config.columns_in_playlist_editor)
+		result = s.toString(Config.song_in_columns_to_string_format);
+	else
+		result = s.toString(Config.song_list_format_dollar_free);
+	return result;
+}
+
+bool PlaylistEntryMatcher(const Regex &rx, const std::string &playlist)
+{
+	return rx.match(playlist);
+}
+
+bool SongEntryMatcher(const Regex &rx, const MPD::Song &s)
+{
+	return rx.match(SongToString(s));
+}
+
 }

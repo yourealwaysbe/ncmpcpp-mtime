@@ -29,9 +29,9 @@
 #include <stdexcept>
 
 #include "mpdpp.h"
-#include "ncmpcpp.h"
 
 #include "actions.h"
+#include "bindings.h"
 #include "browser.h"
 #include "global.h"
 #include "helpers.h"
@@ -40,25 +40,6 @@
 #include "settings.h"
 #include "status.h"
 #include "visualizer.h"
-
-using namespace Global;
-using namespace MPD;
-
-BasicScreen *Global::myScreen;
-BasicScreen *Global::myOldScreen;
-BasicScreen *Global::myPrevScreen;
-BasicScreen *Global::myLockedScreen;
-BasicScreen *Global::myInactiveScreen;
-
-Window *Global::wHeader;
-Window *Global::wFooter;
-
-size_t Global::MainStartY;
-size_t Global::MainHeight;
-
-bool Global::MessagesAllowed = 0;
-bool Global::SeekingInProgress = 0;
-bool Global::RedrawHeader = 1;
 
 namespace
 {
@@ -86,7 +67,7 @@ namespace
 		errorlog.close();
 		Mpd.Disconnect();
 #		ifndef USE_PDCURSES // destroying screen somehow crashes pdcurses
-		DestroyScreen();
+		NC::destroyScreen();
 #		endif // USE_PDCURSES
 		WindowTitle("");
 	}
@@ -94,6 +75,20 @@ namespace
 
 int main(int argc, char **argv)
 {
+	using Global::myScreen;
+	using Global::myOldScreen;
+	using Global::myPrevScreen;
+	using Global::myLockedScreen;
+	using Global::myInactiveScreen;
+	
+	using Global::wHeader;
+	using Global::wFooter;
+	
+	using Global::RedrawHeader;
+	using Global::ShowMessages;
+	using Global::VolumeState;
+	using Global::Timer;
+	
 	srand(time(0));
 	setlocale(LC_ALL, "");
 	
@@ -101,9 +96,11 @@ int main(int argc, char **argv)
 	
 	Config.SetDefaults();
 	Config.Read();
-	
 	Config.GenerateColumns();
-	Keys.GenerateBindings();
+	
+	if (!Bindings.read(Config.ncmpcpp_directory + "bindings"))
+		return 1;
+	Bindings.generateDefaults();
 	
 	if (getenv("MPD_HOST"))
 		Mpd.SetHostname(getenv("MPD_HOST"));
@@ -121,8 +118,14 @@ int main(int argc, char **argv)
 	if (argc > 1)
 		ParseArgv(argc, argv);
 	
-	if (!ConnectToMPD())
+	if (!Action::ConnectToMPD())
 		exit(1);
+	
+	if (Mpd.Version() < 14)
+	{
+		std::cout << "MPD < 0.14 is not supported, please upgrade.\n";
+		exit(1);
+	}
 	
 	CreateDir(Config.ncmpcpp_directory);
 	
@@ -134,7 +137,7 @@ int main(int argc, char **argv)
 	cerr_buffer = std::cerr.rdbuf();
 	std::cerr.rdbuf(errorlog.rdbuf());
 	
-	InitScreen("ncmpcpp ver. " VERSION, Config.colors_enabled);
+	NC::initScreen("ncmpcpp ver. " VERSION, Config.colors_enabled);
 	
 	Action::OriginalStatusbarVisibility = Config.statusbar_visibility;
 	
@@ -147,16 +150,16 @@ int main(int argc, char **argv)
 	Action::SetWindowsDimensions();
 	Action::ValidateScreenSize();
 	
-	wHeader = new Window(0, 0, COLS, Action::HeaderHeight, "", Config.header_color, brNone);
+	wHeader = new NC::Window(0, 0, COLS, Action::HeaderHeight, "", Config.header_color, NC::brNone);
 	if (Config.header_visibility || Config.new_design)
-		wHeader->Display();
+		wHeader->display();
 	
-	wFooter = new Window(0, Action::FooterStartY, COLS, Action::FooterHeight, "", Config.statusbar_color, brNone);
-	wFooter->SetTimeout(ncmpcpp_window_timeout);
-	wFooter->SetGetStringHelper(StatusbarGetStringHelper);
+	wFooter = new NC::Window(0, Action::FooterStartY, COLS, Action::FooterHeight, "", Config.statusbar_color, NC::brNone);
+	wFooter->setTimeout(500);
+	wFooter->setGetStringHelper(StatusbargetStringHelper);
 	if (Mpd.SupportsIdle())
-		wFooter->AddFDCallback(Mpd.GetFD(), StatusbarMPDCallback);
-	wFooter->CreateHistory();
+		wFooter->addFDCallback(Mpd.GetFD(), StatusbarMPDCallback);
+	wFooter->createHistory();
 	
 	// initialize screens to browser as default previous screen
 	myScreen = myBrowser;
@@ -175,7 +178,7 @@ int main(int argc, char **argv)
 	Mpd.SetErrorHandler(NcmpcppErrorCallback, 0);
 	
 	// local variables
-	Action::Key input(0, ctStandard);
+	Key input(0, Key::Standard);
 	timeval past = { 0, 0 };
 	// local variables end
 	
@@ -194,7 +197,7 @@ int main(int argc, char **argv)
 		TraceMpdStatus();
 		int curr_pos = Mpd.GetCurrentSongPos();
 		if  (curr_pos >= 0)
-			myPlaylist->Items->Highlight(curr_pos);
+			myPlaylist->Items->highlight(curr_pos);
 	}
 	
 	while (!Action::ExitMainLoop)
@@ -202,17 +205,17 @@ int main(int argc, char **argv)
 		if (!Mpd.Connected())
 		{
 			if (!wFooter->FDCallbacksListEmpty())
-				wFooter->ClearFDCallbacksList();
+				wFooter->clearFDCallbacksList();
 			ShowMessage("Attempting to reconnect...");
 			if (Mpd.Connect())
 			{
 				ShowMessage("Connected to %s", Mpd.GetHostname().c_str());
 				if (Mpd.SupportsIdle())
 				{
-					wFooter->AddFDCallback(Mpd.GetFD(), StatusbarMPDCallback);
+					wFooter->addFDCallback(Mpd.GetFD(), StatusbarMPDCallback);
 					Mpd.OrderDataFetching(); // we need info about new connection
 				}
-				MessagesAllowed = 0;
+				ShowMessages = false;
 #				ifdef ENABLE_VISUALIZER
 				myVisualizer->ResetFD();
 				if (myScreen == myVisualizer)
@@ -224,7 +227,7 @@ int main(int argc, char **argv)
 		
 		TraceMpdStatus();
 		
-		MessagesAllowed = 1;
+		ShowMessages = true;
 		
 		if (Action::OrderResize)
 			Action::ResizeScreen();
@@ -234,7 +237,7 @@ int main(int argc, char **argv)
 		&&   (myScreen == myPlaylist || myScreen == myBrowser || myScreen == myLyrics)
 		   )
 		{
-			RedrawHeader = 1;
+			RedrawHeader = true;
 			gettimeofday(&past, 0);
 		}
 		if (Config.header_visibility && RedrawHeader)
@@ -242,46 +245,46 @@ int main(int argc, char **argv)
 			if (Config.new_design)
 			{
 				std::basic_string<my_char_t> title = myScreen->Title();
-				*wHeader << XY(0, 3) << wclrtoeol;
-				*wHeader << fmtBold << Config.alternative_ui_separator_color;
-				mvwhline(wHeader->Raw(), 2, 0, 0, COLS);
-				mvwhline(wHeader->Raw(), 4, 0, 0, COLS);
-				*wHeader << XY((COLS-Window::Length(title))/2, 3);
-				*wHeader << Config.header_color << title << clEnd;
-				*wHeader << clEnd << fmtBoldEnd;
+				*wHeader << NC::XY(0, 3) << wclrtoeol;
+				*wHeader << NC::fmtBold << Config.alternative_ui_separator_color;
+				mvwhline(wHeader->raw(), 2, 0, 0, COLS);
+				mvwhline(wHeader->raw(), 4, 0, 0, COLS);
+				*wHeader << NC::XY((COLS-NC::Window::length(title))/2, 3);
+				*wHeader << Config.header_color << title << NC::clEnd;
+				*wHeader << NC::clEnd << NC::fmtBoldEnd;
 			}
 			else
 			{
-				*wHeader << XY(0, 0) << wclrtoeol << fmtBold << myScreen->Title() << fmtBoldEnd;
+				*wHeader << NC::XY(0, 0) << wclrtoeol << NC::fmtBold << myScreen->Title() << NC::fmtBoldEnd;
 				*wHeader << Config.volume_color;
-				*wHeader << XY(wHeader->GetWidth()-VolumeState.length(), 0) << VolumeState;
-				*wHeader << clEnd;
+				*wHeader << NC::XY(wHeader->getWidth()-VolumeState.length(), 0) << VolumeState;
+				*wHeader << NC::clEnd;
 			}
-			wHeader->Refresh();
-			RedrawHeader = 0;
+			wHeader->refresh();
+			RedrawHeader = false;
 		}
 		// header stuff end
 		
-		if (input != Action::NoOp)
+		if (input != Key::noOp)
 			myScreen->RefreshWindow();
-		input = Action::ReadKey(*wFooter);
+		input = Key::read(*wFooter);
 		
-		if (input == Action::NoOp)
+		if (input == Key::noOp)
 			continue;
 		
-		KeyConfiguration::Binding k = Keys.Bindings.equal_range(input);
+		auto k = Bindings.get(input);
 		for (; k.first != k.second; ++k.first)
 		{
-			Bind &b = k.first->second;
+			Binding &b = k.first->second;
 			if (b.isSingle())
 			{
-				if (b.getAction()->Execute())
+				if (b.action()->Execute())
 					break;
 			}
 			else
 			{
-				Bind::ActionChain *chain = b.getChain();
-				for (Bind::ActionChain::iterator it = chain->begin(); it != chain->end(); ++it)
+				auto chain = b.chain();
+				for (auto it = chain->begin(); it != chain->end(); ++it)
 					if (!(*it)->Execute())
 						break;
 				break;
@@ -294,10 +297,10 @@ int main(int argc, char **argv)
 #		ifdef ENABLE_VISUALIZER
 		// visualizer sets timeout to 40ms, but since only it needs such small
 		// value, we should restore defalt one after switching to another screen.
-		if (wFooter->GetTimeout() < ncmpcpp_window_timeout
+		if (wFooter->getTimeout() < 500
 		&&  !(myScreen == myVisualizer || myLockedScreen == myVisualizer || myInactiveScreen == myVisualizer)
 		   )
-			wFooter->SetTimeout(ncmpcpp_window_timeout);
+			wFooter->setTimeout(500);
 #		endif // ENABLE_VISUALIZER
 	}
 	return 0;

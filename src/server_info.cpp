@@ -22,6 +22,7 @@
 #include <iomanip>
 
 #include "global.h"
+#include "helpers.h"
 #include "server_info.h"
 
 using Global::MainHeight;
@@ -33,10 +34,10 @@ ServerInfo *myServerInfo = new ServerInfo;
 void ServerInfo::Init()
 {
 	SetDimensions();
-	w = new Scrollpad((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY, itsWidth, itsHeight, "MPD server info", Config.main_color, Config.window_border);
+	w = new NC::Scrollpad((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY, itsWidth, itsHeight, "MPD server info", Config.main_color, Config.window_border);
 	
-	Mpd.GetURLHandlers(itsURLHandlers);
-	Mpd.GetTagTypes(itsTagTypes);
+	itsURLHandlers = Mpd.GetURLHandlers();
+	itsTagTypes = Mpd.GetTagTypes();
 	
 	isInitialized = 1;
 }
@@ -66,7 +67,7 @@ void ServerInfo::SwitchTo()
 		Resize();
 	
 	myScreen = this;
-	w->Window::Clear();
+	//w->Window::clear();
 }
 
 void ServerInfo::Resize()
@@ -74,8 +75,8 @@ void ServerInfo::Resize()
 	SetDimensions();
 	if (itsHeight < 5) // screen too low to display this window
 		return myOldScreen->SwitchTo();
-	w->Resize(itsWidth, itsHeight);
-	w->MoveTo((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY);
+	w->resize(itsWidth, itsHeight);
+	w->moveTo((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY);
 	if (myOldScreen && myOldScreen->hasToBeResized) // resize background window
 	{
 		myOldScreen->Resize();
@@ -97,33 +98,33 @@ void ServerInfo::Update()
 	gettimeofday(&past, 0);
 	
 	Mpd.UpdateStats();
-	w->Clear();
+	w->clear();
 	
-	*w << fmtBold << U("Version: ") << fmtBoldEnd << U("0.") << Mpd.Version() << U(".*\n");
-	*w << fmtBold << U("Uptime: ") << fmtBoldEnd;
+	*w << NC::fmtBold << U("Version: ") << NC::fmtBoldEnd << U("0.") << Mpd.Version() << U(".*\n");
+	*w << NC::fmtBold << U("Uptime: ") << NC::fmtBoldEnd;
 	ShowTime(*w, Mpd.Uptime(), 1);
 	*w << '\n';
-	*w << fmtBold << U("Time playing: ") << fmtBoldEnd << MPD::Song::ShowTime(Mpd.PlayTime()) << '\n';
+	*w << NC::fmtBold << U("Time playing: ") << NC::fmtBoldEnd << MPD::Song::ShowTime(Mpd.PlayTime()) << '\n';
 	*w << '\n';
-	*w << fmtBold << U("Total playtime: ") << fmtBoldEnd;
+	*w << NC::fmtBold << U("Total playtime: ") << NC::fmtBoldEnd;
 	ShowTime(*w, Mpd.DBPlayTime(), 1);
 	*w << '\n';
-	*w << fmtBold << U("Artist names: ") << fmtBoldEnd << Mpd.NumberOfArtists() << '\n';
-	*w << fmtBold << U("Album names: ") << fmtBoldEnd << Mpd.NumberOfAlbums() << '\n';
-	*w << fmtBold << U("Songs in database: ") << fmtBoldEnd << Mpd.NumberOfSongs() << '\n';
+	*w << NC::fmtBold << U("Artist names: ") << NC::fmtBoldEnd << Mpd.NumberOfArtists() << '\n';
+	*w << NC::fmtBold << U("Album names: ") << NC::fmtBoldEnd << Mpd.NumberOfAlbums() << '\n';
+	*w << NC::fmtBold << U("Songs in database: ") << NC::fmtBoldEnd << Mpd.NumberOfSongs() << '\n';
 	*w << '\n';
-	*w << fmtBold << U("Last DB update: ") << fmtBoldEnd << Timestamp(Mpd.DBUpdateTime()) << '\n';
+	*w << NC::fmtBold << U("Last DB update: ") << NC::fmtBoldEnd << Timestamp(Mpd.DBUpdateTime()) << '\n';
 	*w << '\n';
-	*w << fmtBold << U("URL Handlers:") << fmtBoldEnd;
-	for (MPD::TagList::const_iterator it = itsURLHandlers.begin(); it != itsURLHandlers.end(); ++it)
+	*w << NC::fmtBold << U("URL Handlers:") << NC::fmtBoldEnd;
+	for (auto it = itsURLHandlers.begin(); it != itsURLHandlers.end(); ++it)
 		*w << (it != itsURLHandlers.begin() ? U(", ") : U(" ")) << *it;
 	*w << U("\n\n");
-	*w << fmtBold << U("Tag Types:") << fmtBoldEnd;
-	for (MPD::TagList::const_iterator it = itsTagTypes.begin(); it != itsTagTypes.end(); ++it)
+	*w << NC::fmtBold << U("Tag Types:") << NC::fmtBoldEnd;
+	for (auto it = itsTagTypes.begin(); it != itsTagTypes.end(); ++it)
 		*w << (it != itsTagTypes.begin() ? U(", ") : U(" ")) << *it;
 	
-	w->Flush();
-	w->Refresh();
+	w->flush();
+	w->refresh();
 }
 
 void ServerInfo::SetDimensions()

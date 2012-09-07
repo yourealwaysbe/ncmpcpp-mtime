@@ -21,41 +21,50 @@
 #ifndef _PLAYLIST_EDITOR_H
 #define _PLAYLIST_EDITOR_H
 
-#include "playlist.h"
-#include "ncmpcpp.h"
+#include "interfaces.h"
+#include "screen.h"
 
-class PlaylistEditor : public Screen<Window>
+class PlaylistEditor : public Screen<NC::Window>, public Filterable, public HasSongs, public Searchable
 {
 	public:
-		virtual void SwitchTo();
-		virtual void Resize();
+		virtual void SwitchTo() OVERRIDE;
+		virtual void Resize() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void Refresh();
-		virtual void Update();
+		virtual void Refresh() OVERRIDE;
+		virtual void Update() OVERRIDE;
 		
-		virtual void EnterPressed() { AddToPlaylist(1); }
-		virtual void SpacePressed();
-		virtual void MouseButtonPressed(MEVENT);
-		virtual bool isTabbable() { return true; }
+		virtual void EnterPressed() OVERRIDE;
+		virtual void SpacePressed() OVERRIDE;
+		virtual void MouseButtonPressed(MEVENT me) OVERRIDE;
 		
-		virtual MPD::Song *CurrentSong();
-		virtual MPD::Song *GetSong(size_t pos) { return w == Content ? &Content->at(pos) : 0; }
+		virtual bool isTabbable() OVERRIDE { return true; }
+		virtual bool isMergable() OVERRIDE { return true; }
 		
-		virtual bool allowsSelection() { return w == Content; }
-		virtual void ReverseSelection() { Content->ReverseSelection(); }
-		virtual void GetSelectedSongs(MPD::SongList &);
+		/// Filterable implementation
+		virtual bool allowsFiltering() OVERRIDE;
+		virtual std::string currentFilter() OVERRIDE;
+		virtual void applyFilter(const std::string &filter) OVERRIDE;
 		
-		virtual void ApplyFilter(const std::string &);
-
+		/// Searchable implementation
+		virtual bool allowsSearching() OVERRIDE;
+		virtual bool search(const std::string &constraint) OVERRIDE;
+		virtual void nextFound(bool wrap) OVERRIDE;
+		virtual void prevFound(bool wrap) OVERRIDE;
+		
+		/// HasSongs implementation
+		virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
+		
+		virtual bool allowsSelection() OVERRIDE;
+		virtual void reverseSelection() OVERRIDE;
+		virtual MPD::SongList getSelectedSongs() OVERRIDE;
+		
+		// private members
 		virtual void Locate(const std::string &);
 		
-		virtual List *GetList();
-		
-		virtual bool isMergable() { return true; }
-		
-		void MoveSelectedItems(Playlist::Movement where);
+		void requestPlaylistsUpdate() { playlistsUpdateRequested = true; }
+		void requestContentsUpdate() { contentUpdateRequested = true; }
 		
 		bool isContentFiltered();
 		bool isNextColumnAvailable();
@@ -63,20 +72,20 @@ class PlaylistEditor : public Screen<Window>
 		bool isPrevColumnAvailable();
 		bool PrevColumn();
 		
-		Menu<std::string> *Playlists;
-		Menu<MPD::Song> *Content;
+		std::shared_ptr<ProxySongList> contentProxyList();
+		
+		NC::Menu<std::string> *Playlists;
+		NC::Menu<MPD::Song> *Content;
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return true; }
 		
 	private:
 		void AddToPlaylist(bool);
 		
-		static size_t LeftColumnStartX;
-		static size_t LeftColumnWidth;
-		static size_t RightColumnStartX;
-		static size_t RightColumnWidth;
+		bool playlistsUpdateRequested;
+		bool contentUpdateRequested;
 };
 
 extern PlaylistEditor *myPlaylistEditor;

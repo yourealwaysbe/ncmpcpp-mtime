@@ -24,12 +24,11 @@
 #include <pthread.h>
 #include <queue>
 
-#include "ncmpcpp.h"
 #include "mpdpp.h"
 #include "screen.h"
 #include "lyrics_fetcher.h"
 
-class Lyrics : public Screen<Scrollpad>
+class Lyrics : public Screen<NC::Scrollpad>
 {
 	public:
 		Lyrics() : ReloadNP(0),
@@ -38,22 +37,21 @@ class Lyrics : public Screen<Scrollpad>
 #		endif // HAVE_CURL_CURL_H
 		itsScrollBegin(0) { }
 		
-		virtual void Resize();
-		virtual void SwitchTo();
+		// Screen<NC::Scrollpad> implementation
+		virtual void Resize() OVERRIDE;
+		virtual void SwitchTo() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title();
+		virtual std::basic_string<my_char_t> Title() OVERRIDE;
 		
-		virtual void Update();
+		virtual void Update() OVERRIDE;
 		
-		virtual void EnterPressed() { }
-		virtual void SpacePressed();
+		virtual void EnterPressed() OVERRIDE { }
+		virtual void SpacePressed() OVERRIDE;
 		
-		virtual bool allowsSelection() { return false; }
+		virtual bool isMergable() OVERRIDE { return true; }
+		virtual bool isTabbable() OVERRIDE { return false; }
 		
-		virtual List *GetList() { return 0; }
-		
-		virtual bool isMergable() { return true; }
-		
+		// private members
 		void Edit();
 		
 #		ifdef HAVE_CURL_CURL_H
@@ -66,8 +64,8 @@ class Lyrics : public Screen<Scrollpad>
 		bool ReloadNP;
 		
 	protected:
-		virtual void Init();
-		virtual bool isLockable() { return false; }
+		virtual void Init() OVERRIDE;
+		virtual bool isLockable() OVERRIDE { return false; }
 		
 	private:
 		void Load();
