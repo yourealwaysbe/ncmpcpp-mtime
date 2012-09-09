@@ -369,6 +369,7 @@
 #
 #def_key "m"
 #  move_sort_order_up
+#  toggle_media_library_sort_by_mtime
 #
 #def_key "m"
 #  move_selected_items_up
