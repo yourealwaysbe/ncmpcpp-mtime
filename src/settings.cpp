@@ -973,7 +973,7 @@ void Configuration::GenerateColumns()
 	std::string width;
 	size_t pos = 0;
 	while (!(width = getEnclosedString(song_list_columns_format, '(', ')', &pos)).empty())
-	{
+	{ 
 		Column col;
 		col.color = stringToColor(getEnclosedString(song_list_columns_format, '[', ']', &pos));
 		std::string tag_type = getEnclosedString(song_list_columns_format, '{', '}', &pos);
