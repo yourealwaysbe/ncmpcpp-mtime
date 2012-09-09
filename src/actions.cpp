@@ -2639,6 +2639,7 @@ void populateActions()
 	insertAction(new ShowVisualizer());
 	insertAction(new ShowClock());
 	insertAction(new ShowServerInfo());
+	insertAction(new ToggleMediaLibraryMTimeSort());
 }
 
 }

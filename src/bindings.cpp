@@ -444,6 +444,7 @@ void BindingsConfiguration::generateDefaults()
 	{
 		bind(k, aMoveSortOrderUp);
 		bind(k, aMoveSelectedItemsUp);
+        bind(k, aToggleMediaLibraryMTimeSort);
 	}
 	if (notBound(k = stringToKey("n")))
 	{
