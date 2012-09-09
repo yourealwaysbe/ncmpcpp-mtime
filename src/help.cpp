@@ -24,6 +24,8 @@
 #include "global.h"
 #include "help.h"
 #include "settings.h"
+#include "status.h"
+#include "utility/wide_string.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -129,13 +131,12 @@ void Help::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = true;
-
+	DrawHeader();
 }
 
-std::basic_string<my_char_t> Help::Title()
+std::wstring Help::Title()
 {
-	return U("Help");
+	return L"Help";
 }
 
 std::string Help::DisplayKeys(const ActionType at)
@@ -156,25 +157,25 @@ std::string Help::DisplayKeys(const ActionType at)
 
 void Help::Section(const char *type, const char *title)
 {
-	*w << U("\n  ") << NC::fmtBold << TO_WSTRING(type) << U(" - ");
-	*w << TO_WSTRING(title) << NC::fmtBoldEnd << '\n' << '\n';
+	*w << L"\n  " << NC::fmtBold << ToWString(type) << L" - ";
+	*w << ToWString(title) << NC::fmtBoldEnd << L"\n\n";
 }
 
 void Help::KeyDesc(const ActionType at, const char *desc)
 {
-	*w << U("    ") << DisplayKeys(at) << U(" : ") << TO_WSTRING(desc) << '\n';
+	*w << L"    " << DisplayKeys(at) << L" : " << ToWString(desc) << '\n';
 }
 
 void Help::MouseDesc(std::string action, const char *desc, bool indent)
 {
 	action.resize(31 - (indent ? 2 : 0), ' ');
-	*w << U("    ") << (indent ? U("  ") : U("")) << TO_WSTRING(action);
-	*w << U(": ") << TO_WSTRING(desc) << '\n';
+	*w << L"    " << (indent ? L"  " : L"") << ToWString(action);
+	*w << L": " << ToWString(desc) << '\n';
 }
 
 void Help::MouseColumn(const char *column)
 {
-	*w << NC::fmtBold << U("    ") << TO_WSTRING(column) << U(" column:\n") << NC::fmtBoldEnd;
+	*w << NC::fmtBold << L"    " << ToWString(column) << L" column:\n" << NC::fmtBoldEnd;
 }
 
 void Help::GetKeybindings()
@@ -297,6 +298,7 @@ void Help::GetKeybindings()
 	KeyDesc(aSavePlaylist, "Save playlist");
 	KeyDesc(aSortPlaylist, "Sort playlist");
 	KeyDesc(aReversePlaylist, "Reverse playlist");
+	KeyDesc(aFilterPlaylistOnPriorities, "Filter playlist on priorities");
 	KeyDesc(aJumpToPlayingSong, "Jump to playing song");
 	KeyDesc(aTogglePlayingSongCentering, "Toggle playing song centering");
 	

@@ -82,7 +82,7 @@ void TinyTagEditor::SwitchTo()
 		
 		myOldScreen = myScreen;
 		myScreen = this;
-		Global::RedrawHeader = true;
+		DrawHeader();
 	}
 	else
 	{
@@ -91,16 +91,14 @@ void TinyTagEditor::SwitchTo()
 			full_path += Config.mpd_music_dir;
 		full_path += itsEdited.getURI();
 		
-		std::string message = "Couldn't read file \"";
-		message += Shorten(TO_WSTRING(full_path), COLS-message.length()-3);
-		message += "\"!";
-		ShowMessage("%s", message.c_str());
+		const char msg[] = "Couldn't read file \"%ls\"";
+		ShowMessage(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
 	}
 }
 
-std::basic_string<my_char_t> TinyTagEditor::Title()
+std::wstring TinyTagEditor::Title()
 {
-	return U("Tiny tag editor");
+	return L"Tiny tag editor";
 }
 
 void TinyTagEditor::EnterPressed()
@@ -189,8 +187,7 @@ bool TinyTagEditor::getTags()
 	itsEdited.setComment(f.tag()->comment().to8Bit(1));
 	
 	std::string ext = itsEdited.getURI();
-	ext = ext.substr(ext.rfind(".")+1);
-	lowercase(ext);
+	ext = lowercase(ext.substr(ext.rfind(".")+1));
 	
 	if (!isInitialized)
 		Init();

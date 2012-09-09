@@ -121,7 +121,7 @@ void Playlist::SwitchTo()
 	EnableHighlighting();
 	if (w != Items) // even if sorting window is active, background has to be refreshed anyway
 		Items->display();
-	Global::RedrawHeader = true;
+	DrawHeader();
 }
 
 void Playlist::Resize()
@@ -147,12 +147,12 @@ void Playlist::Resize()
 	hasToBeResized = 0;
 }
 
-std::basic_string<my_char_t> Playlist::Title()
+std::wstring Playlist::Title()
 {
-	std::basic_string<my_char_t> result = U("Playlist ");
+	std::wstring result = L"Playlist ";
 	if (ReloadTotalLength || ReloadRemaining)
 		itsBufferedStats = TotalLength();
-	result += Scroller(TO_WSTRING(itsBufferedStats), itsScrollBegin, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
+	result += Scroller(ToWString(itsBufferedStats), itsScrollBegin, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
 	return result;
 }
 
@@ -197,9 +197,9 @@ void Playlist::EnterPressed()
 		for (; begin != end; ++begin)
 			playlist.push_back(begin->value());
 		
+		LocaleStringComparison cmp(std::locale(), Config.ignore_leading_the);
 		std::function<void(MPD::SongList::iterator, MPD::SongList::iterator)> iter_swap, quick_sort;
-		auto song_cmp = [](const MPD::Song &a, const MPD::Song &b) -> bool {
-			CaseInsensitiveStringComparison cmp(Config.ignore_leading_the);
+		auto song_cmp = [&cmp](const MPD::Song &a, const MPD::Song &b) -> bool {
 				for (size_t i = 0; i < SortOptions; ++i)
 					if (int ret = cmp(a.getTags((*SortDialog)[i].value().second), b.getTags((*SortDialog)[i].value().second)))
 						return ret < 0;
@@ -418,6 +418,11 @@ void Playlist::EnableHighlighting()
 {
 	Items->setHighlighting(1);
 	UpdateTimer();
+}
+
+void Playlist::UpdateTimer()
+{
+	itsTimer = Global::Timer;
 }
 
 bool Playlist::SortingInProgress()

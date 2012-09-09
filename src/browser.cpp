@@ -30,6 +30,7 @@
 #include "global.h"
 #include "helpers.h"
 #include "playlist.h"
+#include "regex_filter.h"
 #include "settings.h"
 #include "status.h"
 #include "tag_editor.h"
@@ -40,7 +41,6 @@ using namespace std::placeholders;
 using Global::MainHeight;
 using Global::MainStartY;
 using Global::myScreen;
-using Global::RedrawHeader;
 
 using MPD::itDirectory;
 using MPD::itSong;
@@ -116,13 +116,13 @@ void Browser::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	RedrawHeader = true;
+	DrawHeader();
 }
 
-std::basic_string<my_char_t> Browser::Title()
+std::wstring Browser::Title()
 {
-	std::basic_string<my_char_t> result = U("Browse: ");
-	result += Scroller(TO_WSTRING(itsBrowsedDir), itsScrollBeginning, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
+	std::wstring result = L"Browse: ";
+	result += Scroller(ToWString(itsBrowsedDir), itsScrollBeginning, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
 	return result;
 }
 
@@ -146,7 +146,7 @@ void Browser::EnterPressed()
 			}
 			else
 				GetDirectory(item.name, itsBrowsedDir);
-			RedrawHeader = true;
+			DrawHeader();
 			break;
 		}
 		case itSong:
@@ -236,7 +236,7 @@ void Browser::MouseButtonPressed(MEVENT me)
 				if (me.bstate & BUTTON1_PRESSED)
 				{
 					GetDirectory(w->current().value().name);
-					RedrawHeader = true;
+					DrawHeader();
 				}
 				else
 				{
@@ -423,7 +423,8 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 	list = Mpd.GetDirectory(dir);
 #	endif // !WIN32
 	if (!isLocal()) // local directory is already sorted
-		std::sort(list.begin(), list.end(), CaseInsensitiveSorting());
+		std::sort(list.begin(), list.end(),
+			LocaleBasedItemSorting(std::locale(), Config.ignore_leading_the, Config.browser_sort_mode));
 	
 	for (MPD::ItemList::iterator it = list.begin(); it != list.end(); ++it)
 	{
@@ -519,7 +520,8 @@ void Browser::GetLocalDirectory(MPD::ItemList &v, const std::string &directory, 
 		}
 	}
 	closedir(dir);
-	std::sort(v.begin()+old_size, v.end(), CaseInsensitiveSorting());
+	std::sort(v.begin()+old_size, v.end(),
+		LocaleBasedItemSorting(std::locale(), Config.ignore_leading_the, Config.browser_sort_mode));
 }
 
 void Browser::ClearDirectory(const std::string &path) const
@@ -547,13 +549,13 @@ void Browser::ClearDirectory(const std::string &path) const
 			ClearDirectory(full_path);
 		if (remove(full_path.c_str()) == 0)
 		{
-			const char msg[] = "Deleting \"%s\"...";
-			ShowMessage(msg, Shorten(TO_WSTRING(full_path), COLS-const_strlen(msg)).c_str());
+			const char msg[] = "Deleting \"%ls\"...";
+			ShowMessage(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
 		}
 		else
 		{
-			const char msg[] = "Couldn't remove \"%s\": %s";
-			ShowMessage(msg, Shorten(TO_WSTRING(full_path), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+			const char msg[] = "Couldn't remove \"%ls\": %s";
+			ShowMessage(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 		}
 	}
 	closedir(dir);
@@ -574,7 +576,7 @@ void Browser::ChangeBrowseMode()
 		itsBrowsedDir.resize(itsBrowsedDir.length()-1);
 	w->reset();
 	GetDirectory(itsBrowsedDir);
-	RedrawHeader = true;
+	DrawHeader();
 }
 
 bool Browser::deleteItem(const MPD::Item &item)
@@ -607,8 +609,7 @@ bool hasSupportedExtension(const std::string &file)
 	if (last_dot > file.length())
 		return false;
 	
-	std::string ext = file.substr(last_dot+1);
-	lowercase(ext);
+	std::string ext = lowercase(file.substr(last_dot+1));
 	return SupportedExtensions.find(ext) != SupportedExtensions.end();
 }
 

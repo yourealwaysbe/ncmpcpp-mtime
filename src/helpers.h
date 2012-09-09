@@ -26,6 +26,7 @@
 #include "screen.h"
 #include "settings.h"
 #include "status.h"
+#include "utility/wide_string.h"
 
 inline HasSongs *hasSongs(BasicScreen *screen)
 {
@@ -316,21 +317,20 @@ template <typename Iterator> std::string getSharedDirectory(Iterator first, Iter
 	return result;
 }
 
-void ParseArgv(int, char **);
-
 template <typename T> struct StringConverter {
 	const char *operator()(const char *s) { return s; }
 };
-template <> struct StringConverter< NC::basic_buffer<wchar_t> > {
+template <> struct StringConverter<NC::WBuffer> {
 	std::wstring operator()(const char *s) { return ToWString(s); }
 };
 template <> struct StringConverter<NC::Scrollpad> {
-	std::basic_string<my_char_t> operator()(const char *s) { return TO_WSTRING(s); }
+	std::wstring operator()(const char *s) { return ToWString(s); }
 };
 
-template <typename C> void String2Buffer(const std::basic_string<C> &s, NC::basic_buffer<C> &buf)
+template <typename CharT>
+void String2Buffer(const std::basic_string<CharT> &s, NC::basic_buffer<CharT> &buf)
 {
-	StringConverter< NC::basic_buffer<C> > cnv;
+	StringConverter< NC::basic_buffer<CharT> > cnv;
 	for (auto it = s.begin(); it != s.end(); ++it)
 	{
 		if (*it == '$')
@@ -460,8 +460,6 @@ std::string Timestamp(time_t t);
 
 void markSongsInPlaylist(std::shared_ptr<ProxySongList> pl);
 
-std::basic_string<my_char_t> Scroller(const std::basic_string<my_char_t> &str, size_t &pos, size_t width);
-
-std::string Shorten(const std::basic_string<my_char_t> &s, size_t max_length);
+std::wstring Scroller(const std::wstring &str, size_t &pos, size_t width);
 
 #endif

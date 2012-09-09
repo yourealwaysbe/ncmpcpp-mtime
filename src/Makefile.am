@@ -5,11 +5,13 @@ ncmpcpp_SOURCES = \
 	utility/html.cpp \
 	utility/string.cpp \
 	utility/type_conversions.cpp \
+	utility/wide_string.cpp \
 	actions.cpp \
 	bindings.cpp \
 	browser.cpp \
 	charset.cpp \
 	clock.cpp \
+	cmdargs.cpp \
 	curl_handle.cpp \
 	display.cpp \
 	error.cpp \
@@ -55,10 +57,12 @@ noinst_HEADERS = \
 	utility/string.h \
 	utility/numeric_conversions.h \
 	utility/type_conversions.h \
+	utility/wide_string.h \
 	bindings.h \
 	browser.h \
 	charset.h \
 	clock.h \
+	cmdargs.h \
 	curl_handle.h \
 	display.h \
 	error.h \

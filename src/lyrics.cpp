@@ -80,7 +80,7 @@ void Lyrics::Update()
 		const MPD::Song *s = myPlaylist->NowPlayingSong();
 		if (s && !s->getArtist().empty() && !s->getTitle().empty())
 		{
-			Global::RedrawHeader = true;
+			DrawHeader();
 			itsScrollBegin = 0;
 			itsSong = *s;
 			Load();
@@ -129,7 +129,7 @@ void Lyrics::SwitchTo()
 		itsSong = *s;
 		Load();
 		
-		Global::RedrawHeader = true;
+		DrawHeader();
 	}
 	else
 	{
@@ -147,10 +147,10 @@ void Lyrics::SwitchTo()
 	}
 }
 
-std::basic_string<my_char_t> Lyrics::Title()
+std::wstring Lyrics::Title()
 {
-	std::basic_string<my_char_t> result = U("Lyrics: ");
-	result += Scroller(TO_WSTRING(itsSong.toString("{%a - %t}")), itsScrollBegin, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
+	std::wstring result = L"Lyrics: ";
+	result += Scroller(ToWString(itsSong.toString("{%a - %t}")), itsScrollBegin, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
 	return result;
 }
 
@@ -253,10 +253,10 @@ void *Lyrics::Download()
 	bool fetcher_defined = itsFetcher && *itsFetcher;
 	for (LyricsFetcher **plugin = fetcher_defined ? itsFetcher : lyricsPlugins; *plugin != 0; ++plugin)
 	{
-		*w << U("Fetching lyrics from ") << NC::fmtBold << TO_WSTRING((*plugin)->name()) << NC::fmtBoldEnd << U("... ");
+		*w << L"Fetching lyrics from " << NC::fmtBold << ToWString((*plugin)->name()) << NC::fmtBoldEnd << L"... ";
 		result = (*plugin)->fetch(artist, title);
 		if (result.first == false)
-			*w << NC::clRed << TO_WSTRING(result.second) << NC::clEnd << '\n';
+			*w << NC::clRed << ToWString(result.second) << NC::clEnd << '\n';
 		else
 			break;
 		if (fetcher_defined)
@@ -272,7 +272,7 @@ void *Lyrics::Download()
 		*w << result.second;
 	}
 	else
-		*w << '\n' << U("Lyrics weren't found.");
+		*w << '\n' << L"Lyrics weren't found.";
 	
 	isReadyToTake = 1;
 	pthread_exit(0);
@@ -405,8 +405,8 @@ void Lyrics::Refetch()
 {
 	if (remove(itsFilename.c_str()) && errno != ENOENT)
 	{
-		const char msg[] = "Couldn't remove \"%s\": %s";
-		ShowMessage(msg, Shorten(TO_WSTRING(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+		const char msg[] = "Couldn't remove \"%ls\": %s";
+		ShowMessage(msg, wideShorten(ToWString(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 		return;
 	}
 	Load();

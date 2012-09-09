@@ -21,6 +21,7 @@
 #include <cassert>
 
 #include "scrollpad.h"
+#include "utility/wide_string.h"
 
 namespace NC {//
 
@@ -35,22 +36,15 @@ Scrollpad::Scrollpad(size_t startx,
 			m_beginning(0),
 			m_found_value_begin(-1),
 			m_found_value_end(-1),
-			m_real_height(1)
+			m_real_height(height)
 {
-}
-
-Scrollpad::Scrollpad(const Scrollpad &s) : Window(s)
-{
-	m_buffer << s.m_buffer;
-	m_beginning = s.m_beginning;
-	m_real_height = s.m_real_height;
 }
 
 void Scrollpad::flush()
 {
 	m_real_height = 1;
 	
-	std::basic_string<my_char_t> s = m_buffer.str();
+	std::wstring s = m_buffer.str();
 	
 	size_t x = 0;
 	int x_pos = 0;
@@ -93,7 +87,7 @@ void Scrollpad::flush()
 	std::swap(s, m_buffer.m_string);
 }
 
-bool Scrollpad::setFormatting(short val_b, const std::basic_string<my_char_t> &s, short val_e, bool case_sensitive, bool for_each)
+bool Scrollpad::setFormatting(short val_b, const std::wstring &s, short val_e, bool case_sensitive, bool for_each)
 {
 	bool result = m_buffer.setFormatting(val_b, s, val_e, case_sensitive, for_each);
 	if (result)
@@ -124,10 +118,9 @@ void Scrollpad::removeFormatting()
 
 void Scrollpad::refresh()
 {
-	int MaxBeginning = m_real_height-m_height;
-	assert(MaxBeginning >= 0);
-	if (m_beginning > MaxBeginning)
-		m_beginning = MaxBeginning;
+	assert(m_real_height >= m_real_height);
+	size_t max_beginning = m_real_height - m_height;
+	m_beginning = std::min(m_beginning, max_beginning);
 	prefresh(m_window, m_beginning, 0, m_start_y, m_start_x, m_start_y+m_height-1, m_start_x+m_width-1);
 }
 
@@ -139,34 +132,33 @@ void Scrollpad::resize(size_t new_width, size_t new_height)
 
 void Scrollpad::scroll(Where where)
 {
-	int MaxBeginning = /*itsContent.size() < m_height ? 0 : */m_real_height-m_height;
-	
+	assert(m_real_height >= m_height);
+	size_t max_beginning = m_real_height - m_height;
 	switch (where)
 	{
 		case wUp:
 		{
 			if (m_beginning > 0)
-				m_beginning--;
+				--m_beginning;
 			break;
 		}
 		case wDown:
 		{
-			if (m_beginning < MaxBeginning)
-				m_beginning++;
+			if (m_beginning < max_beginning)
+				++m_beginning;
 			break;
 		}
 		case wPageUp:
 		{
-			m_beginning -= m_height;
-			if (m_beginning < 0)
+			if (m_beginning > m_height)
+				m_beginning -= m_height;
+			else
 				m_beginning = 0;
 			break;
 		}
 		case wPageDown:
 		{
-			m_beginning += m_height;
-			if (m_beginning > MaxBeginning)
-				m_beginning = MaxBeginning;
+			m_beginning = std::min(m_beginning + m_height, max_beginning);
 			break;
 		}
 		case wHome:
@@ -176,7 +168,7 @@ void Scrollpad::scroll(Where where)
 		}
 		case wEnd:
 		{
-			m_beginning = MaxBeginning;
+			m_beginning = max_beginning;
 			break;
 		}
 	}
@@ -200,12 +192,10 @@ void Scrollpad::reset()
 	m_beginning = 0;
 }
 
-#ifdef _UTF8
 Scrollpad &Scrollpad::operator<<(const std::string &s)
 {
 	m_buffer << ToWString(s);
 	return *this;
 }
-#endif // _UTF8
 
 }

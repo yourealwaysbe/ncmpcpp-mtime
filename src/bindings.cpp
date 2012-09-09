@@ -23,6 +23,7 @@
 #include "global.h"
 #include "bindings.h"
 #include "utility/string.h"
+#include "utility/wide_string.h"
 
 BindingsConfiguration Bindings;
 
@@ -492,7 +493,6 @@ void BindingsConfiguration::generateDefaults()
 		bind(k, aSetSelectedItemsPriority);
 	if (notBound(k = stringToKey("q")))
 		bind(k, aQuit);
-	
 	
 	if (notBound(k = stringToKey("-")))
 		bind(k, aVolumeDown);

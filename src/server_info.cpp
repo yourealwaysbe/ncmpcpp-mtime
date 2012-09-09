@@ -85,7 +85,7 @@ void ServerInfo::Resize()
 	hasToBeResized = 0;
 }
 
-std::basic_string<my_char_t> ServerInfo::Title()
+std::wstring ServerInfo::Title()
 {
 	return myOldScreen->Title();
 }
@@ -95,33 +95,36 @@ void ServerInfo::Update()
 	static timeval past = { 0, 0 };
 	if (Global::Timer.tv_sec <= past.tv_sec)
 		return;
-	gettimeofday(&past, 0);
+	past = Global::Timer;
 	
-	Mpd.UpdateStats();
+	MPD::Statistics stats = Mpd.getStatistics();
+	if (stats.empty())
+		return;
+	
 	w->clear();
 	
-	*w << NC::fmtBold << U("Version: ") << NC::fmtBoldEnd << U("0.") << Mpd.Version() << U(".*\n");
-	*w << NC::fmtBold << U("Uptime: ") << NC::fmtBoldEnd;
-	ShowTime(*w, Mpd.Uptime(), 1);
+	*w << NC::fmtBold << L"Version: " << NC::fmtBoldEnd << L"0." << Mpd.Version() << L".*\n";
+	*w << NC::fmtBold << L"Uptime: " << NC::fmtBoldEnd;
+	ShowTime(*w, stats.uptime(), 1);
 	*w << '\n';
-	*w << NC::fmtBold << U("Time playing: ") << NC::fmtBoldEnd << MPD::Song::ShowTime(Mpd.PlayTime()) << '\n';
+	*w << NC::fmtBold << L"Time playing: " << NC::fmtBoldEnd << MPD::Song::ShowTime(stats.playTime()) << '\n';
 	*w << '\n';
-	*w << NC::fmtBold << U("Total playtime: ") << NC::fmtBoldEnd;
-	ShowTime(*w, Mpd.DBPlayTime(), 1);
+	*w << NC::fmtBold << L"Total playtime: " << NC::fmtBoldEnd;
+	ShowTime(*w, stats.dbPlayTime(), 1);
 	*w << '\n';
-	*w << NC::fmtBold << U("Artist names: ") << NC::fmtBoldEnd << Mpd.NumberOfArtists() << '\n';
-	*w << NC::fmtBold << U("Album names: ") << NC::fmtBoldEnd << Mpd.NumberOfAlbums() << '\n';
-	*w << NC::fmtBold << U("Songs in database: ") << NC::fmtBoldEnd << Mpd.NumberOfSongs() << '\n';
+	*w << NC::fmtBold << L"Artist names: " << NC::fmtBoldEnd << stats.artists() << '\n';
+	*w << NC::fmtBold << L"Album names: " << NC::fmtBoldEnd << stats.albums() << '\n';
+	*w << NC::fmtBold << L"Songs in database: " << NC::fmtBoldEnd << stats.songs() << '\n';
 	*w << '\n';
-	*w << NC::fmtBold << U("Last DB update: ") << NC::fmtBoldEnd << Timestamp(Mpd.DBUpdateTime()) << '\n';
+	*w << NC::fmtBold << L"Last DB update: " << NC::fmtBoldEnd << Timestamp(stats.dbUpdateTime()) << '\n';
 	*w << '\n';
-	*w << NC::fmtBold << U("URL Handlers:") << NC::fmtBoldEnd;
+	*w << NC::fmtBold << L"URL Handlers:" << NC::fmtBoldEnd;
 	for (auto it = itsURLHandlers.begin(); it != itsURLHandlers.end(); ++it)
-		*w << (it != itsURLHandlers.begin() ? U(", ") : U(" ")) << *it;
-	*w << U("\n\n");
-	*w << NC::fmtBold << U("Tag Types:") << NC::fmtBoldEnd;
+		*w << (it != itsURLHandlers.begin() ? L", " : L" ") << *it;
+	*w << L"\n\n";
+	*w << NC::fmtBold << L"Tag Types:" << NC::fmtBoldEnd;
 	for (auto it = itsTagTypes.begin(); it != itsTagTypes.end(); ++it)
-		*w << (it != itsTagTypes.begin() ? U(", ") : U(" ")) << *it;
+		*w << (it != itsTagTypes.begin() ? L", " : L" ") << *it;
 	
 	w->flush();
 	w->refresh();

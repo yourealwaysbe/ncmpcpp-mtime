@@ -52,7 +52,7 @@ using Global::VolumeState;
 
 namespace
 {
-	time_t time_of_statusbar_lock;
+	timeval time_of_statusbar_lock;
 	int lock_statusbar_delay = -1;
 	
 	bool block_statusbar_update = 0;
@@ -145,7 +145,7 @@ void TraceMpdStatus()
 	{
 		if (!Mpd.SupportsIdle())
 		{
-			gettimeofday(&past, 0);
+			past = Timer;
 		}
 		else if (Config.display_bitrate && Global::Timer.tv_sec > past.tv_sec && Mpd.isPlaying())
 		{
@@ -153,7 +153,7 @@ void TraceMpdStatus()
 			// idle mode so current song's bitrate is never updated.
 			// we need to force ncmpcpp to fetch it.
 			Mpd.OrderDataFetching();
-			gettimeofday(&past, 0);
+			past = Timer;
 		}
 		Mpd.UpdateStatus();
 	}
@@ -161,17 +161,17 @@ void TraceMpdStatus()
 	ApplyToVisibleWindows(&BasicScreen::Update);
 	
 	if (isVisible(myPlaylist) && myPlaylist->ActiveWindow() == myPlaylist->Items
-	&&  Timer.tv_sec == myPlaylist->Timer()+Config.playlist_disable_highlight_delay
+	&&  Timer.tv_sec == myPlaylist->Timer().tv_sec+Config.playlist_disable_highlight_delay
 	&&  myPlaylist->Items->isHighlighted()
 	&&  Config.playlist_disable_highlight_delay)
 	{
-		myPlaylist->Items->setHighlighting(0);
+		myPlaylist->Items->setHighlighting(false);
 		myPlaylist->Items->refresh();
 	}
 	
 	if (lock_statusbar_delay > 0)
 	{
-		if (Timer.tv_sec >= time_of_statusbar_lock+lock_statusbar_delay)
+		if (Timer.tv_sec >= time_of_statusbar_lock.tv_sec+lock_statusbar_delay)
 		{
 			lock_statusbar_delay = -1;
 			
@@ -443,26 +443,26 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 					tracklength += " kbps";
 				}
 				
-				NC::basic_buffer<my_char_t> first, second;
-				String2Buffer(TO_WSTRING(utf_to_locale_cpy(np.toString(Config.new_header_first_line, "$"))), first);
-				String2Buffer(TO_WSTRING(utf_to_locale_cpy(np.toString(Config.new_header_second_line, "$"))), second);
+				NC::WBuffer first, second;
+				String2Buffer(ToWString(utf_to_locale_cpy(np.toString(Config.new_header_first_line, "$"))), first);
+				String2Buffer(ToWString(utf_to_locale_cpy(np.toString(Config.new_header_second_line, "$"))), second);
 				
-				size_t first_len = NC::Window::length(first.str());
+				size_t first_len = wideLength(first.str());
 				size_t first_margin = (std::max(tracklength.length()+1, VolumeState.length()))*2;
 				size_t first_start = first_len < COLS-first_margin ? (COLS-first_len)/2 : tracklength.length()+1;
 				
-				size_t second_len = NC::Window::length(second.str());
+				size_t second_len = wideLength(second.str());
 				size_t second_margin = (std::max(player_state.length(), size_t(8))+1)*2;
 				size_t second_start = second_len < COLS-second_margin ? (COLS-second_len)/2 : player_state.length()+1;
 				
 				if (!Global::SeekingInProgress)
 					*wHeader << NC::XY(0, 0) << wclrtoeol << tracklength;
 				*wHeader << NC::XY(first_start, 0);
-				first.write(*wHeader, first_line_scroll_begin, COLS-tracklength.length()-VolumeState.length()-1, U(" ** "));
+				first.write(*wHeader, first_line_scroll_begin, COLS-tracklength.length()-VolumeState.length()-1, L" ** ");
 				
 				*wHeader << NC::XY(0, 1) << wclrtoeol << NC::fmtBold << player_state << NC::fmtBoldEnd;
 				*wHeader << NC::XY(second_start, 1);
-				second.write(*wHeader, second_line_scroll_begin, COLS-player_state.length()-8-2, U(" ** "));
+				second.write(*wHeader, second_line_scroll_begin, COLS-player_state.length()-8-2, L" ** ");
 				
 				*wHeader << NC::XY(wHeader->getWidth()-VolumeState.length(), 0) << Config.volume_color << VolumeState << NC::clEnd;
 				
@@ -495,10 +495,10 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 					tracklength += MPD::Song::ShowTime(Mpd.GetElapsedTime());
 					tracklength += "]";
 				}
-				NC::basic_buffer<my_char_t> np_song;
-				String2Buffer(TO_WSTRING(utf_to_locale_cpy(np.toString(Config.song_status_format, "$"))), np_song);
+				NC::WBuffer np_song;
+				String2Buffer(ToWString(utf_to_locale_cpy(np.toString(Config.song_status_format, "$"))), np_song);
 				*wFooter << NC::XY(0, 1) << wclrtoeol << NC::fmtBold << player_state << NC::fmtBoldEnd;
-				np_song.write(*wFooter, playing_song_scroll_begin, wFooter->getWidth()-player_state.length()-tracklength.length(), U(" ** "));
+				np_song.write(*wFooter, playing_song_scroll_begin, wFooter->getWidth()-player_state.length()-tracklength.length(), L" ** ");
 				*wFooter << NC::fmtBold << NC::XY(wFooter->getWidth()-tracklength.length(), 1) << tracklength << NC::fmtBoldEnd;
 			}
 			if (!block_progressbar_update)
@@ -645,6 +645,31 @@ void NcmpcppStatusChanged(MPD::Connection *, MPD::StatusChanges changed, void *)
 		ApplyToVisibleWindows(&BasicScreen::RefreshWindow);
 }
 
+void DrawHeader()
+{
+	if (!Config.header_visibility)
+		return;
+	if (Config.new_design)
+	{
+		std::wstring title = myScreen->Title();
+		*wHeader << NC::XY(0, 3) << wclrtoeol;
+		*wHeader << NC::fmtBold << Config.alternative_ui_separator_color;
+		mvwhline(wHeader->raw(), 2, 0, 0, COLS);
+		mvwhline(wHeader->raw(), 4, 0, 0, COLS);
+		*wHeader << NC::XY((COLS-wideLength(title))/2, 3);
+		*wHeader << Config.header_color << title << NC::clEnd;
+		*wHeader << NC::clEnd << NC::fmtBoldEnd;
+	}
+	else
+	{
+		*wHeader << NC::XY(0, 0) << wclrtoeol << NC::fmtBold << myScreen->Title() << NC::fmtBoldEnd;
+		*wHeader << Config.volume_color;
+		*wHeader << NC::XY(wHeader->getWidth()-VolumeState.length(), 0) << VolumeState;
+		*wHeader << NC::clEnd;
+	}
+	wHeader->refresh();
+}
+
 NC::Window &Statusbar()
 {
 	*wFooter << NC::XY(0, Config.statusbar_visibility) << wclrtoeol;
@@ -686,7 +711,7 @@ void ShowMessage(const char *format, ...)
 {
 	if (Global::ShowMessages && allow_statusbar_unlock)
 	{
-		time(&time_of_statusbar_lock);
+		time_of_statusbar_lock = Global::Timer;
 		lock_statusbar_delay = Config.message_delay_time;
 		if (Config.statusbar_visibility)
 			block_statusbar_update = 1;

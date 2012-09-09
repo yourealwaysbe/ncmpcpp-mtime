@@ -18,58 +18,88 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#include "helpers.h"
-#include "playlist.h"
+#include "utility/wide_string.h"
 
-std::string Timestamp(time_t t)
+std::string ToString(const std::wstring &ws)
 {
-	char result[32];
-#	ifdef WIN32
-	result[strftime(result, 31, "%x %X", localtime(&t))] = 0;
-#	else
-	tm info;
-	result[strftime(result, 31, "%x %X", localtime_r(&t, &info))] = 0;
-#	endif // WIN32
+	std::string result;
+	char s[MB_CUR_MAX];
+	for (size_t i = 0; i < ws.length(); ++i)
+	{
+		int n = wcrtomb(s, ws[i], 0);
+		if (n > 0)
+			result.append(s, n);
+	}
 	return result;
 }
 
-void markSongsInPlaylist(std::shared_ptr<ProxySongList> pl)
+std::wstring ToWString(const std::string &s)
 {
-	size_t list_size = pl->size();
-	for (size_t i = 0; i < list_size; ++i)
-		if (auto s = pl->getSong(i))
-			pl->setBold(i, myPlaylist->checkForSong(*s));
+	std::wstring result;
+	wchar_t *ws = new wchar_t[s.length()];
+	const char *c_s = s.c_str();
+	int n = mbsrtowcs(ws, &c_s, s.length(), 0);
+	if (n > 0)
+		result.append(ws, n);
+	delete [] ws;
+	return result;
 }
 
-std::wstring Scroller(const std::wstring &str, size_t &pos, size_t width)
+size_t wideLength(const std::wstring &ws)
 {
-	std::wstring s(str);
-	if (!Config.header_text_scrolling)
-		return s;
-	std::wstring result;
-	size_t len = wideLength(s);
-	
-	if (len > width)
+	int len = wcswidth(ws.c_str(), -1);
+	if (len < 0)
+		return ws.length();
+	else
+		return len;
+}
+
+void wideCut(std::wstring &ws, size_t max_length)
+{
+	size_t i = 0;
+	int remained_len = max_length;
+	for (; i < ws.length(); ++i)
 	{
-		s += L" ** ";
-		len = 0;
-		auto b = s.begin(), e = s.end();
-		for (auto it = b+pos; it < e && len < width; ++it)
+		remained_len -= wcwidth(ws[i]);
+		if (remained_len < 0)
 		{
-			if ((len += wcwidth(*it)) > width)
+			ws.resize(i);
+			break;
+		}
+	}
+}
+
+std::wstring wideShorten(const std::wstring &ws, size_t max_length)
+{
+	std::wstring result;
+	if (wideLength(ws) > max_length)
+	{
+		const size_t half_max = max_length/2 - 1;
+		size_t len = 0;
+		// get beginning of string
+		for (auto it = ws.begin(); it != ws.end(); ++it)
+		{
+			len += wcwidth(*it);
+			if (len > half_max)
 				break;
 			result += *it;
 		}
-		if (++pos >= s.length())
-			pos = 0;
-		for (; len < width; ++b)
+		len = 0;
+		std::wstring end;
+		// get end of string in reverse order
+		for (auto it = ws.rbegin(); it != ws.rend(); ++it)
 		{
-			if ((len += wcwidth(*b)) > width)
+			len += wcwidth(*it);
+			if (len > half_max)
 				break;
-			result += *b;
+			end += *it;
 		}
+		// apply end of string to its beginning
+		result += L"..";
+		result.append(end.rbegin(), end.rend());
 	}
 	else
-		result = s;
+		result = ws;
 	return result;
 }
+

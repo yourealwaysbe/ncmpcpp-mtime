@@ -78,19 +78,19 @@ bool SearchConstraints::operator<(const SearchConstraints &a) const {
 }
 
 
-
-bool SortSearchConstraints(const SearchConstraints &a, const SearchConstraints &b)
-{
-	int result;
-	CaseInsensitiveStringComparison cmp(Config.ignore_leading_the);
-	result = cmp(a.PrimaryTag, b.PrimaryTag);
-	if (result != 0)
-		return result < 0;
-	result = cmp(a.Date, b.Date);
-	if (result != 0)
-		return result < 0;
-	return cmp(a.Album, b.Album) < 0;
+bool SortSearchConstraints::operator()(const SearchConstraints &a,  
+                                       const SearchConstraints &b) const {
+    int result;
+    result = m_cmp(a.PrimaryTag, b.PrimaryTag);
+    if (result != 0)
+        return result < 0;
+    result = m_cmp(a.Date, b.Date);
+    if (result != 0)
+        return result < 0;
+    return m_cmp(a.Album, b.Album) < 0;
 }
+
+ 
 
 bool SortSongsByTrack(const MPD::Song &a, const MPD::Song &b)
 {
@@ -100,22 +100,26 @@ bool SortSongsByTrack(const MPD::Song &a, const MPD::Song &b)
 	return a.getTrack() < b.getTrack();
 }
 
-bool SortAllTracks(const MPD::Song &a, const MPD::Song &b)
-{
-	const std::array<MPD::Song::GetFunction, 3> gets = {{
+
+SortAllTracks::SortAllTracks() : m_gets({{
 		&MPD::Song::getDate,
 		&MPD::Song::getAlbum,
 		&MPD::Song::getDisc
-	}};
-	CaseInsensitiveStringComparison cmp(Config.ignore_leading_the);
-	for (auto get = gets.begin(); get != gets.end(); ++get)
-	{
-		int ret = cmp(a.getTags(*get), b.getTags(*get));
-		if (ret != 0)
-			return ret < 0;
-	}
-	return a.getTrack() < b.getTrack();
+	}}), m_cmp(std::locale(), Config.ignore_leading_the) { 
+    // all done above    
 }
+
+bool SortAllTracks::operator()(const MPD::Song &a, const MPD::Song &b) {
+    for (auto get = m_gets.begin(); get != m_gets.end(); ++get) {
+        int ret = m_cmp(a.getTags(*get), b.getTags(*get));
+        if (ret != 0)
+            return ret < 0;
+    }
+    return a.getTrack() < b.getTrack();
+}
+
+
+
 
 
 ///////////////////////////////////////////////////////////////////////

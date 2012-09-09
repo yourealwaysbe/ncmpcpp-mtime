@@ -37,7 +37,7 @@ class Playlist : public Screen<NC::Window>, public Filterable, public HasSongs, 
 		virtual void SwitchTo() OVERRIDE;
 		virtual void Resize() OVERRIDE;
 		
-		virtual std::basic_string<my_char_t> Title() OVERRIDE;
+		virtual std::wstring Title() OVERRIDE;
 		
 		virtual void Update() OVERRIDE { }
 		
@@ -76,8 +76,8 @@ class Playlist : public Screen<NC::Window>, public Filterable, public HasSongs, 
 		bool SortingInProgress();
 		
 		void EnableHighlighting();
-		void UpdateTimer() { time(&itsTimer); }
-		time_t Timer() const { return itsTimer; }
+		void UpdateTimer();
+		timeval Timer() const { return itsTimer; }
 		
 		bool Add(const MPD::Song &s, bool play, int position = -1);
 		bool Add(const MPD::SongList &l, bool play, int position = -1);
@@ -114,7 +114,7 @@ class Playlist : public Screen<NC::Window>, public Filterable, public HasSongs, 
 		size_t itsRemainingTime;
 		size_t itsScrollBegin;
 		
-		time_t itsTimer;
+		timeval itsTimer;
 };
 
 extern Playlist *myPlaylist;

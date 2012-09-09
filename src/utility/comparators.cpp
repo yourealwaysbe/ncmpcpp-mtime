@@ -18,35 +18,40 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
+#include <locale>
 #include "comparators.h"
-#include "settings.h"
 
-bool CaseInsensitiveStringComparison::hasTheWord(const char *s) const
+namespace {//
+
+bool hasTheWord(const std::string &s)
 {
-	return (s[0] == 't' || s[0] == 'T')
+	return s.length() >= 4
+	&&     (s[0] == 't' || s[0] == 'T')
 	&&     (s[1] == 'h' || s[1] == 'H')
 	&&     (s[2] == 'e' || s[2] == 'E')
 	&&     (s[3] == ' ');
 }
 
-int CaseInsensitiveStringComparison::operator()(const char *a, const char *b) const
+}
+
+int LocaleStringComparison::operator()(const std::string &a, const std::string &b) const
 {
+	const char *ac = a.c_str();
+	const char *bc = b.c_str();
+	size_t ac_off = 0, bc_off = 0;
 	if (m_ignore_the)
 	{
 		if (hasTheWord(a))
-			a += 4;
+			ac_off += 4;
 		if (hasTheWord(b))
-			b += 4;
+			bc_off += 4;
 	}
-	int dist;
-	while (!(dist = tolower(*a)-tolower(*b)) && *b)
-		++a, ++b;
-	return dist;
+	return std::use_facet< std::collate<char> >(m_locale).compare(
+		ac+ac_off, ac+a.length(), bc+bc_off, bc+b.length()
+	);
 }
 
-CaseInsensitiveSorting::CaseInsensitiveSorting(): cmp(Config.ignore_leading_the) { }
-
-bool CaseInsensitiveSorting::operator()(const MPD::Item &a, const MPD::Item &b) const
+bool LocaleBasedItemSorting::operator()(const MPD::Item &a, const MPD::Item &b) const
 {
 	bool result = false;
 	if (a.type == b.type)
@@ -54,22 +59,23 @@ bool CaseInsensitiveSorting::operator()(const MPD::Item &a, const MPD::Item &b) 
 		switch (a.type)
 		{
 			case MPD::itDirectory:
-				result = cmp(getBasename(a.name), getBasename(b.name)) < 0;
+				result = m_cmp(getBasename(a.name), getBasename(b.name)) < 0;
 				break;
 			case MPD::itPlaylist:
-				result = cmp(a.name, b.name) < 0;
+				result = m_cmp(a.name, b.name) < 0;
 				break;
 			case MPD::itSong:
-				switch (Config.browser_sort_mode)
+				switch (m_sort_mode)
 				{
 					case smName:
-						result = operator()(*a.song, *b.song);
+						result = m_cmp(*a.song, *b.song);
 						break;
 					case smMTime:
 						result = a.song->getMTime() > b.song->getMTime();
 						break;
 					case smCustomFormat:
-						result = cmp(a.song->toString(Config.browser_sort_format), b.song->toString(Config.browser_sort_format)) < 0;
+						result = m_cmp(a.song->toString(Config.browser_sort_format),
+						               b.song->toString(Config.browser_sort_format)) < 0;
 						break;
 				}
 				break;

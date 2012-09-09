@@ -102,7 +102,7 @@ void Clock::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = true;
+	DrawHeader();
 	Prepare();
 	itsPane->refresh();
 	// clearing screen apparently fixes the problem with last digits being misrendered
@@ -110,9 +110,9 @@ void Clock::SwitchTo()
 	w->display();
 }
 
-std::basic_string<my_char_t> Clock::Title()
+std::wstring Clock::Title()
 {
-	return U("Clock");
+	return L"Clock";
 }
 
 void Clock::Update()
@@ -132,10 +132,7 @@ void Clock::Update()
 			myPlaylist->SwitchTo();
 	}
 	
-	static timeval past = { 0, 0 };
-	gettimeofday(&past, 0);
-	
-	tm *time = localtime(&past.tv_sec);
+	tm *time = localtime(&Global::Timer.tv_sec);
 	
 	mask = 0;
 	Set(time->tm_sec % 10, 0);

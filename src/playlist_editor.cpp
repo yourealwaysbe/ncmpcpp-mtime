@@ -28,6 +28,7 @@
 #include "playlist.h"
 #include "playlist_editor.h"
 #include "mpdpp.h"
+#include "regex_filter.h"
 #include "status.h"
 #include "tag_editor.h"
 #include "utility/comparators.h"
@@ -100,9 +101,9 @@ void PlaylistEditor::Resize()
 	hasToBeResized = 0;
 }
 
-std::basic_string<my_char_t> PlaylistEditor::Title()
+std::wstring PlaylistEditor::Title()
 {
-	return U("Playlist editor");
+	return L"Playlist editor";
 }
 
 void PlaylistEditor::Refresh()
@@ -132,7 +133,7 @@ void PlaylistEditor::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = true;
+	DrawHeader();
 	markSongsInPlaylist(contentProxyList());
 	Refresh();
 }
@@ -145,7 +146,8 @@ void PlaylistEditor::Update()
 		Playlists->clearSearchResults();
 		withUnfilteredMenuReapplyFilter(*Playlists, [this]() {
 			auto list = Mpd.GetPlaylists();
-			std::sort(list.begin(), list.end(), CaseInsensitiveSorting());
+			std::sort(list.begin(), list.end(),
+				LocaleBasedSorting(std::locale(), Config.ignore_leading_the));
 			auto playlist = list.begin();
 			if (Playlists->size() > list.size())
 				Playlists->resizeList(list.size());

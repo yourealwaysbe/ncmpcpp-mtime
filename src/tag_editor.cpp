@@ -201,9 +201,9 @@ void TagEditor::Resize()
 	hasToBeResized = 0;
 }
 
-std::basic_string<my_char_t> TagEditor::Title()
+std::wstring TagEditor::Title()
 {
-	return U("Tag editor");
+	return L"Tag editor";
 }
 
 void TagEditor::SwitchTo()
@@ -225,7 +225,7 @@ void TagEditor::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = true;
+	DrawHeader();
 	Refresh();
 }
 
@@ -257,7 +257,7 @@ void TagEditor::Update()
 		
 		int highlightme = -1;
 		auto dirs = Mpd.GetDirectories(itsBrowsedDir);
-		std::sort(dirs.begin(), dirs.end(), CaseInsensitiveSorting());
+		std::sort(dirs.begin(), dirs.end(), LocaleBasedSorting(std::locale(), Config.ignore_leading_the));
 		if (itsBrowsedDir != "/")
 		{
 			size_t slash = itsBrowsedDir.rfind("/");
@@ -284,7 +284,8 @@ void TagEditor::Update()
 	{
 		Tags->reset();
 		auto songs = Mpd.GetSongs(Dirs->current().value().second);
-		std::sort(songs.begin(), songs.end(), CaseInsensitiveSorting());
+		std::sort(songs.begin(), songs.end(),
+			LocaleBasedSorting(std::locale(), Config.ignore_leading_the));
 		for (auto s = songs.begin(); s != songs.end(); ++s)
 			Tags->addItem(*s);
 		Tags->refresh();
@@ -332,20 +333,20 @@ void TagEditor::EnterPressed()
 		// prepare additional windows
 		
 		FParserLegend->clear();
-		*FParserLegend << U("%a - artist\n");
-		*FParserLegend << U("%A - album artist\n");
-		*FParserLegend << U("%t - title\n");
-		*FParserLegend << U("%b - album\n");
-		*FParserLegend << U("%y - date\n");
-		*FParserLegend << U("%n - track number\n");
-		*FParserLegend << U("%g - genre\n");
-		*FParserLegend << U("%c - composer\n");
-		*FParserLegend << U("%p - performer\n");
-		*FParserLegend << U("%d - disc\n");
-		*FParserLegend << U("%C - comment\n\n");
-		*FParserLegend << NC::fmtBold << U("Files:\n") << NC::fmtBoldEnd;
+		*FParserLegend << L"%a - artist\n";
+		*FParserLegend << L"%A - album artist\n";
+		*FParserLegend << L"%t - title\n";
+		*FParserLegend << L"%b - album\n";
+		*FParserLegend << L"%y - date\n";
+		*FParserLegend << L"%n - track number\n";
+		*FParserLegend << L"%g - genre\n";
+		*FParserLegend << L"%c - composer\n";
+		*FParserLegend << L"%p - performer\n";
+		*FParserLegend << L"%d - disc\n";
+		*FParserLegend << L"%C - comment\n\n";
+		*FParserLegend << NC::fmtBold << L"Files:\n" << NC::fmtBoldEnd;
 		for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
-			*FParserLegend << Config.color2 << U(" * ") << NC::clEnd << (*it)->getName() << '\n';
+			*FParserLegend << Config.color2 << L" * " << NC::clEnd << (*it)->getName() << '\n';
 		FParserLegend->flush();
 		
 		if (!Patterns.empty())
@@ -406,7 +407,7 @@ void TagEditor::EnterPressed()
 				{
 					if (FParserUsePreview)
 					{
-						*FParserPreview << NC::fmtBold << s.getName() << U(":\n") << NC::fmtBoldEnd;
+						*FParserPreview << NC::fmtBold << s.getName() << L":\n" << NC::fmtBoldEnd;
 						*FParserPreview << ParseFilename(s, Config.pattern, FParserUsePreview) << '\n';
 					}
 					else
@@ -426,7 +427,7 @@ void TagEditor::EnterPressed()
 					}
 					if (!FParserUsePreview)
 						s.setNewURI(new_file + extension);
-					*FParserPreview << file << Config.color2 << U(" -> ") << NC::clEnd;
+					*FParserPreview << file << Config.color2 << L" -> " << NC::clEnd;
 					if (new_file.empty())
 						*FParserPreview << Config.empty_tags_color << Config.empty_tag << NC::clEnd;
 					else
@@ -595,8 +596,8 @@ void TagEditor::EnterPressed()
 				ShowMessage("Writing tags in \"%s\"...", (*it)->getName().c_str());
 				if (!WriteTags(**it))
 				{
-					const char msg[] = "Error while writing tags in \"%s\"";
-					ShowMessage(msg, Shorten(TO_WSTRING((*it)->getURI()), COLS-const_strlen(msg)).c_str());
+					const char msg[] = "Error while writing tags in \"%ls\"";
+					ShowMessage(msg, wideShorten(ToWString((*it)->getURI()), COLS-const_strlen(msg)).c_str());
 					success = 0;
 					break;
 				}
@@ -1102,17 +1103,15 @@ namespace {//
 
 std::string CapitalizeFirstLetters(const std::string &s)
 {
-	if (s.empty())
-		return "";
-	std::string result = s;
-	if (!isspace(result[0]))
-		result[0] = toupper(result[0]);
-	for (std::string::iterator it = result.begin()+1; it != result.end(); ++it)
+	std::wstring ws = ToWString(s);
+	wchar_t prev = 0;
+	for (auto it = ws.begin(); it != ws.end(); ++it)
 	{
-		if (!isspace(*it) && isspace(*(it-1)) && *(it-1) != '\'')
-			*it = toupper(*it);
+		if (!iswalpha(prev) && prev != L'\'')
+			*it = towupper(*it);
+		prev = *it;
 	}
-	return result;
+	return ToString(ws);
 }
 
 void CapitalizeFirstLetters(MPD::MutableSong &s)
@@ -1131,10 +1130,7 @@ void LowerAllLetters(MPD::MutableSong &s)
 	{
 		unsigned i = 0;
 		for (std::string tag; !(tag = (s.*m->Get)(i)).empty(); ++i)
-		{
-			lowercase(tag);
-			(s.*m->Set)(tag, i);
-		}
+			(s.*m->Set)(ToString(lowercase(ToWString(tag))), i);
 	}
 }
 

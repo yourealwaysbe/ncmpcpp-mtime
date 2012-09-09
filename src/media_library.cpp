@@ -70,7 +70,6 @@ bool SongEntryMatcher(const Regex &rx, const MPD::Song &s);
 void DisplayAlbums(NC::Menu<SearchConstraints> &menu);
 void DisplayPrimaryTags(NC::Menu<std::string> &menu);
 
-
 }
 
 void MediaLibrary::Init()
@@ -178,8 +177,7 @@ void MediaLibrary::SwitchTo()
 					NextColumn();
 				if (Config.titles_visibility)
 				{
-					std::string item_type = tagTypeToString(Config.media_lib_primary_tag);
-					lowercase(item_type);
+					std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
 					Albums->setTitle("Albums (sorted by " + item_type + ")");
 				}
 				else
@@ -202,14 +200,14 @@ void MediaLibrary::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	Global::RedrawHeader = true;
+	DrawHeader();
 	markSongsInPlaylist(songsProxyList());
 	Refresh();
 }
 
-std::basic_string<my_char_t> MediaLibrary::Title()
+std::wstring MediaLibrary::Title()
 {
-	return U("Media library");
+	return L"Media library";
 }
 
 void MediaLibrary::DatabaseUpdated() {
@@ -224,19 +222,18 @@ void MediaLibrary::Update()
 		Albums->clear();
 		Songs->clear();
 		auto list = Mpd.GetList(Config.media_lib_primary_tag);
-		std::sort(list.begin(), list.end(), CaseInsensitiveSorting());
+
+        if (Config.media_library_sort_by_mtime) 
+            std::sort(list.begin(), list.end(), MTimeArtistSorting());
+        else 
+            std::sort(list.begin(), list.end(),
+                LocaleBasedSorting(std::locale(), Config.ignore_leading_the));
 		for (auto it = list.begin(); it != list.end(); ++it)
 		{
 			if (it->empty() && !Config.media_library_display_empty_tag)
 				continue;
 			Tags->addItem(*it);
 		}
-
-        if (Config.media_library_sort_by_mtime) 
-            std::sort(Tags->beginV(), Tags->endV(), MTimeArtistSorting());
-        else
-            std::sort(Tags->beginV(), Tags->endV(), CaseInsensitiveSorting());
-
 		Tags->refresh();
 	}
 	
@@ -269,7 +266,7 @@ void MediaLibrary::Update()
             if (Config.media_library_sort_by_mtime) 
                 std::sort(Albums->beginV(), Albums->endV(), MTimeAlbumSorting());
             else
-    			std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints);
+    			std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints());
 		if (Albums->size() > 1)
 		{
 			Albums->addSeparator();
@@ -316,7 +313,7 @@ void MediaLibrary::Update()
             if (Config.media_library_sort_by_mtime)
                 std::sort(Albums->beginV(), Albums->endV(), MTimeAlbumSorting());
             else
-                std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints);
+                std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints());
 		Albums->refresh();
 	}
 	
@@ -344,7 +341,7 @@ void MediaLibrary::Update()
 			Songs->addItem(*s, myPlaylist->checkForSong(*s));
 		
 		if (Albums->current().value().Date == AllTracksMarker)
-			std::sort(Songs->beginV(), Songs->endV(), SortAllTracks);
+			std::sort(Songs->beginV(), Songs->endV(), SortAllTracks());
 		else
 			std::sort(Songs->beginV(), Songs->endV(), SortSongsByTrack);
 		
@@ -588,7 +585,7 @@ MPD::SongList MediaLibrary::getSelectedSongs()
 			Mpd.StartSearch(true);
 			Mpd.AddSearch(Config.media_lib_primary_tag, tag);
 			auto songs = Mpd.CommitSearchSongs();
-			std::sort(songs.begin(), songs.end(), SortAllTracks);
+			std::sort(songs.begin(), songs.end(), SortAllTracks());
 			result.insert(result.end(), songs.begin(), songs.end());
 		};
 		for (auto it = Tags->begin(); it != Tags->end(); ++it)
@@ -748,8 +745,7 @@ void MediaLibrary::LocateSong(const MPD::Song &s)
 	}
 	if (primary_tag.empty())
 	{
-		std::string item_type = tagTypeToString(Config.media_lib_primary_tag);
-		lowercase(item_type);
+		std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
 		ShowMessage("Can't use this function because the song has no %s tag set", item_type.c_str());
 		return;
 	}
@@ -837,8 +833,7 @@ void MediaLibrary::AddToPlaylist(bool add_n_play)
 			if ((!Tags->empty() && w == Tags)
 			||  (w == Albums && Albums->current().value().Date == AllTracksMarker))
 			{
-				std::string tag_type = tagTypeToString(Config.media_lib_primary_tag);
-				lowercase(tag_type);
+				std::string tag_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
 				ShowMessage("Songs with %s = \"%s\" added", tag_type.c_str(), Tags->current().value().c_str());
 			}
 			else if (w == Albums)
@@ -923,7 +918,6 @@ void DisplayPrimaryTags(NC::Menu<std::string> &menu)
 		menu << tag;
 }
 
-/***********************************************************************/
 
 
 }

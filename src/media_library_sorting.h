@@ -23,7 +23,9 @@
 
 #include <map>
 #include <set>
+#include <array>
 
+#include "utility/comparators.h"
 
 
 struct SearchConstraints
@@ -40,8 +42,26 @@ struct SearchConstraints
 };
 
 bool SortSongsByTrack(const MPD::Song &, const MPD::Song &);
-bool SortAllTracks(const MPD::Song &, const MPD::Song &);
-bool SortSearchConstraints(const SearchConstraints &a, const SearchConstraints &b);
+
+struct SortAllTracks {
+	const std::array<MPD::Song::GetFunction, 3> m_gets;
+	LocaleStringComparison m_cmp;
+public:
+	SortAllTracks();
+    bool operator()(const MPD::Song &a, const MPD::Song &b); 
+};
+
+
+
+
+class SortSearchConstraints {
+	LocaleStringComparison m_cmp;
+    
+public:
+	SortSearchConstraints() : m_cmp(std::locale(), Config.ignore_leading_the) { }
+	bool operator()(const SearchConstraints &a, const SearchConstraints &b) const;
+};
+
 
 
 	

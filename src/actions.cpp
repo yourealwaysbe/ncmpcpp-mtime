@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cerrno>
 #include <cstring>
+#include <algorithm>
 #include <iostream>
 
 #include "actions.h"
@@ -127,7 +128,6 @@ void Action::SetResizeFlags()
 void Action::ResizeScreen()
 {
 	using Global::MainHeight;
-	using Global::RedrawHeader;
 	using Global::RedrawStatusbar;
 	using Global::wHeader;
 	using Global::wFooter;
@@ -152,7 +152,6 @@ void Action::ResizeScreen()
 	}
 #	endif
 	
-	RedrawHeader = true;
 	MainHeight = LINES-(Config.new_design ? 7 : 4);
 	
 	ValidateScreenSize();
@@ -194,6 +193,7 @@ void Action::ResizeScreen()
 		DesignChanged = 0;
 		ShowMessage("User interface: %s", Config.new_design ? "Alternative" : "Classic");
 	}
+	DrawHeader();
 	wFooter->refresh();
 	refresh();
 }
@@ -223,6 +223,7 @@ void Action::Seek()
 {
 	using Global::wHeader;
 	using Global::wFooter;
+	using Global::Timer;
 	using Global::SeekingInProgress;
 	
 	if (!Mpd.GetTotalTime())
@@ -235,7 +236,7 @@ void Action::Seek()
 	LockStatusbar();
 	
 	int songpos = Mpd.GetElapsedTime();
-	time_t t = time(0);
+	timeval t = Timer;
 	
 	int old_timeout = wFooter->getTimeout();
 	wFooter->setTimeout(500);
@@ -246,7 +247,7 @@ void Action::Seek()
 		TraceMpdStatus();
 		myPlaylist->UpdateTimer();
 		
-		int howmuch = Config.incremental_seeking ? (myPlaylist->Timer()-t)/2+Config.seek_time : Config.seek_time;
+		int howmuch = Config.incremental_seeking ? (Timer.tv_sec-t.tv_sec)/2+Config.seek_time : Config.seek_time;
 		
 		Key input = Key::read(*wFooter);
 		auto k = Bindings.get(input);
@@ -737,11 +738,10 @@ void MasterScreen::Run()
 {
 	using Global::myInactiveScreen;
 	using Global::myLockedScreen;
-	using Global::RedrawHeader;
 	
 	myInactiveScreen = myScreen;
 	myScreen = myLockedScreen;
-	RedrawHeader = true;
+	DrawHeader();
 }
 
 bool SlaveScreen::canBeRun() const
@@ -759,11 +759,10 @@ void SlaveScreen::Run()
 {
 	using Global::myInactiveScreen;
 	using Global::myLockedScreen;
-	using Global::RedrawHeader;
 	
 	myScreen = myInactiveScreen;
 	myInactiveScreen = myLockedScreen;
-	RedrawHeader = true;
+	DrawHeader();
 }
 
 void VolumeUp::Run()
@@ -801,7 +800,7 @@ void Delete::Run()
 			question = "Delete ";
 			question += itemTypeToString(item.type);
 			question += " \"";
-			question += Shorten(TO_WSTRING(name), COLS-question.size()-10);
+			question += ToString(wideShorten(ToWString(name), COLS-question.size()-10));
 			question += "\"?";
 		}
 		bool yes = AskYesNoQuestion(question, TraceMpdStatus);
@@ -815,13 +814,13 @@ void Delete::Run()
 				std::string name = i.type == MPD::itSong ? i.song->getName() : i.name;
 				if (myBrowser->deleteItem(i))
 				{
-					const char msg[] = "\"%s\" deleted";
-					ShowMessage(msg, Shorten(TO_WSTRING(name), COLS-const_strlen(msg)).c_str());
+					const char msg[] = "\"%ls\" deleted";
+					ShowMessage(msg, wideShorten(ToWString(name), COLS-const_strlen(msg)).c_str());
 				}
 				else
 				{
-					const char msg[] = "Couldn't delete \"%s\": %s";
-					ShowMessage(msg, Shorten(TO_WSTRING(name), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+					const char msg[] = "Couldn't delete \"%ls\": %s";
+					ShowMessage(msg, wideShorten(ToWString(name), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 					success = false;
 					break;
 				}
@@ -846,7 +845,7 @@ void Delete::Run()
 			else
 			{
 				question = "Delete playlist \"";
-				question += Shorten(TO_WSTRING(myPlaylistEditor->Playlists->current().value()), COLS-question.size()-10);
+				question += ToString(wideShorten(ToWString(myPlaylistEditor->Playlists->current().value()), COLS-question.size()-10));
 				question += "\"?";
 			}
 			bool yes = AskYesNoQuestion(question, TraceMpdStatus);
@@ -1229,15 +1228,13 @@ bool JumpToPlayingSong::canBeRun() const
 
 void JumpToPlayingSong::Run()
 {
-	using Global::RedrawHeader;
-	
 	if (myScreen == myPlaylist)
 		myPlaylist->Items->highlight(myPlaylist->NowPlaying);
 	else if (myScreen == myBrowser)
 	{
 		const MPD::Song *s = myPlaylist->NowPlayingSong();
 		myBrowser->LocateSong(*s);
-		RedrawHeader = true;
+		DrawHeader();
 	}
 	else if (myScreen == myLibrary)
 	{
@@ -1387,8 +1384,8 @@ void EditLibraryTag::Run()
 			std::string path = Config.mpd_music_dir + es.getURI();
 			if (!TagEditor::WriteTags(es))
 			{
-				const char msg[] = "Error while updating tags in \"%s\"";
-				ShowMessage(msg, Shorten(TO_WSTRING(es.getURI()), COLS-const_strlen(msg)).c_str());
+				const char msg[] = "Error while updating tags in \"%ls\"";
+				ShowMessage(msg, wideShorten(ToWString(es.getURI()), COLS-const_strlen(msg)).c_str());
 				success = false;
 				break;
 			}
@@ -1433,16 +1430,16 @@ void EditLibraryAlbum::Run()
 			TagLib::FileRef f(path.c_str());
 			if (f.isNull())
 			{
-				const char msg[] = "Error while opening file \"%s\"";
-				ShowMessage(msg, Shorten(TO_WSTRING((*myLibrary->Songs)[i].value().getURI()), COLS-const_strlen(msg)).c_str());
+				const char msg[] = "Error while opening file \"%ls\"";
+				ShowMessage(msg, wideShorten(ToWString((*myLibrary->Songs)[i].value().getURI()), COLS-const_strlen(msg)).c_str());
 				success = 0;
 				break;
 			}
 			f.tag()->setAlbum(ToWString(new_album));
 			if (!f.save())
 			{
-				const char msg[] = "Error while writing tags in \"%s\"";
-				ShowMessage(msg, Shorten(TO_WSTRING((*myLibrary->Songs)[i].value().getURI()), COLS-const_strlen(msg)).c_str());
+				const char msg[] = "Error while writing tags in \"%ls\"";
+				ShowMessage(msg, wideShorten(ToWString((*myLibrary->Songs)[i].value().getURI()), COLS-const_strlen(msg)).c_str());
 				success = 0;
 				break;
 			}
@@ -1465,9 +1462,9 @@ bool EditDirectoryName::canBeRun() const
 #	ifdef HAVE_TAGLIB_H
 	    ||   (myScreen->ActiveWindow() == myTagEditor->Dirs
 	      && !myTagEditor->Dirs->empty()
-	      && myTagEditor->Dirs->choice() > 0))
+	      && myTagEditor->Dirs->choice() > 0)
 #	endif // HAVE_TAGLIB_H
-	;
+	);
 }
 
 void EditDirectoryName::Run()
@@ -1494,16 +1491,16 @@ void EditDirectoryName::Run()
 			int rename_result = rename(full_old_dir.c_str(), full_new_dir.c_str());
 			if (rename_result == 0)
 			{
-				const char msg[] = "Directory renamed to \"%s\"";
-				ShowMessage(msg, Shorten(TO_WSTRING(new_dir), COLS-const_strlen(msg)).c_str());
+				const char msg[] = "Directory renamed to \"%ls\"";
+				ShowMessage(msg, wideShorten(ToWString(new_dir), COLS-const_strlen(msg)).c_str());
 				if (!myBrowser->isLocal())
 					Mpd.UpdateDirectory(locale_to_utf_cpy(getSharedDirectory(old_dir, new_dir)));
 				myBrowser->GetDirectory(myBrowser->CurrentDir());
 			}
 			else
 			{
-				const char msg[] = "Couldn't rename \"%s\": %s";
-				ShowMessage(msg, Shorten(TO_WSTRING(old_dir), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+				const char msg[] = "Couldn't rename \"%ls\": %s";
+				ShowMessage(msg, wideShorten(ToWString(old_dir), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 			}
 		}
 	}
@@ -1521,14 +1518,14 @@ void EditDirectoryName::Run()
 			std::string full_new_dir = Config.mpd_music_dir + myTagEditor->CurrentDir() + "/" + locale_to_utf_cpy(new_dir);
 			if (rename(full_old_dir.c_str(), full_new_dir.c_str()) == 0)
 			{
-				const char msg[] = "Directory renamed to \"%s\"";
-				ShowMessage(msg, Shorten(TO_WSTRING(new_dir), COLS-const_strlen(msg)).c_str());
+				const char msg[] = "Directory renamed to \"%ls\"";
+				ShowMessage(msg, wideShorten(ToWString(new_dir), COLS-const_strlen(msg)).c_str());
 				Mpd.UpdateDirectory(myTagEditor->CurrentDir());
 			}
 			else
 			{
-				const char msg[] = "Couldn't rename \"%s\": %s";
-				ShowMessage(msg, Shorten(TO_WSTRING(old_dir), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+				const char msg[] = "Couldn't rename \"%ls\": %s";
+				ShowMessage(msg, wideShorten(ToWString(old_dir), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 			}
 		}
 	}
@@ -1561,8 +1558,8 @@ void EditPlaylistName::Run()
 	{
 		if (Mpd.Rename(locale_to_utf_cpy(old_name), locale_to_utf_cpy(new_name)))
 		{
-			const char msg[] = "Playlist renamed to \"%s\"";
-			ShowMessage(msg, Shorten(TO_WSTRING(new_name), COLS-const_strlen(msg)).c_str());
+			const char msg[] = "Playlist renamed to \"%ls\"";
+			ShowMessage(msg, wideShorten(ToWString(new_name), COLS-const_strlen(msg)).c_str());
 			if (myBrowser->Main() && !myBrowser->isLocal())
 				myBrowser->GetDirectory("/");
 			if (myPlaylistEditor->Main())
@@ -1623,6 +1620,7 @@ void ToggleScreenLock::Run()
 	{
 		BasicScreen::Unlock();
 		Action::SetResizeFlags();
+		myScreen->Resize();
 		ShowMessage("Screen unlocked");
 	}
 	else
@@ -1882,7 +1880,6 @@ bool ApplyFilter::canBeRun() const
 
 void ApplyFilter::Run()
 {
-	using Global::RedrawHeader;
 	using Global::wFooter;
 	
 	Filterable *f = dynamic_cast<Filterable *>(myScreen);
@@ -1908,7 +1905,7 @@ void ApplyFilter::Run()
 	{
 		myPlaylist->EnableHighlighting();
 		Playlist::ReloadTotalLength = true;
-		RedrawHeader = true;
+		DrawHeader();
 	}
 	ListsChangeFinisher();
 }
@@ -1935,7 +1932,7 @@ void Find::Run()
 	ShowMessage("Searching...");
 	Screen<NC::Scrollpad> *s = static_cast<Screen<NC::Scrollpad> *>(myScreen);
 	s->Main()->removeFormatting();
-	ShowMessage("%s", findme.empty() || s->Main()->setFormatting(NC::fmtReverse, TO_WSTRING(findme), NC::fmtReverseEnd, 0) ? "Done!" : "No matching patterns found");
+	ShowMessage("%s", findme.empty() || s->Main()->setFormatting(NC::fmtReverse, ToWString(findme), NC::fmtReverseEnd, 0) ? "Done!" : "No matching patterns found");
 	s->Main()->flush();
 }
 
@@ -2063,13 +2060,12 @@ void AddRandomItems::Run()
 	while (answer != 's' && answer != 'a' && answer != 'b');
 	UnlockStatusbar();
 	
-	mpd_tag_type tag_type;
+	mpd_tag_type tag_type = MPD_TAG_ARTIST;
 	std::string tag_type_str ;
 	if (answer != 's')
 	{
 		tag_type = charToTagType(answer);
-		tag_type_str = tagTypeToString(tag_type);
-		lowercase(tag_type_str);
+		tag_type_str = lowercase(tagTypeToString(tag_type));
 	}
 	else
 		tag_type_str = "song";
@@ -2108,7 +2104,8 @@ void ToggleBrowserSortMode::Run()
 			ShowMessage("Sort songs by: Name");
 			break;
 	}
-	std::sort(myBrowser->Main()->beginV()+(myBrowser->CurrentDir() != "/"), myBrowser->Main()->endV(), CaseInsensitiveSorting());
+	std::sort(myBrowser->Main()->begin()+(myBrowser->CurrentDir() != "/"), myBrowser->Main()->end(),
+		LocaleBasedItemSorting(std::locale(), Config.ignore_leading_the, Config.browser_sort_mode));
 }
 
 bool ToggleLibraryTagType::canBeRun() const
@@ -2139,7 +2136,7 @@ void ToggleLibraryTagType::Run()
 		std::string item_type = tagTypeToString(Config.media_lib_primary_tag);
 		myLibrary->Tags->setTitle(Config.titles_visibility ? item_type + "s" : "");
 		myLibrary->Tags->reset();
-		lowercase(item_type);
+		item_type = lowercase(item_type);
 		if (myLibrary->Columns() == 2)
 		{
 			myLibrary->Songs->clear();
@@ -2207,15 +2204,38 @@ void SetSelectedItemsPriority::Run()
 	Statusbar() << "Set priority [0-255]: ";
 	std::string strprio = wFooter->getString();
 	UnlockStatusbar();
-	if (!isInteger(strprio.c_str()))
+	if (!isInteger(strprio.c_str(), true))
 		return;
-	int prio = atoi(strprio.c_str());
+	int prio = stringToInt(strprio);
 	if (prio < 0 || prio > 255)
 	{
 		ShowMessage("Number is out of range");
 		return;
 	}
 	myPlaylist->SetSelectedItemsPriority(prio);
+}
+
+bool FilterPlaylistOnPriorities::canBeRun() const
+{
+	return myScreen->ActiveWindow() == myPlaylist->Items;
+}
+
+void FilterPlaylistOnPriorities::Run()
+{
+	using Global::wFooter;
+	
+	LockStatusbar();
+	Statusbar() << "Show songs with priority higher than: ";
+	std::string strprio = wFooter->getString();
+	UnlockStatusbar();
+	if (!isInteger(strprio.c_str(), false))
+		return;
+	unsigned prio = stringToInt(strprio);
+	myPlaylist->Items->filter(myPlaylist->Items->begin(), myPlaylist->Items->end(),
+		[prio](const NC::Menu<MPD::Song>::Item &s) {
+			return s.value().getPrio() > prio;
+	});
+	ShowMessage("Playlist filtered (songs with priority higher than %u)", prio);
 }
 
 void ShowSongInfo::Run()
@@ -2601,6 +2621,7 @@ void populateActions()
 	insertAction(new RefetchLyrics());
 	insertAction(new RefetchArtistInfo());
 	insertAction(new SetSelectedItemsPriority());
+	insertAction(new FilterPlaylistOnPriorities());
 	insertAction(new ShowSongInfo());
 	insertAction(new ShowArtistInfo());
 	insertAction(new ShowLyrics());

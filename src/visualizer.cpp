@@ -81,6 +81,7 @@ void Visualizer::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
+	DrawHeader();
 	w->clear();
 	
 	SetFD();
@@ -90,7 +91,6 @@ void Visualizer::SwitchTo()
 	
 	if (itsFifo >= 0)
 		Global::wFooter->setTimeout(WindowTimeout);
-	Global::RedrawHeader = true;
 }
 
 void Visualizer::Resize()
@@ -102,9 +102,9 @@ void Visualizer::Resize()
 	hasToBeResized = 0;
 }
 
-std::basic_string<my_char_t> Visualizer::Title()
+std::wstring Visualizer::Title()
 {
-	return U("Music visualizer");
+	return L"Music visualizer";
 }
 
 void Visualizer::Update()
@@ -123,7 +123,7 @@ void Visualizer::Update()
 		Mpd.DisableOutput(itsOutputID);
 		usleep(50000);
 		Mpd.EnableOutput(itsOutputID);
-		gettimeofday(&itsTimer, 0);
+		itsTimer = Global::Timer;
 	}
 	
 	void (Visualizer::*draw)(int16_t *, ssize_t, size_t, size_t);

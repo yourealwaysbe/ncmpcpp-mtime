@@ -41,10 +41,6 @@ struct Scrollpad: public Window
 	Scrollpad(size_t startx, size_t starty, size_t width, size_t height,
 			const std::string &title, Color color, Border border);
 	
-	/// Copies the scrollpad
-	/// @param s copied scrollpad
-	Scrollpad(const Scrollpad &s);
-	
 	/// Prints the text stored in internal buffer to window. Note that
 	/// all changes that has been made for text stored in scrollpad won't
 	/// be visible until one invokes this function
@@ -60,7 +56,7 @@ struct Scrollpad: public Window
 	/// given format for all occurences of given string or stops after first occurence
 	/// @return true if at least one occurence of the string was found, false otherwise
 	/// @see basic_buffer::setFormatting()
-	bool setFormatting(short val_b, const std::basic_string<my_char_t> &s,
+	bool setFormatting(short val_b, const std::wstring &s,
 				short val_e, bool case_sensitive, bool for_each = 1);
 	
 	/// Removes all format flags and colors from stored text
@@ -74,7 +70,7 @@ struct Scrollpad: public Window
 	
 	/// @return text stored in internal buffer
 	///
-	const std::basic_string<my_char_t> &content() { return m_buffer.str(); }
+	const std::wstring &content() { return m_buffer.str(); }
 	
 	/// Refreshes the window
 	/// @see Window::Refresh()
@@ -113,20 +109,18 @@ struct Scrollpad: public Window
 		m_buffer << obj;
 		return *this;
 	}
-#	ifdef _UTF8
 	Scrollpad &operator<<(const std::string &s);
-#	endif // _UTF8
 	
 private:
-	basic_buffer<my_char_t> m_buffer;
+	WBuffer m_buffer;
 	
-	int m_beginning;
+	size_t m_beginning;
 	
 	bool m_found_for_each;
 	bool m_found_case_sensitive;
 	short m_found_value_begin;
 	short m_found_value_end;
-	std::basic_string<my_char_t> m_found_pattern;
+	std::wstring m_found_pattern;
 	
 	size_t m_real_height;
 };
