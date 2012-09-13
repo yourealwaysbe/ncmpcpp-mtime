@@ -29,7 +29,9 @@
 #include "regex_filter.h"
 #include "song.h"
 #include "status.h"
+#include "statusbar.h"
 #include "utility/comparators.h"
+#include "title.h"
 
 using namespace std::placeholders;
 
@@ -121,7 +123,7 @@ void Playlist::SwitchTo()
 	EnableHighlighting();
 	if (w != Items) // even if sorting window is active, background has to be refreshed anyway
 		Items->display();
-	DrawHeader();
+	drawHeader();
 }
 
 void Playlist::Resize()
@@ -187,7 +189,7 @@ void Playlist::EnterPressed()
 		}
 		else
 		{
-			ShowMessage("Move tag types up and down to adjust sort order");
+			Statusbar::msg("Move tag types up and down to adjust sort order");
 			return;
 		}
 		
@@ -201,7 +203,7 @@ void Playlist::EnterPressed()
 		std::function<void(MPD::SongList::iterator, MPD::SongList::iterator)> iter_swap, quick_sort;
 		auto song_cmp = [&cmp](const MPD::Song &a, const MPD::Song &b) -> bool {
 				for (size_t i = 0; i < SortOptions; ++i)
-					if (int ret = cmp(a.getTags((*SortDialog)[i].value().second), b.getTags((*SortDialog)[i].value().second)))
+					if (int ret = cmp(a.getTags((*SortDialog)[i].value().second, Config.tags_separator), b.getTags((*SortDialog)[i].value().second, Config.tags_separator)))
 						return ret < 0;
 				return a.getPosition() < b.getPosition();
 		};
@@ -227,11 +229,11 @@ void Playlist::EnterPressed()
 			}
 		};
 		
-		ShowMessage("Sorting...");
+		Statusbar::msg("Sorting...");
 		Mpd.StartCommandsList();
 		quick_sort(playlist.begin(), playlist.end());
 		if (Mpd.CommitCommandsList())
-			ShowMessage("Playlist sorted");
+			Statusbar::msg("Playlist sorted");
 		w = Items;
 	}
 }
@@ -364,11 +366,21 @@ MPD::SongList Playlist::getSelectedSongs()
 
 /***********************************************************************/
 
+MPD::Song Playlist::nowPlayingSong()
+{
+	MPD::Song s;
+	if (Mpd.isPlaying())
+		withUnfilteredMenu(*Items, [this, &s]() {
+			s = Items->at(Mpd.GetCurrentSongPos()).value();
+		});
+	return s;
+}
+
 bool Playlist::isFiltered()
 {
 	if (Items->isFiltered())
 	{
-		ShowMessage("Function currently unavailable due to filtered playlist");
+		Statusbar::msg("Function currently unavailable due to filtered playlist");
 		return true;
 	}
 	return false;
@@ -379,7 +391,7 @@ void Playlist::Sort()
 	if (isFiltered())
 		return;
 	if (Items->getWidth() < SortDialogWidth || MainHeight < 5)
-		ShowMessage("Screen is too small to display dialog window");
+		Statusbar::msg("Screen is too small to display dialog window");
 	else
 	{
 		SortDialog->reset();
@@ -391,7 +403,7 @@ void Playlist::Reverse()
 {
 	if (isFiltered())
 		return;
-	ShowMessage("Reversing playlist order...");
+	Statusbar::msg("Reversing playlist order...");
 	size_t beginning = -1, end = -1;
 	for (size_t i = 0; i < Items->size(); ++i)
 	{
@@ -411,7 +423,7 @@ void Playlist::Reverse()
 	for (size_t i = beginning, j = end-1; i < (beginning+end)/2; ++i, --j)
 		Mpd.Swap(i, j);
 	if (Mpd.CommitCommandsList())
-		 ShowMessage("Playlist reversed");
+		 Statusbar::msg("Playlist reversed");
 }
 
 void Playlist::EnableHighlighting()
@@ -444,7 +456,7 @@ std::string Playlist::TotalLength()
 	if (Config.playlist_show_remaining_time && ReloadRemaining && !Items->isFiltered())
 	{
 		itsRemainingTime = 0;
-		for (size_t i = NowPlaying; i < Items->size(); ++i)
+		for (size_t i = Mpd.GetCurrentlyPlayingSongPos(); i < Items->size(); ++i)
 			itsRemainingTime += (*Items)[i].value().getDuration();
 		ReloadRemaining = false;
 	}
@@ -472,16 +484,6 @@ std::string Playlist::TotalLength()
 	}
 	result << ')';
 	return result.str();
-}
-
-const MPD::Song *Playlist::NowPlayingSong()
-{
-	bool was_filtered = Items->isFiltered();
-	Items->showAll();
-	const MPD::Song *s = isPlaying() ? &Items->at(NowPlaying).value() : 0;
-	if (was_filtered)
-		Items->showFiltered();
-	return s;
 }
 
 bool Playlist::Add(const MPD::Song &s, bool play, int position)
@@ -516,7 +518,7 @@ bool Playlist::Add(const MPD::Song &s, bool play, int position)
 		int id = Mpd.AddSong(s, position);
 		if (id >= 0)
 		{
-			ShowMessage("Added to playlist: %s", s.toString(Config.song_status_format_no_colors).c_str());
+			Statusbar::msg("Added to playlist: %s", s.toString(Config.song_status_format_no_colors, Config.tags_separator).c_str());
 			if (play)
 				Mpd.PlayID(id);
 			return true;
@@ -570,7 +572,7 @@ void Playlist::SetSelectedItemsPriority(int prio)
 	for (auto it = list.begin(); it != list.end(); ++it)
 		Mpd.SetPriority((*it)->value(), prio);
 	if (Mpd.CommitCommandsList())
-		ShowMessage("Priority set");
+		Statusbar::msg("Priority set");
 }
 
 bool Playlist::checkForSong(const MPD::Song &s)
@@ -619,9 +621,9 @@ std::string songToString(const MPD::Song &s)
 {
 	std::string result;
 	if (Config.columns_in_playlist)
-		result = s.toString(Config.song_in_columns_to_string_format);
+		result = s.toString(Config.song_in_columns_to_string_format, Config.tags_separator);
 	else
-		result = s.toString(Config.song_list_format_dollar_free);
+		result = s.toString(Config.song_list_format_dollar_free, Config.tags_separator);
 	return result;
 }
 

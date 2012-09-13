@@ -57,7 +57,7 @@ struct Song
 	virtual std::string getLength(unsigned idx = 0) const;
 	virtual std::string getPriority(unsigned idx = 0) const;
 	
-	virtual std::string getTags(GetFunction f, const std::string &tag_separator = ", ") const;
+	virtual std::string getTags(GetFunction f, const std::string &tags_separator) const;
 	
 	virtual unsigned getHash() const;
 	virtual unsigned getDuration() const;
@@ -71,7 +71,7 @@ struct Song
 	
 	virtual bool empty() const;
 	
-	virtual std::string toString(const std::string &fmt, const std::string &tag_separator = ", ",
+	virtual std::string toString(const std::string &fmt, const std::string &tags_separator,
 	                             const std::string &escape_chars = "") const;
 	
 	static std::string ShowTime(unsigned length);
@@ -82,7 +82,7 @@ struct Song
     const char *getTag(mpd_tag_type type, unsigned idx = 0) const;
 
 	private:
-		std::string ParseFormat(std::string::const_iterator &it, const std::string &tag_separator,
+		std::string ParseFormat(std::string::const_iterator &it, const std::string &tags_separator,
 		                        const std::string &escape_chars) const;
 		
 		std::shared_ptr<mpd_song> m_song;

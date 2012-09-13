@@ -74,7 +74,7 @@ struct Action
 	
 	static void ValidateScreenSize();
 	static void SetResizeFlags();
-	static void ResizeScreen();
+	static void ResizeScreen(bool reload_main_window);
 	static void SetWindowsDimensions();
 	
 	static bool ConnectToMPD();
@@ -85,8 +85,6 @@ struct Action
 	static Action *Get(const std::string &name);
 	
 	static bool OriginalStatusbarVisibility;
-	static bool DesignChanged;
-	static bool OrderResize;
 	static bool ExitMainLoop;
 	
 	static size_t HeaderHeight;
@@ -826,7 +824,6 @@ struct ToggleReplayGainMode : public Action
 	ToggleReplayGainMode() : Action(aToggleReplayGainMode, "toggle_replay_gain_mode") { }
 	
 protected:
-	virtual bool canBeRun() const;
 	virtual void Run();
 };
 

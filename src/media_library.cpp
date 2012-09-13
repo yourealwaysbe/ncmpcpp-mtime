@@ -33,8 +33,10 @@
 #include "regex_filter.h"
 #include "status.h"
 #include "media_library_sorting.h"
+#include "statusbar.h"
 #include "utility/comparators.h"
 #include "utility/type_conversions.h"
+#include "title.h"
 
 using namespace std::placeholders;
 
@@ -200,7 +202,7 @@ void MediaLibrary::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	DrawHeader();
+	drawHeader();
 	markSongsInPlaylist(songsProxyList());
 	Refresh();
 }
@@ -329,12 +331,12 @@ void MediaLibrary::Update()
 		Songs->reset();
 		
 		Mpd.StartSearch(1);
-		Mpd.AddSearch(Config.media_lib_primary_tag, locale_to_utf_cpy(hasTwoColumns ? Albums->current().value().PrimaryTag : Tags->current().value()));
+		Mpd.AddSearch(Config.media_lib_primary_tag, hasTwoColumns ? Albums->current().value().PrimaryTag : Tags->current().value());
 		if (Albums->current().value().Date != AllTracksMarker)
 		{
-			Mpd.AddSearch(MPD_TAG_ALBUM, locale_to_utf_cpy(Albums->current().value().Album));
+			Mpd.AddSearch(MPD_TAG_ALBUM, Albums->current().value().Album);
 			if (Config.media_library_display_date)
-				Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(Albums->current().value().Date));
+				Mpd.AddSearch(MPD_TAG_DATE, Albums->current().value().Date);
 		}
 		auto songs = Mpd.CommitSearchSongs();
 		for (auto s = songs.begin(); s != songs.end(); ++s)
@@ -746,13 +748,13 @@ void MediaLibrary::LocateSong(const MPD::Song &s)
 	if (primary_tag.empty())
 	{
 		std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
-		ShowMessage("Can't use this function because the song has no %s tag set", item_type.c_str());
+		Statusbar::msg("Can't use this function because the song has no %s tag set", item_type.c_str());
 		return;
 	}
 	
 	if (myScreen != this)
 		SwitchTo();
-	Statusbar() << "Jumping to song...";
+	Statusbar::put() << "Jumping to song...";
 	Global::wFooter->refresh();
 	
 	if (!hasTwoColumns)
@@ -834,10 +836,10 @@ void MediaLibrary::AddToPlaylist(bool add_n_play)
 			||  (w == Albums && Albums->current().value().Date == AllTracksMarker))
 			{
 				std::string tag_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
-				ShowMessage("Songs with %s = \"%s\" added", tag_type.c_str(), Tags->current().value().c_str());
+				Statusbar::msg("Songs with %s = \"%s\" added", tag_type.c_str(), Tags->current().value().c_str());
 			}
 			else if (w == Albums)
-				ShowMessage("Songs from album \"%s\" added", Albums->current().value().Album.c_str());
+				Statusbar::msg("Songs from album \"%s\" added", Albums->current().value().Album.c_str());
 		}
 	}
 
@@ -880,7 +882,7 @@ std::string AlbumToString(const SearchConstraints &sc)
 
 std::string SongToString(const MPD::Song &s)
 {
-	return s.toString(Config.song_library_format);
+	return s.toString(Config.song_library_format, Config.tags_separator);
 }
 
 bool TagEntryMatcher(const Regex &rx, const std::string &tag)
@@ -917,7 +919,6 @@ void DisplayPrimaryTags(NC::Menu<std::string> &menu)
 	else
 		menu << tag;
 }
-
 
 
 }

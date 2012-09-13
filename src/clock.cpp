@@ -31,6 +31,8 @@
 #include "playlist.h"
 #include "settings.h"
 #include "status.h"
+#include "statusbar.h"
+#include "title.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -90,7 +92,7 @@ void Clock::SwitchTo()
 	GetWindowResizeParams(x_offset, width, false);
 	if (Width > width || Height > MainHeight)
 	{
-		ShowMessage("Screen is too small to display clock");
+		Statusbar::msg("Screen is too small to display clock");
 		if (myLockedScreen)
 			UpdateInactiveScreen(myLockedScreen);
 		return;
@@ -102,7 +104,7 @@ void Clock::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	DrawHeader();
+	drawHeader();
 	Prepare();
 	itsPane->refresh();
 	// clearing screen apparently fixes the problem with last digits being misrendered

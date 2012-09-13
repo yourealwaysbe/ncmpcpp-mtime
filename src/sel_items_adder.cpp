@@ -29,6 +29,7 @@
 #include "sel_items_adder.h"
 #include "settings.h"
 #include "status.h"
+#include "statusbar.h"
 #include "utility/comparators.h"
 
 using Global::MainHeight;
@@ -77,7 +78,7 @@ void SelectedItemsAdder::SwitchTo()
 	
 	if (MainHeight < 5)
 	{
-		ShowMessage("Screen is too small to display this window");
+		Statusbar::msg("Screen is too small to display this window");
 		return;
 	}
 	
@@ -95,7 +96,7 @@ void SelectedItemsAdder::SwitchTo()
 	
 	bool playlists_not_active = myScreen == myBrowser && myBrowser->isLocal();
 	if (playlists_not_active)
-		ShowMessage("Local items can't be added to stored playlists");
+		Statusbar::msg("Local items can't be added to stored playlists");
 	
 	w->clear();
 	w->reset();
@@ -172,28 +173,27 @@ void SelectedItemsAdder::EnterPressed()
 		}
 		else if (pos == 1) // create new playlist
 		{
-			LockStatusbar();
-			Statusbar() << "Save playlist as: ";
+			Statusbar::lock();
+			Statusbar::put() << "Save playlist as: ";
 			std::string playlist = Global::wFooter->getString();
-			UnlockStatusbar();
+			Statusbar::unlock();
 			if (!playlist.empty())
 			{
-				std::string utf_playlist = locale_to_utf_cpy(playlist);
 				Mpd.StartCommandsList();
 				for (auto it = list.begin(); it != list.end(); ++it)
-					Mpd.AddToPlaylist(utf_playlist, *it);
+					Mpd.AddToPlaylist(playlist, *it);
 				if (Mpd.CommitCommandsList())
-					ShowMessage("Selected item(s) added to playlist \"%s\"", playlist.c_str());
+					Statusbar::msg("Selected item(s) added to playlist \"%s\"", playlist.c_str());
 			}
 		}
 		else if (pos > 1 && pos < w->size()-1) // add items to existing playlist
 		{
-			std::string playlist = locale_to_utf_cpy(w->current().value());
+			std::string playlist = w->current().value();
 			Mpd.StartCommandsList();
 			for (auto it = list.begin(); it != list.end(); ++it)
 				Mpd.AddToPlaylist(playlist, *it);
 			if (Mpd.CommitCommandsList())
-				ShowMessage("Selected item(s) added to playlist \"%s\"", w->current().value().c_str());
+				Statusbar::msg("Selected item(s) added to playlist \"%s\"", w->current().value().c_str());
 		}
 		if (pos != w->size()-1)
 		{
@@ -209,7 +209,7 @@ void SelectedItemsAdder::EnterPressed()
 		// disable adding after current track/album when stopped
 		if (pos > 1 && pos < 4 && !Mpd.isPlaying())
 		{
-			ShowMessage("Player is stopped");
+			Statusbar::msg("Player is stopped");
 			return;
 		}
 		
@@ -228,7 +228,7 @@ void SelectedItemsAdder::EnterPressed()
 		}
 		else if (pos == 3) // after currently playing album
 		{
-			std::string album = myPlaylist->NowPlayingSong()->getAlbum();
+			std::string album = myPlaylist->nowPlayingSong().getAlbum();
 			int i;
 			for (i = Mpd.GetCurrentlyPlayingSongPos()+1; i < int(myPlaylist->Items->size()); ++i)
 				if ((*myPlaylist->Items)[i].value().getAlbum() != album)
@@ -246,7 +246,7 @@ void SelectedItemsAdder::EnterPressed()
 		}
 		
 		if (successful_operation)
-			ShowMessage("Selected item(s) added");
+			Statusbar::msg("Selected item(s) added");
 	}
 	SwitchTo();
 }

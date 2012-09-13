@@ -18,70 +18,48 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#include <locale>
-#include "comparators.h"
+#include <cstring>
+#include <iostream>
 
-namespace {//
+#include "global.h"
+#include "settings.h"
+#include "title.h"
 
-bool hasTheWord(const std::string &s)
+#ifdef USE_PDCURSES
+void windowTitle(const std::string &) { }
+#else
+void windowTitle(const std::string &status)
 {
-	return s.length() >= 4
-	&&     (s[0] == 't' || s[0] == 'T')
-	&&     (s[1] == 'h' || s[1] == 'H')
-	&&     (s[2] == 'e' || s[2] == 'E')
-	&&     (s[3] == ' ');
+	if (strcmp(getenv("TERM"), "linux") && Config.set_window_title)
+		std::cout << "\033]0;" << status << "\7";
 }
+#endif // USE_PDCURSES
 
-}
-
-int LocaleStringComparison::operator()(const std::string &a, const std::string &b) const
+void drawHeader()
 {
-	const char *ac = a.c_str();
-	const char *bc = b.c_str();
-	size_t ac_off = 0, bc_off = 0;
-	if (m_ignore_the)
+	using Global::myScreen;
+	using Global::wHeader;
+	using Global::VolumeState;
+	
+	if (!Config.header_visibility)
+		return;
+	if (Config.new_design)
 	{
-		if (hasTheWord(a))
-			ac_off += 4;
-		if (hasTheWord(b))
-			bc_off += 4;
-	}
-	return std::use_facet< std::collate<char> >(m_locale).compare(
-		ac+ac_off, ac+a.length(), bc+bc_off, bc+b.length()
-	);
-}
-
-bool LocaleBasedItemSorting::operator()(const MPD::Item &a, const MPD::Item &b) const
-{
-	bool result = false;
-	if (a.type == b.type)
-	{
-		switch (a.type)
-		{
-			case MPD::itDirectory:
-				result = m_cmp(getBasename(a.name), getBasename(b.name));
-				break;
-			case MPD::itPlaylist:
-				result = m_cmp(a.name, b.name);
-				break;
-			case MPD::itSong:
-				switch (m_sort_mode)
-				{
-					case smName:
-						result = m_cmp(*a.song, *b.song);
-						break;
-					case smMTime:
-						result = a.song->getMTime() > b.song->getMTime();
-						break;
-					case smCustomFormat:
-						result = m_cmp(a.song->toString(Config.browser_sort_format, Config.tags_separator),
-						               b.song->toString(Config.browser_sort_format, Config.tags_separator));
-						break;
-				}
-				break;
-		}
+		std::wstring title = myScreen->Title();
+		*wHeader << NC::XY(0, 3) << wclrtoeol;
+		*wHeader << NC::fmtBold << Config.alternative_ui_separator_color;
+		mvwhline(wHeader->raw(), 2, 0, 0, COLS);
+		mvwhline(wHeader->raw(), 4, 0, 0, COLS);
+		*wHeader << NC::XY((COLS-wideLength(title))/2, 3);
+		*wHeader << Config.header_color << title << NC::clEnd;
+		*wHeader << NC::clEnd << NC::fmtBoldEnd;
 	}
 	else
-		result = a.type < b.type;
-	return result;
+	{
+		*wHeader << NC::XY(0, 0) << wclrtoeol << NC::fmtBold << myScreen->Title() << NC::fmtBoldEnd;
+		*wHeader << Config.volume_color;
+		*wHeader << NC::XY(wHeader->getWidth()-VolumeState.length(), 0) << VolumeState;
+		*wHeader << NC::clEnd;
+	}
+	wHeader->refresh();
 }

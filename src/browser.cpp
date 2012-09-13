@@ -33,8 +33,10 @@
 #include "regex_filter.h"
 #include "settings.h"
 #include "status.h"
+#include "statusbar.h"
 #include "tag_editor.h"
 #include "utility/comparators.h"
+#include "title.h"
 
 using namespace std::placeholders;
 
@@ -116,7 +118,7 @@ void Browser::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	DrawHeader();
+	drawHeader();
 }
 
 std::wstring Browser::Title()
@@ -137,16 +139,10 @@ void Browser::EnterPressed()
 		case itDirectory:
 		{
 			if (isParentDirectory(item))
-			{
-				size_t slash = itsBrowsedDir.rfind("/");
-				if (slash != std::string::npos)
-					GetDirectory(itsBrowsedDir.substr(0, slash), itsBrowsedDir);
-				else
-					GetDirectory("/", itsBrowsedDir);
-			}
+				GetDirectory(getParentDirectory(itsBrowsedDir), itsBrowsedDir);
 			else
 				GetDirectory(item.name, itsBrowsedDir);
-			DrawHeader();
+			drawHeader();
 			break;
 		}
 		case itSong:
@@ -156,9 +152,9 @@ void Browser::EnterPressed()
 		}
 		case itPlaylist:
 		{
-			if (Mpd.LoadPlaylist(locale_to_utf_cpy(item.name)))
+			if (Mpd.LoadPlaylist(item.name))
 			{
-				ShowMessage("Playlist \"%s\" loaded", item.name.c_str());
+				Statusbar::msg("Playlist \"%s\" loaded", item.name.c_str());
 				myPlaylist->PlayNewlyAddedSongs();
 			}
 		}
@@ -194,7 +190,7 @@ void Browser::SpacePressed()
 			{
 				MPD::SongList list;
 				MPD::ItemList items;
-				ShowMessage("Scanning directory \"%s\"...", item.name.c_str());
+				Statusbar::msg("Scanning directory \"%s\"...", item.name.c_str());
 				myBrowser->GetLocalDirectory(items, item.name, 1);
 				list.reserve(items.size());
 				for (MPD::ItemList::const_iterator it = items.begin(); it != items.end(); ++it)
@@ -203,9 +199,9 @@ void Browser::SpacePressed()
 			}
 			else
 #			endif // !WIN32
-				result = Mpd.Add(locale_to_utf_cpy(item.name));
+				result = Mpd.Add(item.name);
 			if (result)
-				ShowMessage("Directory \"%s\" added", item.name.c_str());
+				Statusbar::msg("Directory \"%s\" added", item.name.c_str());
 			break;
 		}
 		case itSong:
@@ -215,8 +211,8 @@ void Browser::SpacePressed()
 		}
 		case itPlaylist:
 		{
-			if (Mpd.LoadPlaylist(locale_to_utf_cpy(item.name)))
-				ShowMessage("Playlist \"%s\" loaded", item.name.c_str());
+			if (Mpd.LoadPlaylist(item.name))
+				Statusbar::msg("Playlist \"%s\" loaded", item.name.c_str());
 			break;
 		}
 	}
@@ -236,7 +232,7 @@ void Browser::MouseButtonPressed(MEVENT me)
 				if (me.bstate & BUTTON1_PRESSED)
 				{
 					GetDirectory(w->current().value().name);
-					DrawHeader();
+					drawHeader();
 				}
 				else
 				{
@@ -388,6 +384,7 @@ void Browser::LocateSong(const MPD::Song &s)
 			break;
 		}
 	}
+	drawHeader();
 }
 
 void Browser::GetDirectory(std::string dir, std::string subdir)
@@ -400,8 +397,6 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 	if (itsBrowsedDir != dir)
 		w->reset();
 	itsBrowsedDir = dir;
-	
-	locale_to_utf(dir);
 	
 	w->clear();
 	
@@ -432,13 +427,11 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 		{
 			case itPlaylist:
 			{
-				utf_to_locale(it->name);
 				w->addItem(*it);
 				break;
 			}
 			case itDirectory:
 			{
-				utf_to_locale(it->name);
 				if (it->name == subdir)
 					highlightme = w->size();
 				w->addItem(*it);
@@ -550,12 +543,12 @@ void Browser::ClearDirectory(const std::string &path) const
 		if (remove(full_path.c_str()) == 0)
 		{
 			const char msg[] = "Deleting \"%ls\"...";
-			ShowMessage(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
+			Statusbar::msg(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
 		}
 		else
 		{
 			const char msg[] = "Couldn't remove \"%ls\": %s";
-			ShowMessage(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+			Statusbar::msg(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 		}
 	}
 	closedir(dir);
@@ -565,18 +558,18 @@ void Browser::ChangeBrowseMode()
 {
 	if (Mpd.GetHostname()[0] != '/')
 	{
-		ShowMessage("For browsing local filesystem connection to MPD via UNIX Socket is required");
+		Statusbar::msg("For browsing local filesystem connection to MPD via UNIX Socket is required");
 		return;
 	}
 	
 	itsBrowseLocally = !itsBrowseLocally;
-	ShowMessage("Browse mode: %s", itsBrowseLocally ? "Local filesystem" : "MPD database");
+	Statusbar::msg("Browse mode: %s", itsBrowseLocally ? "Local filesystem" : "MPD database");
 	itsBrowsedDir = itsBrowseLocally ? Config.GetHomeDirectory() : "/";
 	if (itsBrowseLocally && *itsBrowsedDir.rbegin() == '/')
 		itsBrowsedDir.resize(itsBrowsedDir.length()-1);
 	w->reset();
 	GetDirectory(itsBrowsedDir);
-	DrawHeader();
+	drawHeader();
 }
 
 bool Browser::deleteItem(const MPD::Item &item)
@@ -587,7 +580,7 @@ bool Browser::deleteItem(const MPD::Item &item)
 	
 	// playlist created by mpd
 	if (!isLocal() && item.type == itPlaylist && CurrentDir() == "/")
-		return Mpd.DeletePlaylist(locale_to_utf_cpy(item.name));
+		return Mpd.DeletePlaylist(item.name);
 	
 	std::string path;
 	if (!isLocal())
@@ -623,9 +616,9 @@ std::string ItemToString(const MPD::Item &item)
 			break;
 		case MPD::itSong:
 			if (Config.columns_in_browser)
-				result = item.song->toString(Config.song_in_columns_to_string_format);
+				result = item.song->toString(Config.song_in_columns_to_string_format, Config.tags_separator);
 			else
-				result = item.song->toString(Config.song_list_format_dollar_free);
+				result = item.song->toString(Config.song_list_format_dollar_free, Config.tags_separator);
 			break;
 		case MPD::itPlaylist:
 			result = Config.browser_playlist_prefix.str() + getBasename(item.name);

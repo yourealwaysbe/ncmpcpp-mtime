@@ -33,6 +33,8 @@
 #include "scrollpad.h"
 #include "settings.h"
 #include "song.h"
+#include "statusbar.h"
+#include "title.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -77,12 +79,12 @@ void Lyrics::Update()
 #	endif // HAVE_CURL_CURL_H
 	if (ReloadNP)
 	{
-		const MPD::Song *s = myPlaylist->NowPlayingSong();
-		if (s && !s->getArtist().empty() && !s->getTitle().empty())
+		const MPD::Song s = myPlaylist->nowPlayingSong();
+		if (!s.empty() && !s.getArtist().empty() && !s.getTitle().empty())
 		{
-			DrawHeader();
+			drawHeader();
 			itsScrollBegin = 0;
-			itsSong = *s;
+			itsSong = s;
 			Load();
 		}
 		ReloadNP = 0;
@@ -112,7 +114,7 @@ void Lyrics::SwitchTo()
 	
 	if (isDownloadInProgress || itsWorkersNumber > 0)
 	{
-		ShowMessage("Lyrics are being downloaded...");
+		Statusbar::msg("Lyrics are being downloaded...");
 		return;
 	}
 #	endif // HAVE_CURL_CURL_H
@@ -129,11 +131,11 @@ void Lyrics::SwitchTo()
 		itsSong = *s;
 		Load();
 		
-		DrawHeader();
+		drawHeader();
 	}
 	else
 	{
-		ShowMessage("Song must have both artist and title tag set");
+		Statusbar::msg("Song must have both artist and title tag set");
 		return;
 	}
 	
@@ -150,32 +152,32 @@ void Lyrics::SwitchTo()
 std::wstring Lyrics::Title()
 {
 	std::wstring result = L"Lyrics: ";
-	result += Scroller(ToWString(itsSong.toString("{%a - %t}")), itsScrollBegin, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
+	result += Scroller(ToWString(itsSong.toString("{%a - %t}", ", ")), itsScrollBegin, COLS-result.length()-(Config.new_design ? 2 : Global::VolumeState.length()));
 	return result;
 }
 
 void Lyrics::SpacePressed()
 {
 	Config.now_playing_lyrics = !Config.now_playing_lyrics;
-	ShowMessage("Reload lyrics if song changes: %s", Config.now_playing_lyrics ? "On" : "Off");
+	Statusbar::msg("Reload lyrics if song changes: %s", Config.now_playing_lyrics ? "On" : "Off");
 }
 
 #ifdef HAVE_CURL_CURL_H
-void Lyrics::DownloadInBackground(const MPD::Song *s)
+void Lyrics::DownloadInBackground(const MPD::Song &s)
 {
-	if (!s || s->getArtist().empty() || s->getTitle().empty())
+	if (s.empty() || s.getArtist().empty() || s.getTitle().empty())
 		return;
 	
-	std::string filename = GenerateFilename(*s);
+	std::string filename = GenerateFilename(s);
 	std::ifstream f(filename.c_str());
 	if (f.is_open())
 	{
 		f.close();
 		return;
 	}
-	ShowMessage("Fetching lyrics for \"%s\"...", s->toString(Config.song_status_format_no_colors).c_str());
+	Statusbar::msg("Fetching lyrics for \"%s\"...", s.toString(Config.song_status_format_no_colors, Config.tags_separator).c_str());
 	
-	MPD::Song *s_copy = new MPD::Song(*s);
+	MPD::Song *s_copy = new MPD::Song(s);
 	pthread_mutex_lock(&itsDIBLock);
 	if (itsWorkersNumber == itsMaxWorkersNumber)
 		itsToDownload.push(s_copy);
@@ -194,7 +196,7 @@ void Lyrics::DownloadInBackground(const MPD::Song *s)
 void *Lyrics::DownloadInBackgroundImpl(void *void_ptr)
 {
 	MPD::Song *s = static_cast<MPD::Song *>(void_ptr);
-	DownloadInBackgroundImplHelper(s);
+	DownloadInBackgroundImplHelper(*s);
 	delete s;
 	
 	while (true)
@@ -211,7 +213,7 @@ void *Lyrics::DownloadInBackgroundImpl(void *void_ptr)
 			itsToDownload.pop();
 			pthread_mutex_unlock(&itsDIBLock);
 		}
-		DownloadInBackgroundImplHelper(s);
+		DownloadInBackgroundImplHelper(*s);
 		delete s;
 	}
 	
@@ -222,10 +224,10 @@ void *Lyrics::DownloadInBackgroundImpl(void *void_ptr)
 	pthread_exit(0);
 }
 
-void Lyrics::DownloadInBackgroundImplHelper(MPD::Song *s)
+void Lyrics::DownloadInBackgroundImplHelper(const MPD::Song &s)
 {
-	std::string artist = Curl::escape(locale_to_utf_cpy(s->getArtist()));
-	std::string title = Curl::escape(locale_to_utf_cpy(s->getTitle()));
+	std::string artist = Curl::escape(s.getArtist());
+	std::string title = Curl::escape(s.getTitle());
 	
 	LyricsFetcher::Result result;
 	bool fetcher_defined = itsFetcher && *itsFetcher;
@@ -238,13 +240,13 @@ void Lyrics::DownloadInBackgroundImplHelper(MPD::Song *s)
 			break;
 	}
 	if (result.first == true)
-		Save(GenerateFilename(*s), result.second);
+		Save(GenerateFilename(s), result.second);
 }
 
 void *Lyrics::Download()
 {
-	std::string artist = Curl::escape(locale_to_utf_cpy(itsSong.getArtist()));
-	std::string title = Curl::escape(locale_to_utf_cpy(itsSong.getTitle()));
+	std::string artist = Curl::escape(itsSong.getArtist());
+	std::string title = Curl::escape(itsSong.getTitle());
 	
 	LyricsFetcher::Result result;
 	
@@ -266,9 +268,8 @@ void *Lyrics::Download()
 	if (result.first == true)
 	{
 		Save(itsFilename, result.second);
-		
-		utf_to_locale(result.second);
 		w->clear();
+		IConv::utf8ToLocale_(result.second);
 		*w << result.second;
 	}
 	else
@@ -305,9 +306,9 @@ std::string Lyrics::GenerateFilename(const MPD::Song &s)
 	}
 	else
 	{
-		std::string file = locale_to_utf_cpy(s.getArtist());
+		std::string file = s.getArtist();
 		file += " - ";
-		file += locale_to_utf_cpy(s.getTitle());
+		file += s.getTitle();
 		file += ".txt";
 		removeInvalidCharsFromFilename(file);
 		filename = Config.lyrics_directory;
@@ -343,7 +344,7 @@ void Lyrics::Load()
 		{
 			if (!first)
 				*w << '\n';
-			utf_to_locale(line);
+			IConv::utf8ToLocale_(line);
 			*w << line;
 			first = 0;
 		}
@@ -370,11 +371,11 @@ void Lyrics::Edit()
 	
 	if (Config.external_editor.empty())
 	{
-		ShowMessage("Proper external_editor variable has to be set in configuration file");
+		Statusbar::msg("Proper external_editor variable has to be set in configuration file");
 		return;
 	}
 	
-	ShowMessage("Opening lyrics in external editor...");
+	Statusbar::msg("Opening lyrics in external editor...");
 	
 	GNUC_UNUSED int res;
 	if (Config.use_console_editor)
@@ -406,7 +407,7 @@ void Lyrics::Refetch()
 	if (remove(itsFilename.c_str()) && errno != ENOENT)
 	{
 		const char msg[] = "Couldn't remove \"%ls\": %s";
-		ShowMessage(msg, wideShorten(ToWString(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+		Statusbar::msg(msg, wideShorten(ToWString(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 		return;
 	}
 	Load();
@@ -419,9 +420,9 @@ void Lyrics::ToggleFetcher()
 	else
 		itsFetcher = &lyricsPlugins[0];
 	if (*itsFetcher)
-		ShowMessage("Using lyrics database: %s", (*itsFetcher)->name());
+		Statusbar::msg("Using lyrics database: %s", (*itsFetcher)->name());
 	else
-		ShowMessage("Using all lyrics databases");
+		Statusbar::msg("Using all lyrics databases");
 }
 
 void Lyrics::Take()
