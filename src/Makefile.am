@@ -42,8 +42,7 @@ ncmpcpp_SOURCES = \
 	tag_editor.cpp \
 	tiny_tag_editor.cpp \
 	visualizer.cpp \
-	window.cpp \
-	media_library_sorting.cpp
+	window.cpp 
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
@@ -95,5 +94,4 @@ noinst_HEADERS = \
 	tag_editor.h \
 	tiny_tag_editor.h \
 	visualizer.h \
-	window.h \
-	media_library_sorting.h
+	window.h 

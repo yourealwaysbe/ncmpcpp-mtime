@@ -1365,13 +1365,14 @@ void EditLibraryTag::Run()
 	
 	LockStatusbar();
 	Statusbar() << NC::fmtBold << tagTypeToString(Config.media_lib_primary_tag) << NC::fmtBoldEnd << ": ";
-	std::string new_tag = wFooter->getString(myLibrary->Tags->current().value());
+	std::string new_tag = wFooter->getString(myLibrary->Tags->current().value().first);
 	UnlockStatusbar();
-	if (!new_tag.empty() && new_tag != myLibrary->Tags->current().value())
+	std::string& cur_tag = myLibrary->Tags->current().value().first;
+	if (!new_tag.empty() && new_tag != cur_tag)
 	{
 		ShowMessage("Updating tags...");
 		Mpd.StartSearch(1);
-		Mpd.AddSearch(Config.media_lib_primary_tag, locale_to_utf_cpy(myLibrary->Tags->current().value()));
+		Mpd.AddSearch(Config.media_lib_primary_tag, locale_to_utf_cpy(cur_tag));
 		MPD::MutableSong::SetFunction set = tagTypeToSetFunction(Config.media_lib_primary_tag);
 		assert(set);
 		bool success = true;
@@ -2270,7 +2271,7 @@ void ShowArtistInfo::Run()
 	{
 		assert(!myLibrary->Tags->empty());
 		assert(Config.media_lib_primary_tag == MPD_TAG_ARTIST);
-		artist = myLibrary->Tags->current().value();
+		artist = myLibrary->Tags->current().value().first;
 	}
 	else
 	{

@@ -71,8 +71,24 @@ class MediaLibrary : public Screen<NC::Window>, public Filterable, public HasSon
 		void LocateSong(const MPD::Song &);
 		
 		std::shared_ptr<ProxySongList> songsProxyList();
+
+        struct SearchConstraints
+        {
+        	SearchConstraints() { }
+       		SearchConstraints(const std::string &tag, const std::string &album, const std::string &date) : PrimaryTag(tag), Album(album), Date(date) { }
+			SearchConstraints(const std::string &album, const std::string &date) : Album(album), Date(date) { }
+            
+			std::string PrimaryTag;
+			std::string Album;
+			std::string Date;
+			time_t MTime;
+        
+            bool operator<(const SearchConstraints &a) const;
+        };
+
+
 		
-		NC::Menu<std::string> *Tags;
+		NC::Menu<std::pair<std::string, time_t>> *Tags;
 		NC::Menu<SearchConstraints> *Albums;
 		NC::Menu<MPD::Song> *Songs;
         

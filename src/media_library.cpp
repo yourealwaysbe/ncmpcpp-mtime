@@ -60,6 +60,8 @@ size_t itsRightColStartX;
 // that it won't appear in any tag, let alone date).
 const std::string AllTracksMarker = "\x7f_\x7f_\x7f";
 
+typedef MediaLibrary::SearchConstraints SearchConstraints;
+
 std::string AlbumToString(const SearchConstraints &sc);
 std::string SongToString(const MPD::Song &s);
 
@@ -69,6 +71,61 @@ bool SongEntryMatcher(const Regex &rx, const MPD::Song &s);
 
 void DisplayAlbums(NC::Menu<SearchConstraints> &menu);
 void DisplayPrimaryTags(NC::Menu<std::string> &menu);
+
+bool SortSongsByTrack(const MPD::Song &a, const MPD::Song &b);
+
+struct SortAllTracks {
+    const std::array<MPD::Song::GetFunction, 3> m_gets;
+    LocaleStringComparison m_cmp;
+public:
+    SortAllTracks() : m_gets({{
+        &MPD::Song::getDate,
+        &MPD::Song::getAlbum,
+        &MPD::Song::getDisc
+    }}), m_cmp(std::locale(), Config.ignore_leading_the) { }
+    bool operator()(const MPD::Song &a, const MPD::Song &b) {
+        for (auto get = m_gets.begin(); get != m_gets.end(); ++get) {
+            int ret = m_cmp(a.getTags(*get), b.getTags(*get));
+            if (ret != 0)
+                return ret < 0;
+        }
+        return a.getTrack() < b.getTrack();
+    }
+};
+
+class SortSearchConstraints {
+    LocaleStringComparison m_cmp;
+public:
+    SortSearchConstraints() : m_cmp(std::locale(), Config.ignore_leading_the) { }
+    bool operator()(const SearchConstraints &a, const SearchConstraints &b) const {
+		if (Config.media_library_sort_by_mtime) {
+			return a.MTime < b.MTime;
+		} else {
+			int result;
+			result = m_cmp(a.PrimaryTag, b.PrimaryTag);
+			if (result != 0)
+				return result < 0;
+			result = m_cmp(a.Date, b.Date);
+			if (result != 0)
+				return result < 0;
+			return m_cmp(a.Album, b.Album) < 0;
+		}
+    }
+};
+
+class ArtistSorting {
+	LocaleStringComparison m_cmp;
+public:
+    ArtistSorting() : m_cmp(std::locale(), Config.ignore_leading_the) { }
+    bool operator()(const std::pair<std::string, time_t> &a, 
+	                const std::pair<std::string, time_t> &b) const {
+		if (Config.media_library_sort_by_mtime)
+			return a.second < b.second;
+		else
+			return m_cmp(a.first, b.first) < 0;
+    }
+};
+
 
 }
 
@@ -81,7 +138,7 @@ void MediaLibrary::Init()
 	itsRightColWidth = COLS-COLS/3*2-1;
 	itsRightColStartX = itsLeftColWidth+itsMiddleColWidth+2;
 	
-	Tags = new NC::Menu<std::string>(0, MainStartY, itsLeftColWidth, MainHeight, Config.titles_visibility ? tagTypeToString(Config.media_lib_primary_tag) + "s" : "", Config.main_color, NC::brNone);
+	Tags = new NC::Menu<std::pair<std::string, time_t>>(0, MainStartY, itsLeftColWidth, MainHeight, Config.titles_visibility ? tagTypeToString(Config.media_lib_primary_tag) + "s" : "", Config.main_color, NC::brNone);
 	Tags->setHighlightColor(Config.active_column_color);
 	Tags->cyclicScrolling(Config.use_cyclic_scrolling);
 	Tags->centeredCursor(Config.centered_cursor);
@@ -210,11 +267,6 @@ std::wstring MediaLibrary::Title()
 	return L"Media library";
 }
 
-void MediaLibrary::DatabaseUpdated() {
-    MTimeAlbumSorting::DatabaseUpdated();
-    MTimeArtistSorting::DatabaseUpdated();
-}
-
 void MediaLibrary::Update()
 {
 	if (!hasTwoColumns && Tags->reallyEmpty())
@@ -223,11 +275,7 @@ void MediaLibrary::Update()
 		Songs->clear();
 		auto list = Mpd.GetList(Config.media_lib_primary_tag);
 
-        if (Config.media_library_sort_by_mtime) 
-            std::sort(list.begin(), list.end(), MTimeArtistSorting());
-        else 
-            std::sort(list.begin(), list.end(),
-                LocaleBasedSorting(std::locale(), Config.ignore_leading_the));
+		std::sort(list.begin(), list.end(), ArtistSorting());
 		for (auto it = list.begin(); it != list.end(); ++it)
 		{
 			if (it->empty() && !Config.media_library_display_empty_tag)
@@ -263,10 +311,7 @@ void MediaLibrary::Update()
 				Albums->addItem(SearchConstraints(*album, ""));
 		}
 		if (!Albums->empty())
-            if (Config.media_library_sort_by_mtime) 
-                std::sort(Albums->beginV(), Albums->endV(), MTimeAlbumSorting());
-            else
-    			std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints());
+			std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints());
 		if (Albums->size() > 1)
 		{
 			Albums->addSeparator();
@@ -310,10 +355,7 @@ void MediaLibrary::Update()
 		Mpd.BlockIdle(0);
 
 		if (!Albums->empty())
-            if (Config.media_library_sort_by_mtime)
-                std::sort(Albums->beginV(), Albums->endV(), MTimeAlbumSorting());
-            else
-                std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints());
+			std::sort(Albums->beginV(), Albums->endV(), SortSearchConstraints());
 		Albums->refresh();
 	}
 	
@@ -916,6 +958,17 @@ void DisplayPrimaryTags(NC::Menu<std::string> &menu)
 		menu << Config.empty_tag;
 	else
 		menu << tag;
+}
+
+
+/***********************************************************************/
+
+bool SortSongsByTrack(const MPD::Song &a, const MPD::Song &b)
+{
+	int cmp = a.getDisc().compare(a.getDisc());
+	if (cmp != 0)
+		return cmp;
+	return a.getTrack() < b.getTrack();
 }
 
 
