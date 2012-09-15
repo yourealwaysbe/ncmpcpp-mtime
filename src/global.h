@@ -55,14 +55,11 @@ namespace Global
 	// height of main window
 	extern size_t MainHeight;
 	
-	// indicates whether messages from ShowMessage function should be shown
+	// indicates whether messages from Statusbar::msg function should be shown
 	extern bool ShowMessages;
 	
 	// indicates whether seeking action in currently in progress
 	extern bool SeekingInProgress;
-	
-	// indicates whether statusbar should be immediately repainted
-	extern bool RedrawStatusbar;
 	
 	// string that represents volume in right top corner. being global
 	// to be used for calculating width offsets in various files.

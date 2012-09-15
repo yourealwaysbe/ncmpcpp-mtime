@@ -30,8 +30,10 @@
 #include "mpdpp.h"
 #include "regex_filter.h"
 #include "status.h"
+#include "statusbar.h"
 #include "tag_editor.h"
 #include "utility/comparators.h"
+#include "title.h"
 
 using namespace std::placeholders;
 
@@ -133,7 +135,7 @@ void PlaylistEditor::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	DrawHeader();
+	drawHeader();
 	markSongsInPlaylist(contentProxyList());
 	Refresh();
 }
@@ -211,7 +213,7 @@ bool PlaylistEditor::isContentFiltered()
 {
 	if (Content->isFiltered())
 	{
-		ShowMessage("Function currently unavailable due to filtered playlist content");
+		Statusbar::msg("Function currently unavailable due to filtered playlist content");
 		return true;
 	}
 	return false;
@@ -276,9 +278,9 @@ void PlaylistEditor::AddToPlaylist(bool add_n_play)
 	
 	if (w == Playlists && !Playlists->empty())
 	{
-		if (Mpd.LoadPlaylist(utf_to_locale_cpy(Playlists->current().value())))
+		if (Mpd.LoadPlaylist(Playlists->current().value()))
 		{
-			ShowMessage("Playlist \"%s\" loaded", Playlists->current().value().c_str());
+			Statusbar::msg("Playlist \"%s\" loaded", Playlists->current().value().c_str());
 			if (add_n_play)
 				myPlaylist->PlayNewlyAddedSongs();
 		}
@@ -519,9 +521,9 @@ std::string SongToString(const MPD::Song &s)
 {
 	std::string result;
 	if (Config.columns_in_playlist_editor)
-		result = s.toString(Config.song_in_columns_to_string_format);
+		result = s.toString(Config.song_in_columns_to_string_format, Config.tags_separator);
 	else
-		result = s.toString(Config.song_list_format_dollar_free);
+		result = s.toString(Config.song_list_format_dollar_free, Config.tags_separator);
 	return result;
 }
 

@@ -26,6 +26,8 @@
 #include "global.h"
 #include "settings.h"
 #include "status.h"
+#include "statusbar.h"
+#include "title.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -65,7 +67,7 @@ void Outputs::SwitchTo()
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
 	w->Window::clear();
-	DrawHeader();
+	drawHeader();
 }
 
 void Outputs::Resize()
@@ -87,12 +89,12 @@ void Outputs::EnterPressed()
 	if (w->current().value().isEnabled())
 	{
 		if (Mpd.DisableOutput(w->choice()))
-			ShowMessage("Output \"%s\" disabled", w->current().value().name().c_str());
+			Statusbar::msg("Output \"%s\" disabled", w->current().value().name().c_str());
 	}
 	else
 	{
 		if (Mpd.EnableOutput(w->choice()))
-			ShowMessage("Output \"%s\" enabled", w->current().value().name().c_str());
+			Statusbar::msg("Output \"%s\" enabled", w->current().value().name().c_str());
 	}
 	if (!Mpd.SupportsIdle())
 		FetchList();

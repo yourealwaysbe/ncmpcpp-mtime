@@ -37,6 +37,8 @@
 #include "helpers.h"
 #include "charset.h"
 #include "global.h"
+#include "statusbar.h"
+#include "title.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -105,7 +107,7 @@ void Lastfm::SwitchTo()
 	
 	myOldScreen = myScreen;
 	myScreen = this;
-	DrawHeader();
+	drawHeader();
 }
 
 void Lastfm::Load()
@@ -122,8 +124,6 @@ void Lastfm::Load()
 	w->reset();
 	
 	std::string artist = itsArgs.find("artist")->second;
-	locale_to_utf(artist);
-	
 	std::string file = lowercase(artist + ".txt");
 	removeInvalidCharsFromFilename(file);
 	
@@ -144,7 +144,7 @@ void Lastfm::Load()
 		{
 			if (!first)
 				*w << '\n';
-			utf_to_locale(line);
+			IConv::utf8ToLocale_(line);
 			*w << line;
 			first = 0;
 		}
@@ -184,7 +184,7 @@ void Lastfm::Download()
 	{
 		Save(result.second);
 		w->clear();
-		utf_to_locale(result.second);
+		IConv::utf8ToLocale_(result.second);
 		*w << result.second;
 		itsService->colorizeOutput(*w);
 	}
@@ -211,7 +211,7 @@ void Lastfm::Refetch()
 	if (remove(itsFilename.c_str()) && errno != ENOENT)
 	{
 		const char msg[] = "Couldn't remove \"%ls\": %s";
-		ShowMessage(msg, wideShorten(ToWString(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
+		Statusbar::msg(msg, wideShorten(ToWString(itsFilename), COLS-const_strlen(msg)-25).c_str(), strerror(errno));
 		return;
 	}
 	Load();

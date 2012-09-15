@@ -33,6 +33,7 @@
 #include "playlist.h"
 #include "status.h"
 #include "utility/comparators.h"
+#include "utility/type_conversions.h"
 
 
 ///////////////////////////////////////////////////////////
@@ -110,14 +111,14 @@ SortAllTracks::SortAllTracks() : m_gets({{
 }
 
 bool SortAllTracks::operator()(const MPD::Song &a, const MPD::Song &b) {
-    for (auto get = m_gets.begin(); get != m_gets.end(); ++get) {
-        int ret = m_cmp(a.getTags(*get), b.getTags(*get));
-        if (ret != 0)
-            return ret < 0;
-    }
-    return a.getTrack() < b.getTrack();
+	for (auto get = m_gets.begin(); get != m_gets.end(); ++get) {
+		int ret = m_cmp(a.getTags(*get, Config.tags_separator),
+                        b.getTags(*get, Config.tags_separator));
+		if (ret != 0)
+			return ret < 0;
+	}
+	return a.getTrack() < b.getTrack();
 }
-
 
 
 
@@ -207,7 +208,7 @@ void MTimeArtistSorting::updateArtistMTimeMap(const mpd_tag_type primary_tag,
 time_t MTimeArtistSorting::getArtistMTime(const mpd_tag_type primary_tag,
                                           const std::string &a) {
     Mpd.StartSearch(1);
-	Mpd.AddSearch(primary_tag, locale_to_utf_cpy(a));
+	Mpd.AddSearch(primary_tag, a);
     auto list = Mpd.CommitSearchSongs();
 		
     time_t time = 0;
@@ -304,15 +305,15 @@ time_t MTimeAlbumSorting::getAlbumMTime(const mpd_tag_type primary_tag,
                                         const SearchConstraints &a) {
     // make this the newest song with same album tag
     Mpd.StartSearch(1);
-    Mpd.AddSearch(MPD_TAG_ALBUM, locale_to_utf_cpy(a.Album));
-    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Date));
+    Mpd.AddSearch(MPD_TAG_ALBUM, a.Album);
+    Mpd.AddSearch(MPD_TAG_DATE, a.Date);
 
     if (a.PrimaryTag.length() > 0) {
 	    Mpd.AddSearch(primary_tag,
-                      locale_to_utf_cpy(a.PrimaryTag));
+                      a.PrimaryTag);
     }
     if (display_date) {
-	    Mpd.AddSearch(MPD_TAG_DATE, locale_to_utf_cpy(a.Date));
+	    Mpd.AddSearch(MPD_TAG_DATE, a.Date);
     }
     auto list = Mpd.CommitSearchSongs();
 		

@@ -40,7 +40,9 @@
 #include "playlist.h"
 #include "settings.h"
 #include "status.h"
+#include "statusbar.h"
 #include "visualizer.h"
+#include "title.h"
 
 namespace
 {
@@ -52,11 +54,11 @@ namespace
 	{
 		if (signal == SIGPIPE)
 		{
-			ShowMessage("SIGPIPE (broken pipe signal) received");
+			Statusbar::msg("SIGPIPE (broken pipe signal) received");
 		}
 		else if (signal == SIGWINCH)
 		{
-			Action::OrderResize = true;
+			Action::ResizeScreen(true);
 		}
 	}
 #	endif // !WIN32
@@ -70,7 +72,7 @@ namespace
 #		ifndef USE_PDCURSES // destroying screen somehow crashes pdcurses
 		NC::destroyScreen();
 #		endif // USE_PDCURSES
-		WindowTitle("");
+		windowTitle("");
 	}
 }
 
@@ -122,9 +124,9 @@ int main(int argc, char **argv)
 	if (!Action::ConnectToMPD())
 		exit(1);
 	
-	if (Mpd.Version() < 14)
+	if (Mpd.Version() < 16)
 	{
-		std::cout << "MPD < 0.14 is not supported, please upgrade.\n";
+		std::cout << "MPD < 0.16.0 is not supported, please upgrade.\n";
 		exit(1);
 	}
 	
@@ -157,15 +159,18 @@ int main(int argc, char **argv)
 	
 	wFooter = new NC::Window(0, Action::FooterStartY, COLS, Action::FooterHeight, "", Config.statusbar_color, NC::brNone);
 	wFooter->setTimeout(500);
-	wFooter->setGetStringHelper(StatusbargetStringHelper);
+	wFooter->setGetStringHelper(Statusbar::Helpers::getString);
 	if (Mpd.SupportsIdle())
-		wFooter->addFDCallback(Mpd.GetFD(), StatusbarMPDCallback);
+		wFooter->addFDCallback(Mpd.GetFD(), Statusbar::Helpers::mpd);
 	wFooter->createHistory();
 	
 	// initialize screens to browser as default previous screen
 	myScreen = myBrowser;
 	myPrevScreen = myBrowser;
 	myOldScreen = myBrowser;
+	
+	// initialize global timer
+	gettimeofday(&Timer, 0);
 	
 	// go to playlist
 	myPlaylist->SwitchTo();
@@ -175,8 +180,8 @@ int main(int argc, char **argv)
 	if (Config.startup_screen != myScreen)
 		Config.startup_screen->SwitchTo();
 	
-	Mpd.SetStatusUpdater(NcmpcppStatusChanged, 0);
-	Mpd.SetErrorHandler(NcmpcppErrorCallback, 0);
+	Mpd.SetStatusUpdater(Status::update, 0);
+	Mpd.SetErrorHandler(Status::handleError, 0);
 	
 	// local variables
 	Key input(0, Key::Standard);
@@ -195,7 +200,7 @@ int main(int argc, char **argv)
 	Mpd.OrderDataFetching();
 	if (Config.jump_to_now_playing_song_at_start)
 	{
-		TraceMpdStatus();
+		Status::trace();
 		int curr_pos = Mpd.GetCurrentSongPos();
 		if  (curr_pos >= 0)
 			myPlaylist->Items->highlight(curr_pos);
@@ -207,13 +212,13 @@ int main(int argc, char **argv)
 		{
 			if (!wFooter->FDCallbacksListEmpty())
 				wFooter->clearFDCallbacksList();
-			ShowMessage("Attempting to reconnect...");
+			Statusbar::msg("Attempting to reconnect...");
 			if (Mpd.Connect())
 			{
-				ShowMessage("Connected to %s", Mpd.GetHostname().c_str());
+				Statusbar::msg("Connected to %s", Mpd.GetHostname().c_str());
 				if (Mpd.SupportsIdle())
 				{
-					wFooter->addFDCallback(Mpd.GetFD(), StatusbarMPDCallback);
+					wFooter->addFDCallback(Mpd.GetFD(), Statusbar::Helpers::mpd);
 					Mpd.OrderDataFetching(); // we need info about new connection
 				}
 				ShowMessages = false;
@@ -226,19 +231,16 @@ int main(int argc, char **argv)
 			}
 		}
 		
-		TraceMpdStatus();
+		Status::trace();
 		
 		ShowMessages = true;
-		
-		if (Action::OrderResize)
-			Action::ResizeScreen();
 		
 		// header stuff
 		if (((Timer.tv_sec == past.tv_sec && Timer.tv_usec >= past.tv_usec+500000) || Timer.tv_sec > past.tv_sec)
 		&&   (myScreen == myPlaylist || myScreen == myBrowser || myScreen == myLyrics)
 		   )
 		{
-			DrawHeader();
+			drawHeader();
 			past = Timer;
 		}
 		

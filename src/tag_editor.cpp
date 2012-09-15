@@ -27,6 +27,7 @@
 #include <stdexcept>
 
 // taglib includes
+#include "id3v1tag.h"
 #include "id3v2tag.h"
 #include "textidentificationframe.h"
 #include "mpegfile.h"
@@ -41,9 +42,11 @@
 #include "display.h"
 #include "global.h"
 #include "helpers.h"
-#include "song_info.h"
 #include "playlist.h"
+#include "song_info.h"
+#include "statusbar.h"
 #include "utility/comparators.h"
+#include "title.h"
 
 using namespace std::placeholders;
 
@@ -72,14 +75,23 @@ size_t FParserHeight;
 std::list<std::string> Patterns;
 std::string PatternsFile = "patterns.list";
 
+bool isAnyModified(const NC::Menu<MPD::MutableSong> &m);
+
 std::string CapitalizeFirstLetters(const std::string &s);
 void CapitalizeFirstLetters(MPD::MutableSong &s);
 void LowerAllLetters(MPD::MutableSong &s);
-void GetTagList(TagLib::StringList &list, const MPD::MutableSong &s, MPD::Song::GetFunction f);
 
-template <typename T>
-void WriteID3v2(const TagLib::ByteVector &type, TagLib::ID3v2::Tag *tag, const T &list);
-void WriteXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag);
+TagLib::StringList tagList(const MPD::MutableSong &s, MPD::Song::GetFunction f);
+
+void readCommonTags(MPD::MutableSong &s, TagLib::Tag *tag);
+void readID3v1Tags(MPD::MutableSong &s, TagLib::ID3v1::Tag *tag);
+void readID3v2Tags(MPD::MutableSong &s, TagLib::ID3v2::Tag *tag);
+void readXiphComments(MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag);
+
+void clearID3v1Tags(TagLib::ID3v1::Tag *tag);
+void writeCommonTags(const MPD::MutableSong &s, TagLib::Tag *tag);
+void writeID3v2Tags(const MPD::MutableSong &s, TagLib::ID3v2::Tag *tag);
+void writeXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag);
 
 void GetPatternList();
 void SavePatternList();
@@ -225,7 +237,7 @@ void TagEditor::SwitchTo()
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	DrawHeader();
+	drawHeader();
 	Refresh();
 }
 
@@ -317,7 +329,7 @@ void TagEditor::EnterPressed()
 			Dirs->reset();
 		}
 		else
-			ShowMessage("No subdirectories found");
+			Statusbar::msg("No subdirectories found");
 	}
 	else if (w == FParserDialog)
 	{
@@ -384,10 +396,10 @@ void TagEditor::EnterPressed()
 		
 		if (pos == 0) // change pattern
 		{
-			LockStatusbar();
-			Statusbar() << "Pattern: ";
+			Statusbar::lock();
+			Statusbar::put() << "Pattern: ";
 			std::string new_pattern = wFooter->getString(Config.pattern);
-			UnlockStatusbar();
+			Statusbar::unlock();
 			if (!new_pattern.empty())
 			{
 				Config.pattern = new_pattern;
@@ -398,7 +410,7 @@ void TagEditor::EnterPressed()
 		else if (pos == 1 || pos == 4) // preview or proceed
 		{
 			bool success = 1;
-			ShowMessage("Parsing...");
+			Statusbar::msg("Parsing...");
 			FParserPreview->clear();
 			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 			{
@@ -421,7 +433,7 @@ void TagEditor::EnterPressed()
 					std::string new_file = GenerateFilename(s, "{" + Config.pattern + "}");
 					if (new_file.empty() && !FParserUsePreview)
 					{
-						ShowMessage("File \"%s\" would have an empty name", s.getName().c_str());
+						Statusbar::msg("File \"%s\" would have an empty name", s.getName().c_str());
 						FParserUsePreview = 1;
 						success = 0;
 					}
@@ -450,7 +462,7 @@ void TagEditor::EnterPressed()
 				quit = 1;
 			}
 			if (pos != 4 || success)
-				ShowMessage("Operation finished");
+				Statusbar::msg("Operation finished");
 		}
 		else if (pos == 2) // show legend
 		{
@@ -496,7 +508,7 @@ void TagEditor::EnterPressed()
 	
 	if (w == TagTypes && id == 5)
 	{
-		bool yes = Action::AskYesNoQuestion("Number tracks?", TraceMpdStatus);
+		bool yes = Action::AskYesNoQuestion("Number tracks?", Status::trace);
 		if (yes)
 		{
 			auto it = EditedSongs.begin();
@@ -507,10 +519,10 @@ void TagEditor::EnterPressed()
 				else
 					(*it)->setTrack(unsignedIntTo<std::string>::apply(i));
 			}
-			ShowMessage("Tracks numbered");
+			Statusbar::msg("Tracks numbered");
 		}
 		else
-			ShowMessage("Aborted");
+			Statusbar::msg("Aborted");
 		return;
 	}
 	
@@ -520,21 +532,21 @@ void TagEditor::EnterPressed()
 		MPD::MutableSong::SetFunction set = SongInfo::Tags[id].Set;
 		if (id > 0 && w == TagTypes)
 		{
-			LockStatusbar();
-			Statusbar() << NC::fmtBold << TagTypes->current().value() << NC::fmtBoldEnd << ": ";
-			std::string new_tag = wFooter->getString(Tags->current().value().getTags(get));
-			UnlockStatusbar();
+			Statusbar::lock();
+			Statusbar::put() << NC::fmtBold << TagTypes->current().value() << NC::fmtBoldEnd << ": ";
+			std::string new_tag = wFooter->getString(Tags->current().value().getTags(get, Config.tags_separator));
+			Statusbar::unlock();
 			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
-				(*it)->setTag(set, new_tag);
+				(*it)->setTags(set, new_tag, Config.tags_separator);
 		}
 		else if (w == Tags)
 		{
-			LockStatusbar();
-			Statusbar() << NC::fmtBold << TagTypes->current().value() << NC::fmtBoldEnd << ": ";
-			std::string new_tag = wFooter->getString(Tags->current().value().getTags(get));
-			UnlockStatusbar();
-			if (new_tag != Tags->current().value().getTags(get))
-				Tags->current().value().setTag(set, new_tag);
+			Statusbar::lock();
+			Statusbar::put() << NC::fmtBold << TagTypes->current().value() << NC::fmtBoldEnd << ": ";
+			std::string new_tag = wFooter->getString(Tags->current().value().getTags(get, Config.tags_separator));
+			Statusbar::unlock();
+			if (new_tag != Tags->current().value().getTags(get, Config.tags_separator))
+				Tags->current().value().setTags(set, new_tag, Config.tags_separator);
 			Tags->scroll(NC::wDown);
 		}
 	}
@@ -546,7 +558,7 @@ void TagEditor::EnterPressed()
 			{
 				if (size_t(COLS) < FParserDialogWidth || MainHeight < FParserDialogHeight)
 				{
-					ShowMessage("Screen is too small to display additional windows");
+					Statusbar::msg("Screen is too small to display additional windows");
 					return;
 				}
 				FParserDialog->reset();
@@ -559,10 +571,10 @@ void TagEditor::EnterPressed()
 				size_t last_dot = old_name.rfind(".");
 				std::string extension = old_name.substr(last_dot);
 				old_name = old_name.substr(0, last_dot);
-				LockStatusbar();
-				Statusbar() << NC::fmtBold << "New filename: " << NC::fmtBoldEnd;
+				Statusbar::lock();
+				Statusbar::put() << NC::fmtBold << "New filename: " << NC::fmtBoldEnd;
 				std::string new_name = wFooter->getString(old_name);
-				UnlockStatusbar();
+				Statusbar::unlock();
 				if (!new_name.empty() && new_name != old_name)
 					s.setNewURI(new_name + extension);
 				Tags->scroll(NC::wDown);
@@ -570,41 +582,42 @@ void TagEditor::EnterPressed()
 		}
 		else if (id == 16) // capitalize first letters
 		{
-			ShowMessage("Processing...");
+			Statusbar::msg("Processing...");
 			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 				CapitalizeFirstLetters(**it);
-			ShowMessage("Done");
+			Statusbar::msg("Done");
 		}
 		else if (id == 17) // lower all letters
 		{
-			ShowMessage("Processing...");
+			Statusbar::msg("Processing...");
 			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 				LowerAllLetters(**it);
-			ShowMessage("Done");
+			Statusbar::msg("Done");
 		}
 		else if (id == 19) // reset
 		{
-			Tags->clear();
-			ShowMessage("Changes reset");
+			for (auto it = Tags->beginV(); it != Tags->endV(); ++it)
+				it->clearModifications();
+			Statusbar::msg("Changes reset");
 		}
 		else if (id == 20) // save
 		{
 			bool success = 1;
-			ShowMessage("Writing changes...");
+			Statusbar::msg("Writing changes...");
 			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 			{
-				ShowMessage("Writing tags in \"%s\"...", (*it)->getName().c_str());
+				Statusbar::msg("Writing tags in \"%s\"...", (*it)->getName().c_str());
 				if (!WriteTags(**it))
 				{
 					const char msg[] = "Error while writing tags in \"%ls\"";
-					ShowMessage(msg, wideShorten(ToWString((*it)->getURI()), COLS-const_strlen(msg)).c_str());
+					Statusbar::msg(msg, wideShorten(ToWString((*it)->getURI()), COLS-const_strlen(msg)).c_str());
 					success = 0;
 					break;
 				}
 			}
 			if (success)
 			{
-				ShowMessage("Tags updated");
+				Statusbar::msg("Tags updated");
 				TagTypes->setHighlightColor(Config.main_highlight_color);
 				TagTypes->reset();
 				w->refresh();
@@ -833,23 +846,30 @@ MPD::SongList TagEditor::getSelectedSongs()
 
 /***********************************************************************/
 
+bool TagEditor::ifAnyModifiedAskForDiscarding()
+{
+	bool result = true;
+	if (isAnyModified(*Tags))
+		result = Action::AskYesNoQuestion("There are pending changes, are you sure?", Status::trace);
+	return result;
+}
+
 bool TagEditor::isNextColumnAvailable()
 {
+	bool result = false;
 	if (w == Dirs)
 	{
 		if (!TagTypes->reallyEmpty() && !Tags->reallyEmpty())
-			return true;
+			result = true;
 	}
 	else if (w == TagTypes)
 	{
 		if (!Tags->reallyEmpty())
-			return true;
+			result = true;
 	}
 	else if (w == FParser)
-	{
-		return true;
-	}
-	return false;
+		result = true;
+	return result;
 }
 
 bool TagEditor::NextColumn()
@@ -884,21 +904,20 @@ bool TagEditor::NextColumn()
 
 bool TagEditor::isPrevColumnAvailable()
 {
+	bool result = false;
 	if (w == Tags)
 	{
 		if (!TagTypes->reallyEmpty() && !Dirs->reallyEmpty())
-			return true;
+			result = true;
 	}
 	else if (w == TagTypes)
 	{
 		if (!Dirs->reallyEmpty())
-			return true;
+			result = ifAnyModifiedAskForDiscarding();
 	}
 	else if (w == FParserHelper)
-	{
-		return true;
-	}
-	return false;
+		result = true;
+	return result;
 }
 
 bool TagEditor::PrevColumn()
@@ -969,9 +988,15 @@ void TagEditor::LocateSong(const MPD::Song &s)
 			break;
 		}
 	}
+	// refresh window so we can be highlighted item
+	Dirs->refresh();
+	
 	Tags->clear();
 	Update();
 	
+	// reset TagTypes since it can be under Filename
+	// and then songs in right column are not visible.
+	TagTypes->reset();
 	// go to the right column
 	NextColumn();
 	NextColumn();
@@ -993,23 +1018,27 @@ void TagEditor::ReadTags(MPD::MutableSong &s)
 	if (f.isNull())
 		return;
 	
-	TagLib::MPEG::File *mpegf = dynamic_cast<TagLib::MPEG::File *>(f.file());
 	s.setDuration(f.audioProperties()->length());
 	
-	s.setArtist(f.tag()->artist().to8Bit(1));
-	s.setTitle(f.tag()->title().to8Bit(1));
-	s.setAlbum(f.tag()->album().to8Bit(1));
-	s.setTrack(intTo<std::string>::apply(f.tag()->track()));
-	s.setDate(intTo<std::string>::apply(f.tag()->year()));
-	s.setGenre(f.tag()->genre().to8Bit(1));
-	if (mpegf)
+	if (auto mpeg_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
 	{
-		s.setAlbumArtist(!mpegf->ID3v2Tag()->frameListMap()["TPE2"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TPE2"].front()->toString().to8Bit(1) : "");
-		s.setComposer(!mpegf->ID3v2Tag()->frameListMap()["TCOM"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TCOM"].front()->toString().to8Bit(1) : "");
-		s.setPerformer(!mpegf->ID3v2Tag()->frameListMap()["TOPE"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TOPE"].front()->toString().to8Bit(1) : "");
-		s.setDisc(!mpegf->ID3v2Tag()->frameListMap()["TPOS"].isEmpty() ? mpegf->ID3v2Tag()->frameListMap()["TPOS"].front()->toString().to8Bit(1) : "");
+		if (auto id3v1 = mpeg_file->ID3v1Tag())
+			readID3v1Tags(s, id3v1);
+		if (auto id3v2 = mpeg_file->ID3v2Tag())
+			readID3v2Tags(s, id3v2);
 	}
-	s.setComment(f.tag()->comment().to8Bit(1));
+	else if (auto ogg_file = dynamic_cast<TagLib::Ogg::Vorbis::File *>(f.file()))
+	{
+		if (auto xiph = ogg_file->tag())
+			readXiphComments(s, xiph);
+	}
+	else if (auto flac_file = dynamic_cast<TagLib::FLAC::File *>(f.file()))
+	{
+		if (auto xiph = flac_file->xiphComment())
+			readXiphComments(s, xiph);
+	}
+	else
+		readCommonTags(s, f.tag());
 }
 
 bool TagEditor::WriteTags(MPD::MutableSong &s)
@@ -1022,46 +1051,21 @@ bool TagEditor::WriteTags(MPD::MutableSong &s)
 	TagLib::FileRef f(path_to_file.c_str());
 	if (!f.isNull())
 	{
-		f.tag()->setTitle(ToWString(s.getTitle()));
-		f.tag()->setArtist(ToWString(s.getArtist()));
-		f.tag()->setAlbum(ToWString(s.getAlbum()));
-		f.tag()->setYear(stringToInt(s.getDate()));
-		f.tag()->setTrack(stringToInt(s.getTrack()));
-		f.tag()->setGenre(ToWString(s.getGenre()));
-		f.tag()->setComment(ToWString(s.getComment()));
-		if (TagLib::MPEG::File *mp3_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
+		if (auto mp3_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
 		{
-			TagLib::ID3v2::Tag *tag = mp3_file->ID3v2Tag(1);
-			TagLib::StringList list;
-			
-			WriteID3v2("TIT2", tag, ToWString(s.getTitle()));  // title
-			WriteID3v2("TPE1", tag, ToWString(s.getArtist())); // artist
-			WriteID3v2("TALB", tag, ToWString(s.getAlbum()));  // album
-			WriteID3v2("TDRC", tag, ToWString(s.getDate()));   // date
-			WriteID3v2("TRCK", tag, ToWString(s.getTrack()));  // track
-			WriteID3v2("TCON", tag, ToWString(s.getGenre()));  // genre
-			WriteID3v2("TPOS", tag, ToWString(s.getDisc()));   // disc
-			
-			GetTagList(list, s, &MPD::Song::getAlbumArtist);
-			WriteID3v2("TPE2", tag, list); // album artist
-			
-			GetTagList(list, s, &MPD::Song::getComposer);
-			WriteID3v2("TCOM", tag, list); // composer
-			
-			GetTagList(list, s, &MPD::Song::getPerformer);
-			// in >=mpd-0.16 treating TOPE frame as performer tag
-			// was dropped in favor of TPE3/TPE4 frames, so we have
-			// to write frame accurate to used mpd version
-			WriteID3v2(Mpd.Version() < 16 ? "TOPE" : "TPE3", tag, list); // performer
+			clearID3v1Tags(mp3_file->ID3v1Tag());
+			writeID3v2Tags(s, mp3_file->ID3v2Tag(true));
 		}
-		else if (TagLib::Ogg::Vorbis::File *ogg_file = dynamic_cast<TagLib::Ogg::Vorbis::File *>(f.file()))
+		else if (auto ogg_file = dynamic_cast<TagLib::Ogg::Vorbis::File *>(f.file()))
 		{
-			WriteXiphComments(s, ogg_file->tag());
+			writeXiphComments(s, ogg_file->tag());
 		}
-		else if (TagLib::FLAC::File *flac_file = dynamic_cast<TagLib::FLAC::File *>(f.file()))
+		else if (auto flac_file = dynamic_cast<TagLib::FLAC::File *>(f.file()))
 		{
-			WriteXiphComments(s, flac_file->xiphComment(1));
+			writeXiphComments(s, flac_file->xiphComment(true));
 		}
+		else
+			writeCommonTags(s, f.tag());
 		if (!f.save())
 			return false;
 		
@@ -1071,7 +1075,6 @@ bool TagEditor::WriteTags(MPD::MutableSong &s)
 			if (file_is_from_db)
 				new_name += Config.mpd_music_dir;
 			new_name += s.getDirectory() + "/" + s.getNewURI();
-			locale_to_utf(new_name);
 			if (rename(path_to_file.c_str(), new_name.c_str()) == 0 && !file_is_from_db)
 			{
 				if (Global::myOldScreen == myPlaylist)
@@ -1100,6 +1103,14 @@ bool TagEditor::WriteTags(MPD::MutableSong &s)
 }
 
 namespace {//
+
+bool isAnyModified(const NC::Menu<MPD::MutableSong> &m)
+{
+	for (auto it = m.beginV(); it != m.endV(); ++it)
+		if (it->isModified())
+			return true;
+	return false;
+}
 
 std::string CapitalizeFirstLetters(const std::string &s)
 {
@@ -1134,43 +1145,134 @@ void LowerAllLetters(MPD::MutableSong &s)
 	}
 }
 
-void GetTagList(TagLib::StringList &list, const MPD::MutableSong &s, MPD::Song::GetFunction f)
+TagLib::StringList tagList(const MPD::MutableSong &s, MPD::Song::GetFunction f)
 {
-	list.clear();
-	unsigned pos = 0;
-	for (std::string value; !(value = (s.*f)(pos)).empty(); ++pos)
-		list.append(ToWString(value));
+	TagLib::StringList result;
+	unsigned idx = 0;
+	for (std::string value; !(value = (s.*f)(idx)).empty(); ++idx)
+		result.append(ToWString(value));
+	return result;
 }
 
-template <typename T> void WriteID3v2(const TagLib::ByteVector &type, TagLib::ID3v2::Tag *tag, const T &list)
+void readCommonTags(MPD::MutableSong &s, TagLib::Tag *tag)
 {
-	using TagLib::ID3v2::TextIdentificationFrame;
-	tag->removeFrames(type);
-	TextIdentificationFrame *frame = new TextIdentificationFrame(type, TagLib::String::UTF8);
-	frame->setText(list);
-	tag->addFrame(frame);
+	s.setTitle(tag->title().to8Bit(true));
+	s.setArtist(tag->artist().to8Bit(true));
+	s.setAlbum(tag->album().to8Bit(true));
+	s.setDate(intTo<std::string>::apply(tag->year()));
+	s.setTrack(intTo<std::string>::apply(tag->track()));
+	s.setGenre(tag->genre().to8Bit(true));
+	s.setComment(tag->comment().to8Bit(true));
 }
 
-void WriteXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag)
+void readID3v1Tags(MPD::MutableSong &s, TagLib::ID3v1::Tag *tag)
 {
-	TagLib::StringList list;
-	
-	tag->addField("DISCNUMBER", ToWString(s.getDisc())); // disc
-	
-	tag->removeField("ALBUM ARTIST"); // album artist
-	GetTagList(list, s, &MPD::Song::getAlbumArtist);
-	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
-		tag->addField("ALBUM ARTIST", *it, 0);
-	
-	tag->removeField("COMPOSER"); // composer
-	GetTagList(list, s, &MPD::Song::getComposer);
-	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
-		tag->addField("COMPOSER", *it, 0);
-	
-	tag->removeField("PERFORMER"); // performer
-	GetTagList(list, s, &MPD::Song::getPerformer);
-	for (TagLib::StringList::ConstIterator it = list.begin(); it != list.end(); ++it)
-		tag->addField("PERFORMER", *it, 0);
+	readCommonTags(s, tag);
+}
+
+void readID3v2Tags(MPD::MutableSong &s, TagLib::ID3v2::Tag *tag)
+{
+	auto readFrame = [&s](const TagLib::ID3v2::FrameList &list, MPD::MutableSong::SetFunction f) {
+		unsigned idx = 0;
+		for (auto it = list.begin(); it != list.end(); ++it, ++idx)
+			(s.*f)((*it)->toString().to8Bit(true), idx);
+	};
+	auto &frames = tag->frameListMap();
+	readFrame(frames["TIT2"], &MPD::MutableSong::setTitle);
+	readFrame(frames["TPE1"], &MPD::MutableSong::setArtist);
+	readFrame(frames["TPE2"], &MPD::MutableSong::setAlbumArtist);
+	readFrame(frames["TALB"], &MPD::MutableSong::setAlbum);
+	readFrame(frames["TDRC"], &MPD::MutableSong::setDate);
+	readFrame(frames["TRCK"], &MPD::MutableSong::setTrack);
+	readFrame(frames["TCON"], &MPD::MutableSong::setGenre);
+	readFrame(frames["TCOM"], &MPD::MutableSong::setComposer);
+	readFrame(frames["TPE3"], &MPD::MutableSong::setPerformer);
+	readFrame(frames["TPOS"], &MPD::MutableSong::setDisc);
+	readFrame(frames["COMM"], &MPD::MutableSong::setComment);
+}
+
+void readXiphComments(MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag)
+{
+	auto readField = [&s](const TagLib::StringList &list, MPD::MutableSong::SetFunction f) {
+		unsigned idx = 0;
+		for (auto it = list.begin(); it != list.end(); ++it)
+			(s.*f)(it->to8Bit(true), idx);
+	};
+	auto &fields = tag->fieldListMap();
+	readField(fields["TITLE"], &MPD::MutableSong::setTitle);
+	readField(fields["ARTIST"], &MPD::MutableSong::setArtist);
+	readField(fields["ALBUMARTIST"], &MPD::MutableSong::setAlbumArtist);
+	readField(fields["ALBUM"], &MPD::MutableSong::setAlbum);
+	readField(fields["DATE"], &MPD::MutableSong::setDate);
+	readField(fields["TRACKNUMBER"], &MPD::MutableSong::setTrack);
+	readField(fields["GENRE"], &MPD::MutableSong::setGenre);
+	readField(fields["COMPOSER"], &MPD::MutableSong::setComposer);
+	readField(fields["PERFORMER"], &MPD::MutableSong::setPerformer);
+	readField(fields["DISCNUMBER"], &MPD::MutableSong::setDisc);
+	readField(fields["COMMENT"], &MPD::MutableSong::setComment);
+}
+
+void clearID3v1Tags(TagLib::ID3v1::Tag *tag)
+{
+	tag->setTitle(TagLib::String::null);
+	tag->setArtist(TagLib::String::null);
+	tag->setAlbum(TagLib::String::null);
+	tag->setYear(0);
+	tag->setTrack(0);
+	tag->setGenre(TagLib::String::null);
+	tag->setComment(TagLib::String::null);
+}
+
+void writeCommonTags(const MPD::MutableSong &s, TagLib::Tag *tag)
+{
+	tag->setTitle(ToWString(s.getTitle()));
+	tag->setArtist(ToWString(s.getArtist()));
+	tag->setAlbum(ToWString(s.getAlbum()));
+	tag->setYear(stringToInt(s.getDate()));
+	tag->setTrack(stringToInt(s.getTrack()));
+	tag->setGenre(ToWString(s.getGenre()));
+	tag->setComment(ToWString(s.getComment()));
+}
+
+void writeID3v2Tags(const MPD::MutableSong &s, TagLib::ID3v2::Tag *tag)
+{
+	auto writeID3v2 = [&](const TagLib::ByteVector &type, const TagLib::StringList &list) {
+		tag->removeFrames(type);
+		auto frame = new TagLib::ID3v2::TextIdentificationFrame(type, TagLib::String::UTF8);
+		frame->setText(list);
+		tag->addFrame(frame);
+	};
+	writeID3v2("TIT2", tagList(s, &MPD::Song::getTitle));
+	writeID3v2("TPE1", tagList(s, &MPD::Song::getArtist));
+	writeID3v2("TPE2", tagList(s, &MPD::Song::getAlbumArtist));
+	writeID3v2("TALB", tagList(s, &MPD::Song::getAlbum));
+	writeID3v2("TDRC", tagList(s, &MPD::Song::getDate));
+	writeID3v2("TRCK", tagList(s, &MPD::Song::getTrack));
+	writeID3v2("TCON", tagList(s, &MPD::Song::getGenre));
+	writeID3v2("TCOM", tagList(s, &MPD::Song::getComposer));
+	writeID3v2("TPE3", tagList(s, &MPD::Song::getPerformer));
+	writeID3v2("TPOS", tagList(s, &MPD::Song::getDisc));
+	writeID3v2("COMM", tagList(s, &MPD::Song::getComment));
+}
+
+void writeXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag)
+{
+	auto writeXiph = [&](const TagLib::String &type, const TagLib::StringList &list) {
+		tag->removeField(type);
+		for (auto it = list.begin(); it != list.end(); ++it)
+			tag->addField(type, *it, false);
+	};
+	writeXiph("TITLE", tagList(s, &MPD::Song::getTitle));
+	writeXiph("ARTIST", tagList(s, &MPD::Song::getArtist));
+	writeXiph("ALBUMARTIST", tagList(s, &MPD::Song::getAlbumArtist));
+	writeXiph("ALBUM", tagList(s, &MPD::Song::getAlbum));
+	writeXiph("DATE", tagList(s, &MPD::Song::getDate));
+	writeXiph("TRACKNUMBER", tagList(s, &MPD::Song::getTrack));
+	writeXiph("GENRE", tagList(s, &MPD::Song::getGenre));
+	writeXiph("COMPOSER", tagList(s, &MPD::Song::getComposer));
+	writeXiph("PERFORMER", tagList(s, &MPD::Song::getPerformer));
+	writeXiph("DISCNUMBER", tagList(s, &MPD::Song::getDisc));
+	writeXiph("COMMENT", tagList(s, &MPD::Song::getComment));
 }
 
 void GetPatternList()
@@ -1233,7 +1335,7 @@ MPD::MutableSong::SetFunction IntoSetFunction(char c)
 
 std::string GenerateFilename(const MPD::MutableSong &s, const std::string &pattern)
 {
-	std::string result = s.toString(pattern);
+	std::string result = s.toString(pattern, Config.tags_separator);
 	removeInvalidCharsFromFilename(result);
 	return result;
 }
@@ -1285,7 +1387,7 @@ std::string ParseFilename(MPD::MutableSong &s, std::string mask, bool preview)
 			{
 				MPD::MutableSong::SetFunction set = IntoSetFunction(it->first);
 				if (set)
-					s.setTag(set, it->second);
+					s.setTags(set, it->second, Config.tags_separator);
 			}
 			else
 				result << "%" << it->first << ": " << it->second << "\n";

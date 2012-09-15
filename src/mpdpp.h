@@ -93,6 +93,29 @@ private:
 	bool m_enabled;
 };
 
+
+
+struct TagMTime 
+{
+    TagMTime(const std::string &tag_, time_t mtime_) : m_tag(tag_), m_mtime(mtime_) { }
+	
+	const std::string &tag() const { return m_tag; }
+	time_t mtime() const { return m_mtime; }
+
+    void set_mtime(time_t mtime) {
+        m_mtime = mtime;
+    }
+
+    void set_tag(std::string tag) {
+        m_tag = tag;
+    }
+	
+private:
+	std::string m_tag;
+	time_t m_mtime;
+};
+
+typedef std::vector<TagMTime> TagMTimeList;
 typedef std::vector<Item> ItemList;
 typedef std::vector<std::string> StringList;
 typedef std::vector<Output> OutputList;
@@ -219,9 +242,11 @@ public:
 	void AddSearchURI(const std::string &str) const;
 	SongList CommitSearchSongs();
 	StringList CommitSearchTags();
+    TagMTimeList CommitSearchTagsMTime(bool);
 	
 	StringList GetPlaylists();
 	StringList GetList(mpd_tag_type);
+    TagMTimeList GetListMTime(mpd_tag_type, bool);
 	ItemList GetDirectory(const std::string &);
 	SongList GetDirectoryRecursive(const std::string &);
 	SongList GetSongs(const std::string &);
@@ -241,6 +266,9 @@ private:
 	int GoBusy();
 	
 	int CheckForErrors();
+
+    time_t GetMTime(mpd_tag_type, const std::string &);
+    void FillMTimes(TagMTimeList &list, mpd_tag_type);
 	
 	mpd_connection *itsConnection;
 	bool isCommandsListEnabled;

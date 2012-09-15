@@ -36,7 +36,9 @@
 #include "song_info.h"
 #include "playlist.h"
 #include "search_engine.h"
+#include "statusbar.h"
 #include "tag_editor.h"
+#include "title.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -70,7 +72,7 @@ void TinyTagEditor::SwitchTo()
 	
 	if (itsEdited.isStream())
 	{
-		ShowMessage("Streams can't be edited");
+		Statusbar::msg("Streams can't be edited");
 	}
 	else if (getTags())
 	{
@@ -82,7 +84,7 @@ void TinyTagEditor::SwitchTo()
 		
 		myOldScreen = myScreen;
 		myScreen = this;
-		DrawHeader();
+		drawHeader();
 	}
 	else
 	{
@@ -92,7 +94,7 @@ void TinyTagEditor::SwitchTo()
 		full_path += itsEdited.getURI();
 		
 		const char msg[] = "Couldn't read file \"%ls\"";
-		ShowMessage(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
+		Statusbar::msg(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
 	}
 }
 
@@ -104,19 +106,20 @@ std::wstring TinyTagEditor::Title()
 void TinyTagEditor::EnterPressed()
 {
 	size_t option = w->choice();
-	LockStatusbar();
+	Statusbar::lock();
 	if (option < 19) // separator after comment
 	{
 		size_t pos = option-8;
-		Statusbar() << NC::fmtBold << SongInfo::Tags[pos].Name << ": " << NC::fmtBoldEnd;
-		itsEdited.setTag(SongInfo::Tags[pos].Set, Global::wFooter->getString(itsEdited.getTags(SongInfo::Tags[pos].Get)));
+		Statusbar::put() << NC::fmtBold << SongInfo::Tags[pos].Name << ": " << NC::fmtBoldEnd;
+		itsEdited.setTags(SongInfo::Tags[pos].Set, Global::wFooter->getString(
+			itsEdited.getTags(SongInfo::Tags[pos].Get, Config.tags_separator)), Config.tags_separator);
 		w->at(option).value().clear();
 		w->at(option).value() << NC::fmtBold << SongInfo::Tags[pos].Name << ':' << NC::fmtBoldEnd << ' ';
-		ShowTag(w->at(option).value(), itsEdited.getTags(SongInfo::Tags[pos].Get));
+		ShowTag(w->at(option).value(), itsEdited.getTags(SongInfo::Tags[pos].Get, Config.tags_separator));
 	}
 	else if (option == 20)
 	{
-		Statusbar() << NC::fmtBold << "Filename: " << NC::fmtBoldEnd;
+		Statusbar::put() << NC::fmtBold << "Filename: " << NC::fmtBoldEnd;
 		std::string filename = itsEdited.getNewURI().empty() ? itsEdited.getName() : itsEdited.getNewURI();
 		size_t dot = filename.rfind(".");
 		std::string extension = filename.substr(dot);
@@ -126,14 +129,14 @@ void TinyTagEditor::EnterPressed()
 		w->at(option).value().clear();
 		w->at(option).value() << NC::fmtBold << "Filename:" << NC::fmtBoldEnd << ' ' << (itsEdited.getNewURI().empty() ? itsEdited.getName() : itsEdited.getNewURI());
 	}
-	UnlockStatusbar();
+	Statusbar::unlock();
 	
 	if (option == 22)
 	{
-		ShowMessage("Updating tags...");
+		Statusbar::msg("Updating tags...");
 		if (TagEditor::WriteTags(itsEdited))
 		{
-			ShowMessage("Tags updated");
+			Statusbar::msg("Tags updated");
 			if (itsEdited.isFromDatabase())
 				Mpd.UpdateDirectory(itsEdited.getDirectory());
 			else
@@ -145,7 +148,7 @@ void TinyTagEditor::EnterPressed()
 			}
 		}
 		else
-			ShowMessage("Error while writing tags");
+			Statusbar::msg("Error while writing tags");
 	}
 	if (option > 21)
 		myOldScreen->SwitchTo();
@@ -226,7 +229,7 @@ bool TinyTagEditor::getTags()
 	for (const SongInfo::Metadata *m = SongInfo::Tags; m->Name; ++m, ++pos)
 	{
 		w->at(pos).value() << NC::fmtBold << m->Name << ":" << NC::fmtBoldEnd << ' ';
-		ShowTag(w->at(pos).value(), itsEdited.getTags(m->Get));
+		ShowTag(w->at(pos).value(), itsEdited.getTags(m->Get, Config.tags_separator));
 	}
 	
 	w->at(20).value() << NC::fmtBold << "Filename:" << NC::fmtBoldEnd << ' ' << itsEdited.getName();

@@ -162,6 +162,7 @@ void Configuration::SetDefaults()
 {
 	mpd_host = "localhost";
 	empty_tag = "<empty>";
+	tags_separator = " | ";
 	song_list_columns_format = "(7f)[green]{l} (25)[cyan]{a} (40)[]{t|f} (30)[red]{b}";
 	song_list_format = "{{%a - }{%t}|{$8%f$9}$R{$3(%l)$9}}";
 	song_list_format_dollar_free = RemoveDollarFormatting(song_list_format);
@@ -181,6 +182,7 @@ void Configuration::SetDefaults()
 	selected_item_suffix << NC::clEnd;
 	now_playing_prefix << NC::fmtBold;
 	now_playing_suffix << NC::fmtBoldEnd;
+	modified_item_prefix << NC::clGreen << "> " << NC::clEnd;
 	color1 = NC::clWhite;
 	color2 = NC::clGreen;
 	empty_tags_color = NC::clCyan;
@@ -434,7 +436,7 @@ void Configuration::Read()
 					if (song_status_format.find("$") != std::string::npos)
 					{
 						NC::Buffer status_no_colors;
-						String2Buffer(song_status_format, status_no_colors);
+						stringToBuffer(song_status_format, status_no_colors);
 						song_status_format_no_colors = status_no_colors.str();
 					}
 					else
@@ -511,7 +513,7 @@ void Configuration::Read()
 				if (!v.empty())
 				{
 					browser_playlist_prefix.clear();
-					String2Buffer(v, browser_playlist_prefix);
+					stringToBuffer(v, browser_playlist_prefix);
 				}
 			}
 			else if (name == "progressbar_look")
@@ -547,7 +549,7 @@ void Configuration::Read()
 				if (!v.empty())
 				{
 					selected_item_prefix.clear();
-					String2Buffer(v, selected_item_prefix);
+					stringToBuffer(v, selected_item_prefix);
 					selected_item_prefix_length = wideLength(ToWString(selected_item_prefix.str()));
 				}
 			}
@@ -556,7 +558,7 @@ void Configuration::Read()
 				if (!v.empty())
 				{
 					selected_item_suffix.clear();
-					String2Buffer(v, selected_item_suffix);
+					stringToBuffer(v, selected_item_suffix);
 					selected_item_suffix_length = wideLength(ToWString(selected_item_suffix.str()));
 				}
 			}
@@ -565,7 +567,7 @@ void Configuration::Read()
 				if (!v.empty())
 				{
 					now_playing_prefix.clear();
-					String2Buffer(v, now_playing_prefix);
+					stringToBuffer(v, now_playing_prefix);
 					now_playing_prefix_length = wideLength(ToWString(now_playing_prefix.str()));
 				}
 			}
@@ -574,8 +576,16 @@ void Configuration::Read()
 				if (!v.empty())
 				{
 					now_playing_suffix.clear();
-					String2Buffer(ToWString(v), now_playing_suffix);
-					now_playing_suffix_length = wideLength(now_playing_suffix.str());
+					stringToBuffer(v, now_playing_suffix);
+					now_playing_suffix_length = wideLength(ToWString(now_playing_suffix.str()));
+				}
+			}
+			else if (name == "modified_item_prefix")
+			{
+				if (!v.empty())
+				{
+					modified_item_prefix.clear();
+					stringToBuffer(v, modified_item_prefix);
 				}
 			}
 			else if (name == "color1")
@@ -875,6 +885,11 @@ void Configuration::Read()
 			else if (name == "empty_tag_marker")
 			{
 				empty_tag = v; // is this case empty string is allowed
+			}
+			else if (name == "tags_separator")
+			{
+				if (!v.empty())
+					tags_separator = v;
 			}
 			else if (name == "empty_tag_color")
 			{

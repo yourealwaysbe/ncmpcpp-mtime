@@ -23,7 +23,6 @@
 
 #include "interfaces.h"
 #include "screen.h"
-#include "media_library_sorting.h"
 
 class MediaLibrary : public Screen<NC::Window>, public Filterable, public HasSongs, public Searchable
 {
@@ -77,6 +76,9 @@ class MediaLibrary : public Screen<NC::Window>, public Filterable, public HasSon
         	SearchConstraints() { }
        		SearchConstraints(const std::string &tag, const std::string &album, const std::string &date) : PrimaryTag(tag), Album(album), Date(date) { }
 			SearchConstraints(const std::string &album, const std::string &date) : Album(album), Date(date) { }
+       		SearchConstraints(const std::string &tag, const std::string &album, const std::string &date, time_t mtime) : PrimaryTag(tag), Album(album), Date(date), MTime(mtime) { }
+			SearchConstraints(const std::string &album, const std::string &date, time_t mtime) : Album(album), Date(date), MTime(mtime) { }
+
             
 			std::string PrimaryTag;
 			std::string Album;
@@ -86,9 +88,7 @@ class MediaLibrary : public Screen<NC::Window>, public Filterable, public HasSon
             bool operator<(const SearchConstraints &a) const;
         };
 
-
-		
-		NC::Menu<std::pair<std::string, time_t>> *Tags;
+		NC::Menu<MPD::TagMTime> *Tags;
 		NC::Menu<SearchConstraints> *Albums;
 		NC::Menu<MPD::Song> *Songs;
         

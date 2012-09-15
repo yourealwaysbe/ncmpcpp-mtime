@@ -952,7 +952,7 @@ bool Connection::AddRandomTag(mpd_tag_type tag, size_t number)
 	if (number > tags.size())
 	{
 		if (itsErrorHandler)
-			itsErrorHandler(this, 0, "Requested number is out of range!", itsErrorHandlerUserdata);
+			itsErrorHandler(this, 0, "Requested number is out of range", itsErrorHandlerUserdata);
 		return false;
 	}
 	else
@@ -993,7 +993,7 @@ bool Connection::AddRandomSongs(size_t number)
 	if (number > files.size())
 	{
 		if (itsErrorHandler)
-			itsErrorHandler(this, 0, "Requested number of random songs is bigger than size of your library!", itsErrorHandlerUserdata);
+			itsErrorHandler(this, 0, "Requested number of random songs is bigger than size of your library", itsErrorHandlerUserdata);
 		return false;
 	}
 	else
@@ -1145,6 +1145,43 @@ StringList Connection::GetList(mpd_tag_type type)
 	return result;
 }
 
+TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
+{
+	TagMTimeList result;
+	if (!itsConnection)
+		return result;
+	assert(!isCommandsListEnabled);
+	GoBusy();
+	mpd_search_db_tags(itsConnection, type);
+	mpd_search_commit(itsConnection);
+	while (mpd_pair *item = mpd_recv_pair_tag(itsConnection, type))
+	{
+		result.push_back(TagMTime(item->value, 0));
+		mpd_return_pair(itsConnection, item);
+	}
+	mpd_response_finish(itsConnection);
+	GoIdle();
+
+    if (get_mtime) 
+        FillMTimes(result, type);
+
+	return result;
+}
+
+time_t Connection::GetMTime(mpd_tag_type type, const std::string &value) {
+    Mpd.BlockIdle(true);
+    Mpd.StartSearch(1);
+    Mpd.AddSearch(type, value);
+    auto songs = Mpd.CommitSearchSongs();
+    time_t mtime = 0;
+    for (auto s = songs.begin(); s != songs.end(); ++s) {
+        mtime = std::max(mtime, s->getMTime());
+    }
+    return mtime;
+}
+
+
+
 void Connection::StartSearch(bool exact_match)
 {
 	if (itsConnection)
@@ -1215,6 +1252,38 @@ StringList Connection::CommitSearchTags()
 	GoIdle();
 	return result;
 }
+
+TagMTimeList Connection::CommitSearchTagsMTime(bool get_mtime)
+{
+	TagMTimeList result;
+	if (!itsConnection)
+		return result;
+	assert(!isCommandsListEnabled);
+	GoBusy();
+	mpd_search_commit(itsConnection);
+	while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
+	{
+		result.push_back(TagMTime(tag->value, 0));
+		mpd_return_pair(itsConnection, tag);
+	}
+	mpd_response_finish(itsConnection);
+	GoIdle();
+
+    if (get_mtime) 
+        FillMTimes(result, itsSearchedField);
+
+	return result;
+}
+
+void Connection::FillMTimes(TagMTimeList &list, mpd_tag_type type) {
+    for (auto t = list.begin(); t != list.end(); ++t) {
+        time_t mtime = GetMTime(type, t->tag());
+        t->set_mtime(mtime);
+    }
+}
+
+
+
 
 ItemList Connection::GetDirectory(const std::string &path)
 {
