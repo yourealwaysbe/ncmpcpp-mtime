@@ -237,12 +237,13 @@ public:
 	
 	void StartSearch(bool);
 	void StartFieldSearch(mpd_tag_type);
+	void StartFieldSearchMTime(mpd_tag_type, bool);
 	void AddSearch(mpd_tag_type, const std::string &) const;
 	void AddSearchAny(const std::string &str) const;
 	void AddSearchURI(const std::string &str) const;
 	SongList CommitSearchSongs();
 	StringList CommitSearchTags();
-    TagMTimeList CommitSearchTagsMTime(bool);
+    TagMTimeList CommitSearchTagsMTime();
 	
 	StringList GetPlaylists();
 	StringList GetList(mpd_tag_type);
@@ -301,6 +302,7 @@ private:
 	void *itsErrorHandlerUserdata;
 	
 	mpd_tag_type itsSearchedField;
+    bool itsSearchFieldMTime;
 };
 
 }

@@ -21,6 +21,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <algorithm>
+#include <map>
 
 #include "charset.h"
 #include "error.h"
@@ -1147,23 +1148,39 @@ StringList Connection::GetList(mpd_tag_type type)
 
 TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 {
-	TagMTimeList result;
-	if (!itsConnection)
-		return result;
-	assert(!isCommandsListEnabled);
-	GoBusy();
-	mpd_search_db_tags(itsConnection, type);
-	mpd_search_commit(itsConnection);
-	while (mpd_pair *item = mpd_recv_pair_tag(itsConnection, type))
-	{
-		result.push_back(TagMTime(item->value, 0));
-		mpd_return_pair(itsConnection, item);
-	}
-	mpd_response_finish(itsConnection);
-	GoIdle();
+    TagMTimeList result;
+    if (!itsConnection)
+        return result;
 
-    if (get_mtime) 
-        FillMTimes(result, type);
+    if (!get_mtime) {
+        assert(!isCommandsListEnabled);
+        GoBusy();
+        mpd_search_db_tags(itsConnection, type);
+        mpd_search_commit(itsConnection);
+        while (mpd_pair *item = mpd_recv_pair_tag(itsConnection, type))
+        {
+            result.push_back(TagMTime(item->value, 0));
+            mpd_return_pair(itsConnection, item);
+        }
+        mpd_response_finish(itsConnection);
+        GoIdle();
+    } else {
+        std::map<std::string, time_t> max_mtimes;
+        auto list = Mpd.GetDirectoryRecursive("/");
+        for (auto it = list.begin(); it != list.end(); ++it) {
+            const std::string &tag = it->getTag(type);
+            auto mt = max_mtimes.find(tag);
+            if (mt == max_mtimes.end()) {
+                max_mtimes.insert(std::make_pair(tag, it->getMTime()));
+            } else {
+                mt->second = std::max(mt->second, it->getMTime());
+            }
+        }
+
+        for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) {
+            result.push_back(TagMTime(it->first, it->second));
+        }
+    }
 
 	return result;
 }
@@ -1193,7 +1210,19 @@ void Connection::StartFieldSearch(mpd_tag_type item)
 	if (itsConnection)
 	{
 		itsSearchedField = item;
-		mpd_search_db_tags(itsConnection, item);
+        mpd_search_db_tags(itsConnection, item);
+	}
+}
+void Connection::StartFieldSearchMTime(mpd_tag_type item, bool get_mtime)
+{
+	if (itsConnection)
+	{
+		itsSearchedField = item;
+        itsSearchFieldMTime = get_mtime;
+        if (!get_mtime)
+            mpd_search_db_tags(itsConnection, item);
+        else
+            mpd_search_db_songs(itsConnection, 1);
 	}
 }
 
@@ -1253,24 +1282,42 @@ StringList Connection::CommitSearchTags()
 	return result;
 }
 
-TagMTimeList Connection::CommitSearchTagsMTime(bool get_mtime)
+TagMTimeList Connection::CommitSearchTagsMTime()
 {
 	TagMTimeList result;
 	if (!itsConnection)
 		return result;
-	assert(!isCommandsListEnabled);
-	GoBusy();
-	mpd_search_commit(itsConnection);
-	while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
-	{
-		result.push_back(TagMTime(tag->value, 0));
-		mpd_return_pair(itsConnection, tag);
-	}
-	mpd_response_finish(itsConnection);
-	GoIdle();
 
-    if (get_mtime) 
-        FillMTimes(result, itsSearchedField);
+    assert(!isCommandsListEnabled);
+    GoBusy();
+    mpd_search_commit(itsConnection);
+
+    if (!itsSearchFieldMTime) {
+        while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
+        {
+            result.push_back(TagMTime(tag->value, 0));
+            mpd_return_pair(itsConnection, tag);
+        }
+    } else {
+        std::map<std::string, time_t> max_mtimes;
+        while (mpd_song *s = mpd_recv_song(itsConnection)) {
+            Song song(s);
+            const std::string &tag = song.getTag(itsSearchedField);
+            time_t mtime = song.getMTime();
+            auto mt = max_mtimes.find(tag);
+            if (mt == max_mtimes.end()) {
+                max_mtimes.insert(std::make_pair(tag, mtime));
+            } else {
+                mt->second = std::max(mt->second, mtime);
+            }
+        }
+ 
+        for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) {
+            result.push_back(TagMTime(it->first, it->second));
+        }
+    }
+    mpd_response_finish(itsConnection);
+    GoIdle();
 
 	return result;
 }

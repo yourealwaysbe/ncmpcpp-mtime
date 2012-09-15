@@ -300,9 +300,9 @@ void MediaLibrary::Update()
 		// and slows down the whole process.
 		Mpd.BlockIdle(true);
 		Albums->reset();
-		Mpd.StartFieldSearch(MPD_TAG_ALBUM);
+		Mpd.StartFieldSearchMTime(MPD_TAG_ALBUM, Config.media_library_sort_by_mtime);
 		Mpd.AddSearch(Config.media_lib_primary_tag, Tags->current().value().tag());
-		auto albums = Mpd.CommitSearchTagsMTime(Config.media_library_sort_by_mtime);
+		auto albums = Mpd.CommitSearchTagsMTime();
 		for (auto tagmtime = albums.begin(); tagmtime != albums.end(); ++tagmtime)
 		{
             const std::string &album = tagmtime->tag();
@@ -340,9 +340,9 @@ void MediaLibrary::Update()
 		auto artists = Mpd.GetList(Config.media_lib_primary_tag);
 		for (auto artist = artists.begin(); artist != artists.end(); ++artist)
 		{
-			Mpd.StartFieldSearch(MPD_TAG_ALBUM);
+			Mpd.StartFieldSearchMTime(MPD_TAG_ALBUM, Config.media_library_sort_by_mtime);
 			Mpd.AddSearch(Config.media_lib_primary_tag, *artist);
-			auto albums = Mpd.CommitSearchTagsMTime(Config.media_library_sort_by_mtime);
+			auto albums = Mpd.CommitSearchTagsMTime();
 			for (auto am = albums.begin(); am != albums.end(); ++am)
 			{
                 const std::string &album = am->tag();
