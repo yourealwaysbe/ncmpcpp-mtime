@@ -90,15 +90,15 @@ void Status::trace()
 		Mpd.UpdateStatus();
 	}
 	
-	ApplyToVisibleWindows(&BasicScreen::Update);
+	applyToVisibleWindows(&BasicScreen::update);
 	
-	if (isVisible(myPlaylist) && myPlaylist->ActiveWindow() == myPlaylist->Items
+	if (isVisible(myPlaylist)
 	&&  Timer.tv_sec == myPlaylist->Timer().tv_sec+Config.playlist_disable_highlight_delay
-	&&  myPlaylist->Items->isHighlighted()
+	&&  myPlaylist->main().isHighlighted()
 	&&  Config.playlist_disable_highlight_delay)
 	{
-		myPlaylist->Items->setHighlighting(false);
-		myPlaylist->Items->refresh();
+		myPlaylist->main().setHighlighting(false);
+		myPlaylist->main().refresh();
 	}
 	
 	Statusbar::tryRedraw();
@@ -121,7 +121,7 @@ void Status::handleError(MPD::Connection * , int errorid, const char *msg, void 
 	else if ((errorid >> 8) == MPD_SERVER_ERROR_NO_EXIST && myScreen == myBrowser)
 	{
 		myBrowser->GetDirectory(getParentDirectory(myBrowser->CurrentDir()));
-		myBrowser->Refresh();
+		myBrowser->refresh();
 	}
 	else
 		Statusbar::msg("MPD: %s", msg);
@@ -129,31 +129,31 @@ void Status::handleError(MPD::Connection * , int errorid, const char *msg, void 
 
 void Status::Changes::playlist()
 {
-	myPlaylist->Items->clearSearchResults();
-	withUnfilteredMenuReapplyFilter(*myPlaylist->Items, []() {
+	myPlaylist->main().clearSearchResults();
+	withUnfilteredMenuReapplyFilter(myPlaylist->main(), []() {
 		size_t playlist_length = Mpd.GetPlaylistLength();
-		if (playlist_length < myPlaylist->Items->size())
+		if (playlist_length < myPlaylist->main().size())
 		{
-			auto it = myPlaylist->Items->begin()+playlist_length;
-			auto end = myPlaylist->Items->end();
+			auto it = myPlaylist->main().begin()+playlist_length;
+			auto end = myPlaylist->main().end();
 			for (; it != end; ++it)
 				myPlaylist->unregisterHash(it->value().getHash());
-			myPlaylist->Items->resizeList(playlist_length);
+			myPlaylist->main().resizeList(playlist_length);
 		}
 		
 		auto songs = Mpd.GetPlaylistChanges(Mpd.GetOldPlaylistID());
 		for (auto s = songs.begin(); s != songs.end(); ++s)
 		{
 			size_t pos = s->getPosition();
-			if (pos < myPlaylist->Items->size())
+			if (pos < myPlaylist->main().size())
 			{
 				// if song's already in playlist, replace it with a new one
-				MPD::Song &old_s = (*myPlaylist->Items)[pos].value();
+				MPD::Song &old_s = myPlaylist->main()[pos].value();
 				myPlaylist->unregisterHash(old_s.getHash());
 				old_s = *s;
 			}
 			else // otherwise just add it to playlist
-				myPlaylist->Items->addItem(*s);
+				myPlaylist->main().addItem(*s);
 			myPlaylist->registerHash(s->getHash());
 		}
 	});
@@ -176,41 +176,29 @@ void Status::Changes::playlist()
 
 void Status::Changes::storedPlaylists()
 {
-	if (myPlaylistEditor->Main())
-	{
-		myPlaylistEditor->requestPlaylistsUpdate();
-		myPlaylistEditor->requestContentsUpdate();
-	}
-	if (myBrowser->Main() && myBrowser->CurrentDir() == "/")
+	myPlaylistEditor->requestPlaylistsUpdate();
+	myPlaylistEditor->requestContentsUpdate();
+	if (myBrowser->CurrentDir() == "/")
 	{
 		myBrowser->GetDirectory("/");
 		if (isVisible(myBrowser))
-			myBrowser->Refresh();
+			myBrowser->refresh();
 	}
 }
 
 void Status::Changes::database()
 {
-	if (myBrowser->Main())
-	{
-		if (isVisible(myBrowser))
-			myBrowser->GetDirectory(myBrowser->CurrentDir());
-		else
-			myBrowser->Main()->clear();
-	}
+	if (isVisible(myBrowser))
+		myBrowser->GetDirectory(myBrowser->CurrentDir());
+	else
+		myBrowser->main().clear();
 #	ifdef HAVE_TAGLIB_H
-	if (myTagEditor->Main())
-	{
-		myTagEditor->Dirs->clear();
-	}
+	myTagEditor->Dirs->clear();
 #	endif // HAVE_TAGLIB_H
-	if (myLibrary->Main())
-	{
-		if (myLibrary->Columns() == 2)
-			myLibrary->Albums->clear();
-		else
-			myLibrary->Tags->clear();
-	}
+	if (myLibrary->Columns() == 2)
+		myLibrary->Albums.clear();
+	else
+		myLibrary->Tags.clear();
 }
 
 void Status::Changes::playerState()
@@ -254,7 +242,7 @@ void Status::Changes::playerState()
 				player_state.clear();
 #			ifdef ENABLE_VISUALIZER
 			if (isVisible(myVisualizer))
-				myVisualizer->Main()->clear();
+				myVisualizer->main().clear();
 #			endif // ENABLE_VISUALIZER
 			break;
 		}
@@ -299,8 +287,8 @@ void Status::Changes::songID()
 		
 		drawTitle(myPlaylist->nowPlayingSong());
 		
-		if (Config.autocenter_mode && !myPlaylist->Items->isFiltered())
-			myPlaylist->Items->highlight(Mpd.GetCurrentlyPlayingSongPos());
+		if (Config.autocenter_mode && !myPlaylist->main().isFiltered())
+			myPlaylist->main().highlight(Mpd.GetCurrentlyPlayingSongPos());
 		
 		if (Config.now_playing_lyrics && isVisible(myLyrics) && Global::myOldScreen == myPlaylist)
 			myLyrics->ReloadNP = 1;
@@ -567,5 +555,5 @@ void Status::update(MPD::Connection *, MPD::StatusChanges changes, void *)
 	if (changes.PlayerState || (changes.ElapsedTime && (!Config.new_design || Mpd.GetState() == MPD::psPlay)))
 		wFooter->refresh();
 	if (changes.Playlist || changes.Database || changes.PlayerState || changes.SongID)
-		ApplyToVisibleWindows(&BasicScreen::RefreshWindow);
+		applyToVisibleWindows(&BasicScreen::refreshWindow);
 }

@@ -33,97 +33,90 @@ using Global::MainHeight;
 using Global::MainStartY;
 using Global::myScreen;
 
-Outputs *myOutputs = new Outputs;
+Outputs *myOutputs;
 
-void Outputs::Init()
+Outputs::Outputs()
+: Screen(NC::Menu<MPD::Output>(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone))
 {
-	w = new NC::Menu<MPD::Output>(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone);
-	w->cyclicScrolling(Config.use_cyclic_scrolling);
-	w->centeredCursor(Config.centered_cursor);
-	w->setHighlightColor(Config.main_highlight_color);
-	w->setItemDisplayer(Display::Outputs);
-	
-	isInitialized = 1;
+	w.cyclicScrolling(Config.use_cyclic_scrolling);
+	w.centeredCursor(Config.centered_cursor);
+	w.setHighlightColor(Config.main_highlight_color);
+	w.setItemDisplayer(Display::Outputs);
 	FetchList();
 }
 
-void Outputs::SwitchTo()
+void Outputs::switchTo()
 {
 	using Global::myLockedScreen;
 	
 	if (myScreen == this)
 		return;
 	
-	if (!isInitialized)
-		Init();
-	
 	if (myLockedScreen)
-		UpdateInactiveScreen(this);
+		updateInactiveScreen(this);
 	
 	if (hasToBeResized || myLockedScreen)
-		Resize();
+		resize();
 	
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
-	w->Window::clear();
+	w.Window::clear();
 	drawHeader();
 }
 
-void Outputs::Resize()
+void Outputs::resize()
 {
 	size_t x_offset, width;
-	GetWindowResizeParams(x_offset, width);
-	w->resize(width, MainHeight);
-	w->moveTo(x_offset, MainStartY);
+	getWindowResizeParams(x_offset, width);
+	w.resize(width, MainHeight);
+	w.moveTo(x_offset, MainStartY);
 	hasToBeResized = 0;
 }
 
-std::wstring Outputs::Title()
+std::wstring Outputs::title()
 {
 	return L"Outputs";
 }
 
-void Outputs::EnterPressed()
+void Outputs::enterPressed()
 {
-	if (w->current().value().isEnabled())
+	if (w.current().value().isEnabled())
 	{
-		if (Mpd.DisableOutput(w->choice()))
-			Statusbar::msg("Output \"%s\" disabled", w->current().value().name().c_str());
+		if (Mpd.DisableOutput(w.choice()))
+			Statusbar::msg("Output \"%s\" disabled", w.current().value().name().c_str());
 	}
 	else
 	{
-		if (Mpd.EnableOutput(w->choice()))
-			Statusbar::msg("Output \"%s\" enabled", w->current().value().name().c_str());
+		if (Mpd.EnableOutput(w.choice()))
+			Statusbar::msg("Output \"%s\" enabled", w.current().value().name().c_str());
 	}
 	if (!Mpd.SupportsIdle())
 		FetchList();
 }
 
-void Outputs::MouseButtonPressed(MEVENT me)
+void Outputs::mouseButtonPressed(MEVENT me)
 {
-	if (w->empty() || !w->hasCoords(me.x, me.y) || size_t(me.y) >= w->size())
+	if (w.empty() || !w.hasCoords(me.x, me.y) || size_t(me.y) >= w.size())
 		return;
 	if (me.bstate & BUTTON1_PRESSED || me.bstate & BUTTON3_PRESSED)
 	{
-		w->Goto(me.y);
+		w.Goto(me.y);
 		if (me.bstate & BUTTON3_PRESSED)
-			EnterPressed();
+			enterPressed();
 	}
 	else
-		Screen< NC::Menu<MPD::Output> >::MouseButtonPressed(me);
+		Screen<WindowType>::mouseButtonPressed(me);
 }
 
 void Outputs::FetchList()
 {
-	if (!isInitialized)
-		return;
-	w->clear();
+	w.clear();
 	auto outputs = Mpd.GetOutputs();
 	for (auto o = outputs.begin(); o != outputs.end(); ++o)
-		w->addItem(*o, o->isEnabled());
+		w.addItem(*o, o->isEnabled());
 	if (myScreen == this)
-		w->refresh();
+		w.refresh();
 }
 
 #endif // ENABLE_OUTPUTS

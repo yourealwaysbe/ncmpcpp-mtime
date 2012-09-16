@@ -18,54 +18,48 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#ifndef _LASTFM_SERVICE_H
-#define _LASTFM_SERVICE_H
+#ifndef _SORT_PLAYLIST
+#define _SORT_PLAYLIST
 
-#include "config.h"
+#include "screen.h"
+#include "song.h"
 
-#ifdef HAVE_CURL_CURL_H
-
-#include <map>
-#include <string>
-
-#include "scrollpad.h"
-
-struct LastfmService
+struct SortPlaylistDialog : public Screen<NC::Menu<std::pair<std::string, MPD::Song::GetFunction>>>
 {
-	typedef std::map<std::string, std::string> Args;
-	typedef std::pair<bool, std::string> Result;
+	SortPlaylistDialog();
 	
-	virtual const char *name() = 0;
-	virtual Result fetch(Args &args);
+	virtual void switchTo() OVERRIDE;
+	virtual void resize() OVERRIDE;
 	
-	virtual bool checkArgs(const Args &args) = 0;
-	virtual void colorizeOutput(NC::Scrollpad &w) = 0;
+	virtual std::wstring title() OVERRIDE;
+	
+	virtual void update() OVERRIDE { }
+	
+	virtual void enterPressed() OVERRIDE;
+	virtual void spacePressed() OVERRIDE { }
+	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
+	
+	virtual bool isTabbable() OVERRIDE { return false; }
+	virtual bool isMergable() OVERRIDE { return false; }
+	
+	// private members
+	void moveSortOrderUp();
+	void moveSortOrderDown();
 	
 protected:
-	virtual bool actionFailed(const std::string &data);
+	virtual bool isLockable() OVERRIDE { return false; }
 	
-	virtual bool parse(std::string &data) = 0;
-	virtual void postProcess(std::string &data);
+private:
+	void setDimensions();
 	
-	virtual const char *methodName() = 0;
+	size_t m_sort_options;
+	size_t m_height;
+	size_t m_width;
 	
-	static const char *baseURL;
-	static const char *msgParseFailed;
+	const WindowType::Item::Type m_sort_entry;
+	const WindowType::Item::Type m_cancel_entry;
 };
 
-struct ArtistInfo : public LastfmService
-{
-	virtual const char *name() { return "Artist info"; }
-	
-	virtual bool checkArgs(const Args &args);
-	virtual void colorizeOutput(NC::Scrollpad &w);
-	
-protected:
-	virtual bool parse(std::string &data);
-	
-	virtual const char *methodName() { return "artist.getinfo"; }
-};
+extern SortPlaylistDialog *mySortPlaylistDialog;
 
-#endif // HAVE_CURL_CURL_H
-
-#endif
+#endif // _SORT_PLAYLIST

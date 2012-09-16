@@ -28,39 +28,39 @@
 #include "window.h"
 #include "screen.h"
 
-class Clock : public Screen<NC::Window>
+struct Clock : public Screen<NC::Window>
 {
-	public:
-		virtual void Resize();
-		virtual void SwitchTo();
-		
-		virtual std::wstring Title();
-		
-		virtual void Update();
-		virtual void Scroll(NC::Where) { }
-		
-		virtual void EnterPressed() { }
-		virtual void SpacePressed() { }
-		virtual void MouseButtonPressed(MEVENT) { }
-		virtual bool isTabbable() { return true; }
-		
-		virtual bool isMergable() { return true; }
-		
-	protected:
-		virtual void Init();
-		virtual bool isLockable() { return false; }
-		
-	private:
-		NC::Window *itsPane;
-		
-		static void Prepare();
-		static void Set(int, int);
-		
-		static short disp[11];
-		static long older[6], next[6], newer[6], mask;
-		
-		static size_t Width;
-		static const size_t Height;
+	Clock();
+	
+	virtual void resize() OVERRIDE;
+	virtual void switchTo() OVERRIDE;
+	
+	virtual std::wstring title() OVERRIDE;
+	
+	virtual void update() OVERRIDE;
+	virtual void scroll(NC::Where) OVERRIDE { }
+	
+	virtual void enterPressed() OVERRIDE { }
+	virtual void spacePressed() OVERRIDE { }
+	virtual void mouseButtonPressed(MEVENT) OVERRIDE { }
+	
+	virtual bool isTabbable() OVERRIDE { return true; }
+	virtual bool isMergable() OVERRIDE { return true; }
+	
+protected:
+	virtual bool isLockable() OVERRIDE { return false; }
+	
+private:
+	NC::Window m_pane;
+	
+	static void Prepare();
+	static void Set(int, int);
+	
+	static short disp[11];
+	static long older[6], next[6], newer[6], mask;
+	
+	static size_t Width;
+	static const size_t Height;
 };
 
 extern Clock *myClock;

@@ -108,7 +108,7 @@ Action *parseActionLine(const std::string &line, F error)
 			std::string arg = getEnclosedString(line, '"', '"', 0);
 			Key k = stringToSpecialKey(arg);
 			if (k != Key::noOp)
-				result = new PushCharacters(&Global::wFooter, { k.getChar() });
+				result = new PushCharacters(&Global::wFooter, std::vector<int>{ k.getChar() });
 			else
 				error() << "invalid character passed to push_character: '" << arg << "'\n";
 		}
@@ -119,7 +119,7 @@ Action *parseActionLine(const std::string &line, F error)
 			if (!arg.empty())
 			{
 				std::vector<int> queue(arg.begin(), arg.end());
-				// if char is signed, cancel 1s from char -> int conversion
+				// if char is signed, erase 1s from char -> int conversion
 				for (auto it = arg.begin(); it != arg.end(); ++it)
 					*it &= 0xff;
 				result = new PushCharacters(&Global::wFooter, std::move(queue));

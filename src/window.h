@@ -163,6 +163,8 @@ struct XY
 /// Main class of NCurses namespace, used as base for other specialized windows
 struct Window
 {
+	Window() : m_window(0), m_border_window(0), m_history(0) { }
+	
 	/// Constructs an empty window with given parameters
 	/// @param startx X position of left upper corner of constructed window
 	/// @param starty Y position of left upper corner of constructed window
@@ -174,11 +176,10 @@ struct Window
 	Window(size_t startx, size_t starty, size_t width, size_t height,
 			const std::string &title, Color color, Border border);
 	
-	/// Copies thw window
-	/// @param w copied window
-	Window(const Window &w);
+	Window(const Window &rhs);
+	Window(Window &&rhs);
+	Window &operator=(Window w);
 	
-	/// Destroys the window and frees memory
 	virtual ~Window();
 	
 	/// Allows for direct access to internal WINDOW pointer in case there
@@ -287,7 +288,7 @@ struct Window
 	void deleteHistory();
 	
 	/// Refreshed whole window and its border
-	/// @see Refresh()
+	/// @see refresh()
 	void display();
 	
 	/// Refreshes whole window, but not the border
@@ -424,20 +425,20 @@ protected:
 	///
 	void showBorder() const;
 	
-	/// Changes dimensions of window, called from Resize()
+	/// Changes dimensions of window, called from resize()
 	/// @param width new window's width
 	/// @param height new window's height
-	/// @see Resize()
+	/// @see resize()
 	///
 	void adjustDimensions(size_t width, size_t height);
 	
-	/// Deletes old window and creates new. It's called by Resize(),
+	/// Deletes old window and creates new. It's called by resize(),
 	/// SetBorder() or setTitle() since internally windows are
 	/// handled as curses pads and change in size requires to delete
 	/// them and create again, there is no way to change size of pad.
 	/// @see SetBorder()
 	/// @see setTitle()
-	/// @see Resize()
+	/// @see resize()
 	///
 	virtual void recreate(size_t width, size_t height);
 	

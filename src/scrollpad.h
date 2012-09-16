@@ -30,6 +30,8 @@ namespace NC {//
 /// supports scrolling if the amount of it is bigger than the window area.
 struct Scrollpad: public Window
 {
+	Scrollpad() { }
+	
 	/// Constructs an empty scrollpad with given parameters
 	/// @param startx X position of left upper corner of constructed window
 	/// @param starty Y position of left upper corner of constructed window
@@ -73,20 +75,20 @@ struct Scrollpad: public Window
 	const std::wstring &content() { return m_buffer.str(); }
 	
 	/// Refreshes the window
-	/// @see Window::Refresh()
+	/// @see Window::refresh()
 	///
 	virtual void refresh() OVERRIDE;
 	
 	/// Scrolls by given amount of lines
 	/// @param where indicates where exactly one wants to go
-	/// @see Window::Scroll()
+	/// @see Window::scroll()
 	///
 	virtual void scroll(Where where) OVERRIDE;
 	
 	/// Resizes the window
 	/// @param new_width new window's width
 	/// @param new_height new window's height
-	/// @see Window::Resize()
+	/// @see Window::resize()
 	///
 	virtual void resize(size_t new_width, size_t new_height) OVERRIDE;
 	

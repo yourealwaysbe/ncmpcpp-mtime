@@ -22,20 +22,9 @@
 
 #ifdef HAVE_TAGLIB_H
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
-
-// taglib includes
-#include "id3v1tag.h"
-#include "id3v2tag.h"
-#include "textidentificationframe.h"
-#include "mpegfile.h"
-#include "vorbisfile.h"
-#include "flacfile.h"
-#include "xiphcomment.h"
-#include "fileref.h"
-#include "tag.h"
 
 #include "browser.h"
 #include "charset.h"
@@ -47,6 +36,7 @@
 #include "statusbar.h"
 #include "utility/comparators.h"
 #include "title.h"
+#include "tags.h"
 
 using namespace std::placeholders;
 
@@ -54,7 +44,7 @@ using Global::myScreen;
 using Global::MainHeight;
 using Global::MainStartY;
 
-TagEditor *myTagEditor = new TagEditor;
+TagEditor *myTagEditor;
 
 namespace {//
 
@@ -81,18 +71,6 @@ std::string CapitalizeFirstLetters(const std::string &s);
 void CapitalizeFirstLetters(MPD::MutableSong &s);
 void LowerAllLetters(MPD::MutableSong &s);
 
-TagLib::StringList tagList(const MPD::MutableSong &s, MPD::Song::GetFunction f);
-
-void readCommonTags(MPD::MutableSong &s, TagLib::Tag *tag);
-void readID3v1Tags(MPD::MutableSong &s, TagLib::ID3v1::Tag *tag);
-void readID3v2Tags(MPD::MutableSong &s, TagLib::ID3v2::Tag *tag);
-void readXiphComments(MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag);
-
-void clearID3v1Tags(TagLib::ID3v1::Tag *tag);
-void writeCommonTags(const MPD::MutableSong &s, TagLib::Tag *tag);
-void writeID3v2Tags(const MPD::MutableSong &s, TagLib::ID3v2::Tag *tag);
-void writeXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag);
-
 void GetPatternList();
 void SavePatternList();
 
@@ -106,7 +84,7 @@ bool SongEntryMatcher(const Regex &rx, const MPD::MutableSong &s);
 
 }
 
-void TagEditor::Init()
+TagEditor::TagEditor() : FParser(0), FParserHelper(0), FParserLegend(0), FParserPreview(0), itsBrowsedDir("/")
 {
 	PatternsFile = Config.ncmpcpp_directory + "patterns.list";
 	SetDimensions(0, COLS);
@@ -164,7 +142,6 @@ void TagEditor::Init()
 	FParserPreview = new NC::Scrollpad((COLS-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY, FParserWidthTwo, FParserHeight, "Preview", Config.main_color, Config.window_border);
 	
 	w = Dirs;
-	isInitialized = 1;
 }
 
 void TagEditor::SetDimensions(size_t x_offset, size_t width)
@@ -177,17 +154,17 @@ void TagEditor::SetDimensions(size_t x_offset, size_t width)
 	RightColumnStartX = MiddleColumnStartX+MiddleColumnWidth+1;
 	
 	FParserDialogWidth = std::min(30, COLS);
-	FParserDialogHeight = std::min(size_t(6), MainHeight);
+	FParserDialogHeight = std::min(size_t(5), MainHeight);
 	FParserWidth = width*0.9;
 	FParserHeight = std::min(size_t(LINES*0.8), MainHeight);
 	FParserWidthOne = FParserWidth/2;
 	FParserWidthTwo = FParserWidth-FParserWidthOne;
 }
 
-void TagEditor::Resize()
+void TagEditor::resize()
 {
 	size_t x_offset, width;
-	GetWindowResizeParams(x_offset, width);
+	getWindowResizeParams(x_offset, width);
 	SetDimensions(x_offset, width);
 	
 	Dirs->resize(LeftColumnWidth, MainHeight);
@@ -207,41 +184,35 @@ void TagEditor::Resize()
 	FParserLegend->moveTo(x_offset+(width-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY);
 	FParserPreview->moveTo(x_offset+(width-FParserWidth)/2+FParserWidthOne, (MainHeight-FParserHeight)/2+MainStartY);
 	
-	if (MainHeight < 5 && (w == FParserDialog || w == FParser || w == FParserHelper)) // screen too low
-		w = TagTypes; // fall back to main columns
-	
 	hasToBeResized = 0;
 }
 
-std::wstring TagEditor::Title()
+std::wstring TagEditor::title()
 {
 	return L"Tag editor";
 }
 
-void TagEditor::SwitchTo()
+void TagEditor::switchTo()
 {
 	using Global::myLockedScreen;
 	
 	if (myScreen == this)
 		return;
 	
-	if (!isInitialized)
-		Init();
-	
 	if (myLockedScreen)
-		UpdateInactiveScreen(this);
+		updateInactiveScreen(this);
 	
 	if (hasToBeResized || myLockedScreen)
-		Resize();
+		resize();
 	
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
 	drawHeader();
-	Refresh();
+	refresh();
 }
 
-void TagEditor::Refresh()
+void TagEditor::refresh()
 {
 	Dirs->display();
 	mvvline(MainStartY, MiddleColumnStartX-1, 0, MainHeight);
@@ -260,7 +231,7 @@ void TagEditor::Refresh()
 	}
 }
 
-void TagEditor::Update()
+void TagEditor::update()
 {
 	if (Dirs->reallyEmpty())
 	{
@@ -314,7 +285,7 @@ void TagEditor::Update()
 	}
 }
 
-void TagEditor::EnterPressed()
+void TagEditor::enterPressed()
 {
 	using Global::wFooter;
 	
@@ -337,7 +308,7 @@ void TagEditor::EnterPressed()
 		if (choice == 3) // cancel
 		{
 			w = TagTypes;
-			Refresh();
+			refresh();
 			return;
 		}
 		GetPatternList();
@@ -483,7 +454,7 @@ void TagEditor::EnterPressed()
 		{
 			SavePatternList();
 			w = TagTypes;
-			Refresh();
+			refresh();
 			return;
 		}
 	}
@@ -556,11 +527,6 @@ void TagEditor::EnterPressed()
 		{
 			if (w == TagTypes)
 			{
-				if (size_t(COLS) < FParserDialogWidth || MainHeight < FParserDialogHeight)
-				{
-					Statusbar::msg("Screen is too small to display additional windows");
-					return;
-				}
 				FParserDialog->reset();
 				w = FParserDialog;
 			}
@@ -607,7 +573,7 @@ void TagEditor::EnterPressed()
 			for (auto it = EditedSongs.begin(); it != EditedSongs.end(); ++it)
 			{
 				Statusbar::msg("Writing tags in \"%s\"...", (*it)->getName().c_str());
-				if (!WriteTags(**it))
+				if (!Tags::write(**it))
 				{
 					const char msg[] = "Error while writing tags in \"%ls\"";
 					Statusbar::msg(msg, wideShorten(ToWString((*it)->getURI()), COLS-const_strlen(msg)).c_str());
@@ -631,7 +597,7 @@ void TagEditor::EnterPressed()
 	}
 }
 
-void TagEditor::SpacePressed()
+void TagEditor::spacePressed()
 {
 	if (w == Tags && !Tags->empty())
 	{
@@ -640,8 +606,30 @@ void TagEditor::SpacePressed()
 	}
 }
 
-void TagEditor::MouseButtonPressed(MEVENT me)
+void TagEditor::mouseButtonPressed(MEVENT me)
 {
+	auto tryPreviousColumn = [this]() -> bool {
+		bool result = true;
+		if (w != Dirs)
+		{
+			if (previousColumnAvailable())
+				previousColumn();
+			else
+				result = false;
+		}
+		return result;
+	};
+	auto tryNextColumn = [this]() -> bool {
+		bool result = true;
+		if (w != Tags)
+		{
+			if (nextColumnAvailable())
+				nextColumn();
+			else
+				result = false;
+		}
+		return result;
+	};
 	if (w == FParserDialog)
 	{
 		if (FParserDialog->hasCoords(me.x, me.y))
@@ -650,10 +638,10 @@ void TagEditor::MouseButtonPressed(MEVENT me)
 			{
 				FParserDialog->Goto(me.y);
 				if (me.bstate & BUTTON3_PRESSED)
-					EnterPressed();
+					enterPressed();
 			}
 			else
-				Screen<NC::Window>::MouseButtonPressed(me);
+				Screen<WindowType>::mouseButtonPressed(me);
 		}
 	}
 	else if (w == FParser || w == FParserHelper)
@@ -661,46 +649,61 @@ void TagEditor::MouseButtonPressed(MEVENT me)
 		if (FParser->hasCoords(me.x, me.y))
 		{
 			if (w != FParser)
-				PrevColumn();
+			{
+				if (previousColumnAvailable())
+					previousColumn();
+				else
+					return;
+			}
 			if (size_t(me.y) < FParser->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 			{
 				FParser->Goto(me.y);
 				if (me.bstate & BUTTON3_PRESSED)
-					EnterPressed();
+					enterPressed();
 			}
 			else
-				Screen<NC::Window>::MouseButtonPressed(me);
+				Screen<WindowType>::mouseButtonPressed(me);
 		}
 		else if (FParserHelper->hasCoords(me.x, me.y))
 		{
 			if (w != FParserHelper)
-				NextColumn();
-			ScrollpadMouseButtonPressed(FParserHelper, me);
+			{
+				if (nextColumnAvailable())
+					nextColumn();
+				else
+					return;
+			}
+			scrollpadMouseButtonPressed(*FParserHelper, me);
 		}
 	}
 	else if (!Dirs->empty() && Dirs->hasCoords(me.x, me.y))
 	{
-		if (w != Dirs)
-		{
-			PrevColumn();
-			PrevColumn();
-		}
+		if (!tryPreviousColumn() || !tryPreviousColumn())
+			return;
 		if (size_t(me.y) < Dirs->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			Dirs->Goto(me.y);
 			if (me.bstate & BUTTON1_PRESSED)
-				EnterPressed();
+				enterPressed();
 			else
-				SpacePressed();
+				spacePressed();
 		}
 		else
-			Screen<NC::Window>::MouseButtonPressed(me);
+			Screen<WindowType>::mouseButtonPressed(me);
 		Tags->clear();
 	}
 	else if (!TagTypes->empty() && TagTypes->hasCoords(me.x, me.y))
 	{
 		if (w != TagTypes)
-			w == Dirs ? NextColumn() : PrevColumn();
+		{
+			bool success;
+			if (w == Dirs)
+				success = tryNextColumn();
+			else
+				success = tryPreviousColumn();
+			if (!success)
+				return;
+		}
 		if (size_t(me.y) < TagTypes->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			if (!TagTypes->Goto(me.y))
@@ -708,27 +711,24 @@ void TagEditor::MouseButtonPressed(MEVENT me)
 			TagTypes->refresh();
 			Tags->refresh();
 			if (me.bstate & BUTTON3_PRESSED)
-				EnterPressed();
+				enterPressed();
 		}
 		else
-			Screen<NC::Window>::MouseButtonPressed(me);
+			Screen<WindowType>::mouseButtonPressed(me);
 	}
 	else if (!Tags->empty() && Tags->hasCoords(me.x, me.y))
 	{
-		if (w != Tags)
-		{
-			NextColumn();
-			NextColumn();
-		}
+		if (!tryNextColumn() || !tryNextColumn())
+			return;
 		if (size_t(me.y) < Tags->size() && (me.bstate & (BUTTON1_PRESSED | BUTTON3_PRESSED)))
 		{
 			Tags->Goto(me.y);
 			Tags->refresh();
 			if (me.bstate & BUTTON3_PRESSED)
-				EnterPressed();
+				enterPressed();
 		}
 		else
-			Screen<NC::Window>::MouseButtonPressed(me);
+			Screen<WindowType>::mouseButtonPressed(me);
 	}
 }
 
@@ -846,63 +846,7 @@ MPD::SongList TagEditor::getSelectedSongs()
 
 /***********************************************************************/
 
-bool TagEditor::ifAnyModifiedAskForDiscarding()
-{
-	bool result = true;
-	if (isAnyModified(*Tags))
-		result = Action::AskYesNoQuestion("There are pending changes, are you sure?", Status::trace);
-	return result;
-}
-
-bool TagEditor::isNextColumnAvailable()
-{
-	bool result = false;
-	if (w == Dirs)
-	{
-		if (!TagTypes->reallyEmpty() && !Tags->reallyEmpty())
-			result = true;
-	}
-	else if (w == TagTypes)
-	{
-		if (!Tags->reallyEmpty())
-			result = true;
-	}
-	else if (w == FParser)
-		result = true;
-	return result;
-}
-
-bool TagEditor::NextColumn()
-{
-	if (w == Dirs)
-	{
-		Dirs->setHighlightColor(Config.main_highlight_color);
-		w->refresh();
-		w = TagTypes;
-		TagTypes->setHighlightColor(Config.active_column_color);
-		return true;
-	}
-	else if (w == TagTypes && TagTypes->choice() < 13 && !Tags->reallyEmpty())
-	{
-		TagTypes->setHighlightColor(Config.main_highlight_color);
-		w->refresh();
-		w = Tags;
-		Tags->setHighlightColor(Config.active_column_color);
-		return true;
-	}
-	else if (w == FParser)
-	{
-		FParser->setBorder(Config.window_border);
-		FParser->display();
-		w = FParserHelper;
-		FParserHelper->setBorder(Config.active_window_border);
-		FParserHelper->display();
-		return true;
-	}
-	return false;
-}
-
-bool TagEditor::isPrevColumnAvailable()
+bool TagEditor::previousColumnAvailable()
 {
 	bool result = false;
 	if (w == Tags)
@@ -920,7 +864,7 @@ bool TagEditor::isPrevColumnAvailable()
 	return result;
 }
 
-bool TagEditor::PrevColumn()
+void TagEditor::previousColumn()
 {
 	if (w == Tags)
 	{
@@ -928,7 +872,6 @@ bool TagEditor::PrevColumn()
 		w->refresh();
 		w = TagTypes;
 		TagTypes->setHighlightColor(Config.active_column_color);
-		return true;
 	}
 	else if (w == TagTypes)
 	{
@@ -936,7 +879,6 @@ bool TagEditor::PrevColumn()
 		w->refresh();
 		w = Dirs;
 		Dirs->setHighlightColor(Config.active_column_color);
-		return true;
 	}
 	else if (w == FParserHelper)
 	{
@@ -945,9 +887,61 @@ bool TagEditor::PrevColumn()
 		w = FParser;
 		FParser->setBorder(Config.active_window_border);
 		FParser->display();
-		return true;
 	}
-	return false;
+}
+
+bool TagEditor::nextColumnAvailable()
+{
+	bool result = false;
+	if (w == Dirs)
+	{
+		if (!TagTypes->reallyEmpty() && !Tags->reallyEmpty())
+			result = true;
+	}
+	else if (w == TagTypes)
+	{
+		if (!Tags->reallyEmpty())
+			result = true;
+	}
+	else if (w == FParser)
+		result = true;
+	return result;
+}
+
+void TagEditor::nextColumn()
+{
+	if (w == Dirs)
+	{
+		Dirs->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
+		w = TagTypes;
+		TagTypes->setHighlightColor(Config.active_column_color);
+	}
+	else if (w == TagTypes && TagTypes->choice() < 13 && !Tags->reallyEmpty())
+	{
+		TagTypes->setHighlightColor(Config.main_highlight_color);
+		w->refresh();
+		w = Tags;
+		Tags->setHighlightColor(Config.active_column_color);
+	}
+	else if (w == FParser)
+	{
+		FParser->setBorder(Config.window_border);
+		FParser->display();
+		w = FParserHelper;
+		FParserHelper->setBorder(Config.active_window_border);
+		FParserHelper->display();
+	}
+}
+
+/***********************************************************************/
+
+bool TagEditor::ifAnyModifiedAskForDiscarding()
+{
+	bool result = true;
+	if (isAnyModified(*Tags))
+		result = Action::AskYesNoQuestion("There are pending changes, are you sure?", Status::trace);
+	return result;
 }
 
 void TagEditor::LocateSong(const MPD::Song &s)
@@ -959,7 +953,7 @@ void TagEditor::LocateSong(const MPD::Song &s)
 		return;
 	
 	if (Global::myScreen != this)
-		SwitchTo();
+		switchTo();
 	
 	// go to right directory
 	if (itsBrowsedDir != s.getDirectory())
@@ -973,7 +967,7 @@ void TagEditor::LocateSong(const MPD::Song &s)
 		if (itsBrowsedDir.empty())
 			itsBrowsedDir = "/";
 		Dirs->clear();
-		Update();
+		update();
 	}
 	if (itsBrowsedDir == "/")
 		Dirs->reset(); // go to the first pos, which is "." (music dir root)
@@ -992,14 +986,14 @@ void TagEditor::LocateSong(const MPD::Song &s)
 	Dirs->refresh();
 	
 	Tags->clear();
-	Update();
+	update();
 	
 	// reset TagTypes since it can be under Filename
 	// and then songs in right column are not visible.
 	TagTypes->reset();
 	// go to the right column
-	NextColumn();
-	NextColumn();
+	nextColumn();
+	nextColumn();
 	
 	// highlight our file
 	for (size_t i = 0; i < Tags->size(); ++i)
@@ -1010,96 +1004,6 @@ void TagEditor::LocateSong(const MPD::Song &s)
 			break;
 		}
 	}
-}
-
-void TagEditor::ReadTags(MPD::MutableSong &s)
-{
-	TagLib::FileRef f(s.getURI().c_str());
-	if (f.isNull())
-		return;
-	
-	s.setDuration(f.audioProperties()->length());
-	
-	if (auto mpeg_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
-	{
-		if (auto id3v1 = mpeg_file->ID3v1Tag())
-			readID3v1Tags(s, id3v1);
-		if (auto id3v2 = mpeg_file->ID3v2Tag())
-			readID3v2Tags(s, id3v2);
-	}
-	else if (auto ogg_file = dynamic_cast<TagLib::Ogg::Vorbis::File *>(f.file()))
-	{
-		if (auto xiph = ogg_file->tag())
-			readXiphComments(s, xiph);
-	}
-	else if (auto flac_file = dynamic_cast<TagLib::FLAC::File *>(f.file()))
-	{
-		if (auto xiph = flac_file->xiphComment())
-			readXiphComments(s, xiph);
-	}
-	else
-		readCommonTags(s, f.tag());
-}
-
-bool TagEditor::WriteTags(MPD::MutableSong &s)
-{
-	std::string path_to_file;
-	bool file_is_from_db = s.isFromDatabase();
-	if (file_is_from_db)
-		path_to_file += Config.mpd_music_dir;
-	path_to_file += s.getURI();
-	TagLib::FileRef f(path_to_file.c_str());
-	if (!f.isNull())
-	{
-		if (auto mp3_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
-		{
-			clearID3v1Tags(mp3_file->ID3v1Tag());
-			writeID3v2Tags(s, mp3_file->ID3v2Tag(true));
-		}
-		else if (auto ogg_file = dynamic_cast<TagLib::Ogg::Vorbis::File *>(f.file()))
-		{
-			writeXiphComments(s, ogg_file->tag());
-		}
-		else if (auto flac_file = dynamic_cast<TagLib::FLAC::File *>(f.file()))
-		{
-			writeXiphComments(s, flac_file->xiphComment(true));
-		}
-		else
-			writeCommonTags(s, f.tag());
-		if (!f.save())
-			return false;
-		
-		if (!s.getNewURI().empty())
-		{
-			std::string new_name;
-			if (file_is_from_db)
-				new_name += Config.mpd_music_dir;
-			new_name += s.getDirectory() + "/" + s.getNewURI();
-			if (rename(path_to_file.c_str(), new_name.c_str()) == 0 && !file_is_from_db)
-			{
-				if (Global::myOldScreen == myPlaylist)
-				{
-					// if we rename local file, it won't get updated
-					// so just remove it from playlist and add again
-					size_t pos = myPlaylist->Items->choice();
-					Mpd.StartCommandsList();
-					Mpd.Delete(pos);
-					int id = Mpd.AddSong("file://" + new_name);
-					if (id >= 0)
-					{
-						s = myPlaylist->Items->back().value();
-						Mpd.Move(s.getPosition(), pos);
-					}
-					Mpd.CommitCommandsList();
-				}
-				else // only myBrowser->Main()
-					myBrowser->GetDirectory(myBrowser->CurrentDir());
-			}
-		}
-		return true;
-	}
-	else
-		return false;
 }
 
 namespace {//
@@ -1143,136 +1047,6 @@ void LowerAllLetters(MPD::MutableSong &s)
 		for (std::string tag; !(tag = (s.*m->Get)(i)).empty(); ++i)
 			(s.*m->Set)(ToString(lowercase(ToWString(tag))), i);
 	}
-}
-
-TagLib::StringList tagList(const MPD::MutableSong &s, MPD::Song::GetFunction f)
-{
-	TagLib::StringList result;
-	unsigned idx = 0;
-	for (std::string value; !(value = (s.*f)(idx)).empty(); ++idx)
-		result.append(ToWString(value));
-	return result;
-}
-
-void readCommonTags(MPD::MutableSong &s, TagLib::Tag *tag)
-{
-	s.setTitle(tag->title().to8Bit(true));
-	s.setArtist(tag->artist().to8Bit(true));
-	s.setAlbum(tag->album().to8Bit(true));
-	s.setDate(intTo<std::string>::apply(tag->year()));
-	s.setTrack(intTo<std::string>::apply(tag->track()));
-	s.setGenre(tag->genre().to8Bit(true));
-	s.setComment(tag->comment().to8Bit(true));
-}
-
-void readID3v1Tags(MPD::MutableSong &s, TagLib::ID3v1::Tag *tag)
-{
-	readCommonTags(s, tag);
-}
-
-void readID3v2Tags(MPD::MutableSong &s, TagLib::ID3v2::Tag *tag)
-{
-	auto readFrame = [&s](const TagLib::ID3v2::FrameList &list, MPD::MutableSong::SetFunction f) {
-		unsigned idx = 0;
-		for (auto it = list.begin(); it != list.end(); ++it, ++idx)
-			(s.*f)((*it)->toString().to8Bit(true), idx);
-	};
-	auto &frames = tag->frameListMap();
-	readFrame(frames["TIT2"], &MPD::MutableSong::setTitle);
-	readFrame(frames["TPE1"], &MPD::MutableSong::setArtist);
-	readFrame(frames["TPE2"], &MPD::MutableSong::setAlbumArtist);
-	readFrame(frames["TALB"], &MPD::MutableSong::setAlbum);
-	readFrame(frames["TDRC"], &MPD::MutableSong::setDate);
-	readFrame(frames["TRCK"], &MPD::MutableSong::setTrack);
-	readFrame(frames["TCON"], &MPD::MutableSong::setGenre);
-	readFrame(frames["TCOM"], &MPD::MutableSong::setComposer);
-	readFrame(frames["TPE3"], &MPD::MutableSong::setPerformer);
-	readFrame(frames["TPOS"], &MPD::MutableSong::setDisc);
-	readFrame(frames["COMM"], &MPD::MutableSong::setComment);
-}
-
-void readXiphComments(MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag)
-{
-	auto readField = [&s](const TagLib::StringList &list, MPD::MutableSong::SetFunction f) {
-		unsigned idx = 0;
-		for (auto it = list.begin(); it != list.end(); ++it)
-			(s.*f)(it->to8Bit(true), idx);
-	};
-	auto &fields = tag->fieldListMap();
-	readField(fields["TITLE"], &MPD::MutableSong::setTitle);
-	readField(fields["ARTIST"], &MPD::MutableSong::setArtist);
-	readField(fields["ALBUMARTIST"], &MPD::MutableSong::setAlbumArtist);
-	readField(fields["ALBUM"], &MPD::MutableSong::setAlbum);
-	readField(fields["DATE"], &MPD::MutableSong::setDate);
-	readField(fields["TRACKNUMBER"], &MPD::MutableSong::setTrack);
-	readField(fields["GENRE"], &MPD::MutableSong::setGenre);
-	readField(fields["COMPOSER"], &MPD::MutableSong::setComposer);
-	readField(fields["PERFORMER"], &MPD::MutableSong::setPerformer);
-	readField(fields["DISCNUMBER"], &MPD::MutableSong::setDisc);
-	readField(fields["COMMENT"], &MPD::MutableSong::setComment);
-}
-
-void clearID3v1Tags(TagLib::ID3v1::Tag *tag)
-{
-	tag->setTitle(TagLib::String::null);
-	tag->setArtist(TagLib::String::null);
-	tag->setAlbum(TagLib::String::null);
-	tag->setYear(0);
-	tag->setTrack(0);
-	tag->setGenre(TagLib::String::null);
-	tag->setComment(TagLib::String::null);
-}
-
-void writeCommonTags(const MPD::MutableSong &s, TagLib::Tag *tag)
-{
-	tag->setTitle(ToWString(s.getTitle()));
-	tag->setArtist(ToWString(s.getArtist()));
-	tag->setAlbum(ToWString(s.getAlbum()));
-	tag->setYear(stringToInt(s.getDate()));
-	tag->setTrack(stringToInt(s.getTrack()));
-	tag->setGenre(ToWString(s.getGenre()));
-	tag->setComment(ToWString(s.getComment()));
-}
-
-void writeID3v2Tags(const MPD::MutableSong &s, TagLib::ID3v2::Tag *tag)
-{
-	auto writeID3v2 = [&](const TagLib::ByteVector &type, const TagLib::StringList &list) {
-		tag->removeFrames(type);
-		auto frame = new TagLib::ID3v2::TextIdentificationFrame(type, TagLib::String::UTF8);
-		frame->setText(list);
-		tag->addFrame(frame);
-	};
-	writeID3v2("TIT2", tagList(s, &MPD::Song::getTitle));
-	writeID3v2("TPE1", tagList(s, &MPD::Song::getArtist));
-	writeID3v2("TPE2", tagList(s, &MPD::Song::getAlbumArtist));
-	writeID3v2("TALB", tagList(s, &MPD::Song::getAlbum));
-	writeID3v2("TDRC", tagList(s, &MPD::Song::getDate));
-	writeID3v2("TRCK", tagList(s, &MPD::Song::getTrack));
-	writeID3v2("TCON", tagList(s, &MPD::Song::getGenre));
-	writeID3v2("TCOM", tagList(s, &MPD::Song::getComposer));
-	writeID3v2("TPE3", tagList(s, &MPD::Song::getPerformer));
-	writeID3v2("TPOS", tagList(s, &MPD::Song::getDisc));
-	writeID3v2("COMM", tagList(s, &MPD::Song::getComment));
-}
-
-void writeXiphComments(const MPD::MutableSong &s, TagLib::Ogg::XiphComment *tag)
-{
-	auto writeXiph = [&](const TagLib::String &type, const TagLib::StringList &list) {
-		tag->removeField(type);
-		for (auto it = list.begin(); it != list.end(); ++it)
-			tag->addField(type, *it, false);
-	};
-	writeXiph("TITLE", tagList(s, &MPD::Song::getTitle));
-	writeXiph("ARTIST", tagList(s, &MPD::Song::getArtist));
-	writeXiph("ALBUMARTIST", tagList(s, &MPD::Song::getAlbumArtist));
-	writeXiph("ALBUM", tagList(s, &MPD::Song::getAlbum));
-	writeXiph("DATE", tagList(s, &MPD::Song::getDate));
-	writeXiph("TRACKNUMBER", tagList(s, &MPD::Song::getTrack));
-	writeXiph("GENRE", tagList(s, &MPD::Song::getGenre));
-	writeXiph("COMPOSER", tagList(s, &MPD::Song::getComposer));
-	writeXiph("PERFORMER", tagList(s, &MPD::Song::getPerformer));
-	writeXiph("DISCNUMBER", tagList(s, &MPD::Song::getDisc));
-	writeXiph("COMMENT", tagList(s, &MPD::Song::getComment));
 }
 
 void GetPatternList()

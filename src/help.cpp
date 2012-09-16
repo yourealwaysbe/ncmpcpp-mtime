@@ -31,7 +31,7 @@
 using Global::MainHeight;
 using Global::MainStartY;
 
-Help *myHelp = new Help;
+Help *myHelp;
 
 namespace {//
 
@@ -95,24 +95,23 @@ std::string keyToString(const Key &key, bool *print_backspace)
 
 }
 
-void Help::Init()
+Help::Help()
+: Screen(NC::Scrollpad(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone))
 {
-	w = new NC::Scrollpad(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone);
 	GetKeybindings();
-	w->flush();
-	isInitialized = 1;
+	w.flush();
 }
 
-void Help::Resize()
+void Help::resize()
 {
 	size_t x_offset, width;
-	GetWindowResizeParams(x_offset, width);
-	w->resize(width, MainHeight);
-	w->moveTo(x_offset, MainStartY);
+	getWindowResizeParams(x_offset, width);
+	w.resize(width, MainHeight);
+	w.moveTo(x_offset, MainStartY);
 	hasToBeResized = 0;
 }
 
-void Help::SwitchTo()
+void Help::switchTo()
 {
 	using Global::myScreen;
 	using Global::myLockedScreen;
@@ -120,14 +119,11 @@ void Help::SwitchTo()
 	if (myScreen == this)
 		return;
 	
-	if (!isInitialized)
-		Init();
-	
 	if (myLockedScreen)
-		UpdateInactiveScreen(this);
+		updateInactiveScreen(this);
 	
 	if (hasToBeResized || myLockedScreen)
-		Resize();
+		resize();
 	
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
@@ -135,7 +131,7 @@ void Help::SwitchTo()
 	drawHeader();
 }
 
-std::wstring Help::Title()
+std::wstring Help::title()
 {
 	return L"Help";
 }
@@ -156,27 +152,27 @@ std::string Help::DisplayKeys(const ActionType at)
 	return result;
 }
 
-void Help::Section(const char *type, const char *title)
+void Help::Section(const char *type, const char *title_)
 {
-	*w << L"\n  " << NC::fmtBold << ToWString(type) << L" - ";
-	*w << ToWString(title) << NC::fmtBoldEnd << L"\n\n";
+	w << L"\n  " << NC::fmtBold << ToWString(type) << L" - ";
+	w << ToWString(title_) << NC::fmtBoldEnd << L"\n\n";
 }
 
 void Help::KeyDesc(const ActionType at, const char *desc)
 {
-	*w << L"    " << DisplayKeys(at) << L" : " << ToWString(desc) << '\n';
+	w << L"    " << DisplayKeys(at) << L" : " << ToWString(desc) << '\n';
 }
 
 void Help::MouseDesc(std::string action, const char *desc, bool indent)
 {
 	action.resize(31 - (indent ? 2 : 0), ' ');
-	*w << L"    " << (indent ? L"  " : L"") << ToWString(action);
-	*w << L": " << ToWString(desc) << '\n';
+	w << L"    " << (indent ? L"  " : L"") << ToWString(action);
+	w << L": " << ToWString(desc) << '\n';
 }
 
 void Help::MouseColumn(const char *column)
 {
-	*w << NC::fmtBold << L"    " << ToWString(column) << L" column:\n" << NC::fmtBoldEnd;
+	w << NC::fmtBold << L"    " << ToWString(column) << L" column:\n" << NC::fmtBoldEnd;
 }
 
 void Help::GetKeybindings()
@@ -192,7 +188,7 @@ void Help::GetKeybindings()
 	KeyDesc(aPageDown, "Page down");
 	KeyDesc(aMoveHome, "Home");
 	KeyDesc(aMoveEnd, "End");
-	*w << '\n';
+	w << '\n';
 	if (Config.screen_switcher_previous)
 	{
 		KeyDesc(aNextScreen, "Switch between current and last screen");
@@ -221,7 +217,7 @@ void Help::GetKeybindings()
 #	ifdef ENABLE_CLOCK
 	KeyDesc(aShowClock, "Show clock");
 #	endif // ENABLE_CLOCK
-	*w << '\n';
+	w << '\n';
 	KeyDesc(aShowServerInfo, "Show server info");
 	
 	KeysSection("Global");
@@ -234,7 +230,7 @@ void Help::GetKeybindings()
 	KeyDesc(aSeekBackward, "Seek backward in playing song");
 	KeyDesc(aVolumeDown, "Decrease volume by 2%");
 	KeyDesc(aVolumeUp, "Increase volume by 2%");
-	*w << '\n';
+	w << '\n';
 	KeyDesc(aToggleSpaceMode, "Toggle space mode (select/add)");
 	KeyDesc(aToggleAddMode, "Toggle add mode (add or remove/always add)");
 	KeyDesc(aToggleMouse, "Toggle mouse support");
@@ -243,7 +239,7 @@ void Help::GetKeybindings()
 	KeyDesc(aSelectAlbum, "Select songs of album around the cursor");
 	KeyDesc(aAddSelectedItems, "Add selected items to playlist");
 	KeyDesc(aAddRandomItems, "Add random items to playlist");
-	*w << '\n';
+	w << '\n';
 	KeyDesc(aToggleRepeat, "Toggle repeat mode");
 	KeyDesc(aToggleRandom, "Toggle random mode");
 	KeyDesc(aToggleSingle, "Toggle single mode");
@@ -254,7 +250,7 @@ void Help::GetKeybindings()
 	KeyDesc(aToggleCrossfade, "Toggle crossfade mode");
 	KeyDesc(aSetCrossfade, "Set crossfade");
 	KeyDesc(aUpdateDatabase, "Start music database update");
-	*w << '\n';
+	w << '\n';
 	KeyDesc(aApplyFilter, "Apply filter");
 	KeyDesc(aFindItemForward, "Find item forward");
 	KeyDesc(aFindItemBackward, "Find item backward");
@@ -280,7 +276,7 @@ void Help::GetKeybindings()
 	KeyDesc(aToggleFetchingLyricsInBackground, "Toggle fetching lyrics for playing songs in background");
 #	endif // HAVE_CURL_CURL_H
 	KeyDesc(aShowLyrics, "Show/hide song lyrics");
-	*w << '\n';
+	w << '\n';
 	KeyDesc(aQuit, "Quit");
 	
 	KeysSection("Playlist");
@@ -391,7 +387,7 @@ void Help::GetKeybindings()
 	MouseSection("Global");
 	MouseDesc("Left click on \"Playing/Paused\"", "Play/pause");
 	MouseDesc("Left click on progressbar", "Jump to pointed position in playing song");
-	*w << '\n';
+	w << '\n';
 	MouseDesc("Mouse wheel on \"Volume: xx\"", "Play/pause");
 	MouseDesc("Mouse wheel on main window", "Scroll");
 	
@@ -402,7 +398,7 @@ void Help::GetKeybindings()
 	MouseSection("Browser");
 	MouseDesc("Left click on directory", "Enter pointed directory");
 	MouseDesc("Right click on directory", "Add pointed directory to playlist");
-	*w << '\n';
+	w << '\n';
 	MouseDesc("Left click on song/playlist", "Add pointed item to playlist");
 	MouseDesc("Right click on song/playlist", "Add pointed item to playlist and play it");
 	
@@ -414,7 +410,7 @@ void Help::GetKeybindings()
 	MouseColumn("Left/middle");
 	MouseDesc("Left click", "Select pointed item", true);
 	MouseDesc("Right click", "Add item to playlist", true);
-	*w << '\n';
+	w << '\n';
 	MouseColumn("Right");
 	MouseDesc("Left Click", "Add pointed item to playlist", true);
 	MouseDesc("Right Click", "Add pointed item to playlist and play it", true);
@@ -423,7 +419,7 @@ void Help::GetKeybindings()
 	MouseColumn("Left");
 	MouseDesc("Left click", "Select pointed item", true);
 	MouseDesc("Right click", "Add item to playlist", true);
-	*w << '\n';
+	w << '\n';
 	MouseColumn("Right");
 	MouseDesc("Left click", "Add pointed item to playlist", true);
 	MouseDesc("Right click", "Add pointed item to playlist and play it", true);
@@ -437,11 +433,11 @@ void Help::GetKeybindings()
 	MouseColumn("Left");
 	MouseDesc("Left click", "Enter pointed directory/select pointed album", true);
 	MouseDesc("Right click", "Toggle view (directories/albums)", true);
-	*w << '\n';
+	w << '\n';
 	MouseColumn("Middle");
 	MouseDesc("Left click", "Select option", true);
 	MouseDesc("Right click", "Set value/execute", true);
-	*w << '\n';
+	w << '\n';
 	MouseColumn("Right");
 	MouseDesc("Left click", "Select pointed item", true);
 	MouseDesc("Right click", "Set value", true);

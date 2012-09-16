@@ -30,68 +30,57 @@ using Global::MainHeight;
 using Global::MainStartY;
 using Global::myOldScreen;
 
-ServerInfo *myServerInfo = new ServerInfo;
+ServerInfo *myServerInfo;
 
-void ServerInfo::Init()
+ServerInfo::ServerInfo()
 {
 	SetDimensions();
-	w = new NC::Scrollpad((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY, itsWidth, itsHeight, "MPD server info", Config.main_color, Config.window_border);
-	
+	w = NC::Scrollpad((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY, itsWidth, itsHeight, "MPD server info", Config.main_color, Config.window_border);
 	itsURLHandlers = Mpd.GetURLHandlers();
 	itsTagTypes = Mpd.GetTagTypes();
-	
-	isInitialized = 1;
 }
 
-void ServerInfo::SwitchTo()
+void ServerInfo::switchTo()
 {
 	using Global::myScreen;
 	
 	if (myScreen == this)
 	{
-		myOldScreen->SwitchTo();
-		return;
-	}
-	if (MainHeight < 5)
-	{
-		Statusbar::msg("Screen is too small to display this window");
+		myOldScreen->switchTo();
 		return;
 	}
 	
-	if (!isInitialized)
-		Init();
-	
-	// Resize() can fall back to old screen, so we need it updated
+	// resize() can fall back to old screen, so we need it updated
 	myOldScreen = myScreen;
 	
 	if (hasToBeResized)
-		Resize();
+		resize();
 	
 	myScreen = this;
-	//w->Window::clear();
+	//w.Window::clear();
 }
 
-void ServerInfo::Resize()
+void ServerInfo::resize()
 {
 	SetDimensions();
 	if (itsHeight < 5) // screen too low to display this window
-		return myOldScreen->SwitchTo();
-	w->resize(itsWidth, itsHeight);
-	w->moveTo((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY);
+		return myOldScreen->switchTo();
+	w.resize(itsWidth, itsHeight);
+	w.moveTo((COLS-itsWidth)/2, (MainHeight-itsHeight)/2+MainStartY);
 	if (myOldScreen && myOldScreen->hasToBeResized) // resize background window
 	{
-		myOldScreen->Resize();
-		myOldScreen->Refresh();
+		myOldScreen->resize();
+		myOldScreen->refresh();
 	}
 	hasToBeResized = 0;
 }
 
-std::wstring ServerInfo::Title()
+std::wstring ServerInfo::title()
 {
-	return myOldScreen->Title();
+	return myOldScreen->title();
 }
 
-void ServerInfo::Update()
+void ServerInfo::update()
 {
 	static timeval past = { 0, 0 };
 	if (Global::Timer.tv_sec <= past.tv_sec)
@@ -102,33 +91,33 @@ void ServerInfo::Update()
 	if (stats.empty())
 		return;
 	
-	w->clear();
+	w.clear();
 	
-	*w << NC::fmtBold << L"Version: " << NC::fmtBoldEnd << L"0." << Mpd.Version() << L".*\n";
-	*w << NC::fmtBold << L"Uptime: " << NC::fmtBoldEnd;
-	ShowTime(*w, stats.uptime(), 1);
-	*w << '\n';
-	*w << NC::fmtBold << L"Time playing: " << NC::fmtBoldEnd << MPD::Song::ShowTime(stats.playTime()) << '\n';
-	*w << '\n';
-	*w << NC::fmtBold << L"Total playtime: " << NC::fmtBoldEnd;
-	ShowTime(*w, stats.dbPlayTime(), 1);
-	*w << '\n';
-	*w << NC::fmtBold << L"Artist names: " << NC::fmtBoldEnd << stats.artists() << '\n';
-	*w << NC::fmtBold << L"Album names: " << NC::fmtBoldEnd << stats.albums() << '\n';
-	*w << NC::fmtBold << L"Songs in database: " << NC::fmtBoldEnd << stats.songs() << '\n';
-	*w << '\n';
-	*w << NC::fmtBold << L"Last DB update: " << NC::fmtBoldEnd << Timestamp(stats.dbUpdateTime()) << '\n';
-	*w << '\n';
-	*w << NC::fmtBold << L"URL Handlers:" << NC::fmtBoldEnd;
+	w << NC::fmtBold << L"Version: " << NC::fmtBoldEnd << L"0." << Mpd.Version() << L".*\n";
+	w << NC::fmtBold << L"Uptime: " << NC::fmtBoldEnd;
+	ShowTime(w, stats.uptime(), 1);
+	w << '\n';
+	w << NC::fmtBold << L"Time playing: " << NC::fmtBoldEnd << MPD::Song::ShowTime(stats.playTime()) << '\n';
+	w << '\n';
+	w << NC::fmtBold << L"Total playtime: " << NC::fmtBoldEnd;
+	ShowTime(w, stats.dbPlayTime(), 1);
+	w << '\n';
+	w << NC::fmtBold << L"Artist names: " << NC::fmtBoldEnd << stats.artists() << '\n';
+	w << NC::fmtBold << L"Album names: " << NC::fmtBoldEnd << stats.albums() << '\n';
+	w << NC::fmtBold << L"Songs in database: " << NC::fmtBoldEnd << stats.songs() << '\n';
+	w << '\n';
+	w << NC::fmtBold << L"Last DB update: " << NC::fmtBoldEnd << Timestamp(stats.dbUpdateTime()) << '\n';
+	w << '\n';
+	w << NC::fmtBold << L"URL Handlers:" << NC::fmtBoldEnd;
 	for (auto it = itsURLHandlers.begin(); it != itsURLHandlers.end(); ++it)
-		*w << (it != itsURLHandlers.begin() ? L", " : L" ") << *it;
-	*w << L"\n\n";
-	*w << NC::fmtBold << L"Tag Types:" << NC::fmtBoldEnd;
+		w << (it != itsURLHandlers.begin() ? L", " : L" ") << *it;
+	w << L"\n\n";
+	w << NC::fmtBold << L"Tag Types:" << NC::fmtBoldEnd;
 	for (auto it = itsTagTypes.begin(); it != itsTagTypes.end(); ++it)
-		*w << (it != itsTagTypes.begin() ? L", " : L" ") << *it;
+		w << (it != itsTagTypes.begin() ? L", " : L" ") << *it;
 	
-	w->flush();
-	w->refresh();
+	w.flush();
+	w.refresh();
 }
 
 void ServerInfo::SetDimensions()

@@ -28,6 +28,11 @@
 #include "status.h"
 #include "utility/wide_string.h"
 
+inline HasColumns *hasColumns(BasicScreen *screen)
+{
+	return dynamic_cast<HasColumns *>(screen);
+}
+
 inline HasSongs *hasSongs(BasicScreen *screen)
 {
 	return dynamic_cast<HasSongs *>(screen);
@@ -460,6 +465,9 @@ template <typename T> void ShowTag(T &buf, const std::string &tag)
 	else
 		buf << tag;
 }
+
+bool addSongToPlaylist(const MPD::Song &s, bool play, size_t position = -1);
+bool addSongsToPlaylist(const MPD::SongList &list, bool play, size_t position = -1);
 
 std::string Timestamp(time_t t);
 

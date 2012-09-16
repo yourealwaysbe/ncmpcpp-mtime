@@ -25,42 +25,37 @@
 
 #ifdef HAVE_TAGLIB_H
 
-// taglib includes
-#include "tfile.h"
-
 #include "mutable_song.h"
 #include "screen.h"
 
-class TinyTagEditor : public Screen< NC::Menu<NC::Buffer> >
+struct TinyTagEditor : public Screen<NC::Menu<NC::Buffer>>
 {
-	public:
-		// Screen< NC::Menu<NC::Buffer> > implementation
-		virtual void Resize() OVERRIDE;
-		virtual void SwitchTo() OVERRIDE;
-		
-		virtual std::wstring Title() OVERRIDE;
-		
-		virtual void Update() OVERRIDE { }
-		
-		virtual void EnterPressed() OVERRIDE;
-		virtual void SpacePressed() OVERRIDE { }
-		virtual void MouseButtonPressed(MEVENT me) OVERRIDE;
-		
-		virtual bool isMergable() OVERRIDE { return true; }
-		virtual bool isTabbable() OVERRIDE { return false; }
-		
-		// private members
-		void SetEdited(const MPD::Song &);
-		
-	protected:
-		virtual void Init() OVERRIDE;
-		virtual bool isLockable() OVERRIDE { return true; }
-		
-	private:
-		bool getTags();
-		MPD::MutableSong itsEdited;
-		
-		static bool extendedTagsSupported(TagLib::File *);
+	TinyTagEditor();
+	
+	// Screen< NC::Menu<NC::Buffer> > implementation
+	virtual void resize() OVERRIDE;
+	virtual void switchTo() OVERRIDE;
+	
+	virtual std::wstring title() OVERRIDE;
+	
+	virtual void update() OVERRIDE { }
+	
+	virtual void enterPressed() OVERRIDE;
+	virtual void spacePressed() OVERRIDE { }
+	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
+	
+	virtual bool isMergable() OVERRIDE { return true; }
+	virtual bool isTabbable() OVERRIDE { return false; }
+	
+	// private members
+	void SetEdited(const MPD::Song &);
+	
+protected:
+	virtual bool isLockable() OVERRIDE { return true; }
+	
+private:
+	bool getTags();
+	MPD::MutableSong itsEdited;
 };
 
 extern TinyTagEditor *myTinyTagEditor;

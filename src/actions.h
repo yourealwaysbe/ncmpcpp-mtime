@@ -73,6 +73,7 @@ struct Action
 	}
 	
 	static void ValidateScreenSize();
+	static void InitializeScreens();
 	static void SetResizeFlags();
 	static void ResizeScreen(bool reload_main_window);
 	static void SetWindowsDimensions();
@@ -702,6 +703,7 @@ struct AddSelectedItems : public Action
 	AddSelectedItems() : Action(aAddSelectedItems, "add_selected_items") { }
 	
 protected:
+	virtual bool canBeRun() const;
 	virtual void Run();
 };
 

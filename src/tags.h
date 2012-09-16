@@ -18,54 +18,25 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#ifndef _LASTFM_SERVICE_H
-#define _LASTFM_SERVICE_H
+#ifndef _TAGS_H
+#define _TAGS_H
 
 #include "config.h"
 
-#ifdef HAVE_CURL_CURL_H
+#ifdef HAVE_TAGLIB_H
 
-#include <map>
-#include <string>
+#include <tfile.h>
+#include "mutable_song.h"
 
-#include "scrollpad.h"
+namespace Tags {//
 
-struct LastfmService
-{
-	typedef std::map<std::string, std::string> Args;
-	typedef std::pair<bool, std::string> Result;
-	
-	virtual const char *name() = 0;
-	virtual Result fetch(Args &args);
-	
-	virtual bool checkArgs(const Args &args) = 0;
-	virtual void colorizeOutput(NC::Scrollpad &w) = 0;
-	
-protected:
-	virtual bool actionFailed(const std::string &data);
-	
-	virtual bool parse(std::string &data) = 0;
-	virtual void postProcess(std::string &data);
-	
-	virtual const char *methodName() = 0;
-	
-	static const char *baseURL;
-	static const char *msgParseFailed;
-};
+bool extendedSetSupported(const TagLib::File *f);
 
-struct ArtistInfo : public LastfmService
-{
-	virtual const char *name() { return "Artist info"; }
-	
-	virtual bool checkArgs(const Args &args);
-	virtual void colorizeOutput(NC::Scrollpad &w);
-	
-protected:
-	virtual bool parse(std::string &data);
-	
-	virtual const char *methodName() { return "artist.getinfo"; }
-};
+void read(MPD::MutableSong &);
+bool write(MPD::MutableSong &);
 
-#endif // HAVE_CURL_CURL_H
+}
 
-#endif
+#endif // HAVE_TAGLIB_H
+
+#endif // _TAGS_H

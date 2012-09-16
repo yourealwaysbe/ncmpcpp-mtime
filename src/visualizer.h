@@ -32,52 +32,53 @@
 # include <fftw3.h>
 #endif
 
-class Visualizer : public Screen<NC::Window>
+struct Visualizer : public Screen<NC::Window>
 {
-	public:
-		virtual void SwitchTo();
-		virtual void Resize();
-		
-		virtual std::wstring Title();
-		
-		virtual void Update();
-		virtual void Scroll(NC::Where) { }
-		
-		virtual void EnterPressed() { }
-		virtual void SpacePressed();
-		virtual void MouseButtonPressed(MEVENT) { }
-		virtual bool isTabbable() { return true; }
-		
-		virtual bool isMergable() { return true; }
-		
-		void SetFD();
-		void ResetFD();
-		void FindOutputID();
-		
-		static const int WindowTimeout;
-		
-	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
-		
-	private:
-		void DrawSoundWave(int16_t *, ssize_t, size_t, size_t);
-#		ifdef HAVE_FFTW3_H
-		void DrawFrequencySpectrum(int16_t *, ssize_t, size_t, size_t);
-#		endif // HAVE_FFTW3_H
-		
-		int itsOutputID;
-		timeval itsTimer;
-		
-		int itsFifo;
-		unsigned itsSamples;
-#		ifdef HAVE_FFTW3_H
-		unsigned itsFFTResults;
-		unsigned *itsFreqsMagnitude;
-		double *itsInput;
-		fftw_complex *itsOutput;
-		fftw_plan itsPlan;
-#		endif // HAVE_FFTW3_H
+	Visualizer();
+	
+	virtual void switchTo() OVERRIDE;
+	virtual void resize() OVERRIDE;
+	
+	virtual std::wstring title() OVERRIDE;
+	
+	virtual void update() OVERRIDE;
+	virtual void scroll(NC::Where) OVERRIDE { }
+	
+	virtual void enterPressed() OVERRIDE { }
+	virtual void spacePressed() OVERRIDE;
+	virtual void mouseButtonPressed(MEVENT) OVERRIDE { }
+	
+	virtual bool isTabbable() OVERRIDE { return true; }
+	virtual bool isMergable() OVERRIDE { return true; }
+	
+	// private members
+	void SetFD();
+	void ResetFD();
+	void FindOutputID();
+	
+	static const int WindowTimeout;
+	
+protected:
+	virtual bool isLockable() OVERRIDE { return true; }
+	
+private:
+	void DrawSoundWave(int16_t *, ssize_t, size_t, size_t);
+#	ifdef HAVE_FFTW3_H
+	void DrawFrequencySpectrum(int16_t *, ssize_t, size_t, size_t);
+#	endif // HAVE_FFTW3_H
+	
+	int m_output_id;
+	timeval m_timer;
+	
+	int m_fifo;
+	unsigned m_samples;
+#	ifdef HAVE_FFTW3_H
+	unsigned m_fftw_results;
+	unsigned *m_freq_magnitudes;
+	double *m_fftw_input;
+	fftw_complex *m_fftw_output;
+	fftw_plan m_fftw_plan;
+#	endif // HAVE_FFTW3_H
 };
 
 extern Visualizer *myVisualizer;

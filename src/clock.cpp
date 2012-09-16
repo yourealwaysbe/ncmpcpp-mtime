@@ -38,7 +38,7 @@ using Global::MainHeight;
 using Global::MainStartY;
 using Global::myScreen;
 
-Clock *myClock = new Clock;
+Clock *myClock;
 
 short Clock::disp[11] =
 {
@@ -52,74 +52,70 @@ long Clock::older[6], Clock::next[6], Clock::newer[6], Clock::mask;
 size_t Clock::Width;
 const size_t Clock::Height = 8;
 
-void Clock::Init()
+Clock::Clock()
 {
 	Width = Config.clock_display_seconds ? 60 : 40;
 	
-	itsPane = new NC::Window(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone);
-	w = new NC::Window((COLS-Width)/2, (MainHeight-Height)/2+MainStartY, Width, Height-1, "", Config.main_color, NC::Border(Config.main_color));
-	isInitialized = 1;
+	m_pane = NC::Window(0, MainStartY, COLS, MainHeight, "", Config.main_color, NC::brNone);
+	w = NC::Window((COLS-Width)/2, (MainHeight-Height)/2+MainStartY, Width, Height-1, "", Config.main_color, NC::Border(Config.main_color));
 }
 
-void Clock::Resize()
+void Clock::resize()
 {
 	size_t x_offset, width;
-	GetWindowResizeParams(x_offset, width);
+	getWindowResizeParams(x_offset, width);
 	
 	// used for clearing area out of clock window while resizing terminal
-	itsPane->resize(width, MainHeight);
-	itsPane->moveTo(x_offset, MainStartY);
-	itsPane->refresh();
+	m_pane.resize(width, MainHeight);
+	m_pane.moveTo(x_offset, MainStartY);
+	m_pane.refresh();
 	
 	if (Width <= width && Height <= MainHeight)
-		w->moveTo(x_offset+(width-Width)/2, MainStartY+(MainHeight-Height)/2);
+		w.moveTo(x_offset+(width-Width)/2, MainStartY+(MainHeight-Height)/2);
 }
 
-void Clock::SwitchTo()
+void Clock::switchTo()
 {
 	using Global::myLockedScreen;
 	
 	if (myScreen == this)
 		return;
 	
-	if (!isInitialized)
-		Init();
-	
 	if (myLockedScreen)
-		UpdateInactiveScreen(this);
+		updateInactiveScreen(this);
 	
 	size_t x_offset, width;
-	GetWindowResizeParams(x_offset, width, false);
+	getWindowResizeParams(x_offset, width, false);
 	if (Width > width || Height > MainHeight)
 	{
 		Statusbar::msg("Screen is too small to display clock");
 		if (myLockedScreen)
-			UpdateInactiveScreen(myLockedScreen);
+			updateInactiveScreen(myLockedScreen);
 		return;
 	}
 	
 	if (hasToBeResized || myLockedScreen)
-		Resize();
+		resize();
 	
 	if (myScreen != this && myScreen->isTabbable())
 		Global::myPrevScreen = myScreen;
 	myScreen = this;
 	drawHeader();
 	Prepare();
-	itsPane->refresh();
+	m_pane.refresh();
 	// clearing screen apparently fixes the problem with last digits being misrendered
-	w->clear();
-	w->display();
+	w.clear();
+	w.display();
 }
 
-std::wstring Clock::Title()
+std::wstring Clock::title()
 {
 	return L"Clock";
 }
 
-void Clock::Update()
+void Clock::update()
 {
-	if (Width > itsPane->getWidth() || Height > MainHeight)
+	if (Width > m_pane.getWidth() || Height > MainHeight)
 	{
 		using Global::myLockedScreen;
 		using Global::myInactiveScreen;
@@ -128,10 +124,10 @@ void Clock::Update()
 		{
 			if (myInactiveScreen != myLockedScreen)
 				myScreen = myInactiveScreen;
-			myLockedScreen->SwitchTo();
+			myLockedScreen->switchTo();
 		}
 		else
-			myPlaylist->SwitchTo();
+			myPlaylist->switchTo();
 	}
 	
 	tm *time = localtime(&Global::Timer.tv_sec);
@@ -149,7 +145,7 @@ void Clock::Update()
 	char buf[64];
 	strftime(buf, 64, "%x", time);
 	attron(COLOR_PAIR(Config.main_color));
-	mvprintw(w->getStarty()+w->getHeight(), w->getStartX()+(w->getWidth()-strlen(buf))/2, "%s", buf);
+	mvprintw(w.getStarty()+w.getHeight(), w.getStartX()+(w.getWidth()-strlen(buf))/2, "%s", buf);
 	attroff(COLOR_PAIR(Config.main_color));
 	refresh();
 	
@@ -159,7 +155,7 @@ void Clock::Update()
 		next[k] = 0;
 		for (int s = 1; s >= 0; --s)
 		{
-			*w << (s ? NC::fmtReverse : NC::fmtReverseEnd);
+			w << (s ? NC::fmtReverse : NC::fmtReverseEnd);
 			for (int i = 0; i < 6; ++i)
 			{
 				long a = (newer[i] ^ older[i]) & (s ? newer : older)[i];
@@ -172,10 +168,10 @@ void Clock::Update()
 						{
 							if (!(a & (t << 1)))
 							{
-								w->goToXY(2*j+2, i);
+								w.goToXY(2*j+2, i);
 							}
 							if (Config.clock_display_seconds || j < 18)
-								*w << "  ";
+								w << "  ";
 						}
 					}
 				}
@@ -186,7 +182,7 @@ void Clock::Update()
 			}
 		}
 	}
-	w->refresh();
+	w.refresh();
 }
 
 void Clock::Prepare()

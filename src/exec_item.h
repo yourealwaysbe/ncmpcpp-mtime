@@ -18,54 +18,28 @@
  *   51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.              *
  ***************************************************************************/
 
-#ifndef _LASTFM_SERVICE_H
-#define _LASTFM_SERVICE_H
+#ifndef _EXEC_ITEM_H
+#define _EXEC_ITEM_H
 
-#include "config.h"
+#include <functional>
 
-#ifdef HAVE_CURL_CURL_H
-
-#include <map>
-#include <string>
-
-#include "scrollpad.h"
-
-struct LastfmService
+template <typename ItemT, typename FunType> struct ExecItem
 {
-	typedef std::map<std::string, std::string> Args;
-	typedef std::pair<bool, std::string> Result;
+	typedef ItemT Item;
+	typedef std::function<FunType> Function;
 	
-	virtual const char *name() = 0;
-	virtual Result fetch(Args &args);
+	ExecItem() { }
+	ExecItem(const Item &item_, Function f) : m_item(item_), m_exec(f) { }
 	
-	virtual bool checkArgs(const Args &args) = 0;
-	virtual void colorizeOutput(NC::Scrollpad &w) = 0;
+	Function &exec() { return m_exec; }
+	const Function &exec() const { return m_exec; }
 	
-protected:
-	virtual bool actionFailed(const std::string &data);
+	Item &item() { return m_item; }
+	const Item &item() const { return m_item; }
 	
-	virtual bool parse(std::string &data) = 0;
-	virtual void postProcess(std::string &data);
-	
-	virtual const char *methodName() = 0;
-	
-	static const char *baseURL;
-	static const char *msgParseFailed;
+private:
+	Item m_item;
+	Function m_exec;
 };
 
-struct ArtistInfo : public LastfmService
-{
-	virtual const char *name() { return "Artist info"; }
-	
-	virtual bool checkArgs(const Args &args);
-	virtual void colorizeOutput(NC::Scrollpad &w);
-	
-protected:
-	virtual bool parse(std::string &data);
-	
-	virtual const char *methodName() { return "artist.getinfo"; }
-};
-
-#endif // HAVE_CURL_CURL_H
-
-#endif
+#endif // _EXEC_ITEM_H

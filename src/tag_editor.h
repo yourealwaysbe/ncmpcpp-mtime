@@ -33,81 +33,75 @@
 #include "regex_filter.h"
 #include "screen.h"
 
-class TagEditor : public Screen<NC::Window>, public Filterable, public HasSongs, public Searchable
+struct TagEditor : public Screen<NC::Window *>, public Filterable, public HasColumns, public HasSongs, public Searchable
 {
-	public:
-		TagEditor() : FParser(0), FParserHelper(0), FParserLegend(0), FParserPreview(0), itsBrowsedDir("/") { }
-		
-		virtual void Resize();
-		virtual void SwitchTo();
-		
-		virtual std::wstring Title();
-		
-		virtual void Refresh();
-		virtual void Update();
-		
-		virtual void EnterPressed();
-		virtual void SpacePressed();
-		virtual void MouseButtonPressed(MEVENT);
-		virtual bool isTabbable() { return true; }
-		
-		// Filterable implementation
-		virtual bool allowsFiltering();
-		virtual std::string currentFilter();
-		virtual void applyFilter(const std::string &filter);
-		
-		// Searchable implementation
-		virtual bool allowsSearching();
-		virtual bool search(const std::string &constraint);
-		virtual void nextFound(bool wrap);
-		virtual void prevFound(bool wrap);
-		
-		// HasSongs implementation
-		virtual std::shared_ptr<ProxySongList> getProxySongList();
-		
-		virtual bool allowsSelection();
-		virtual void reverseSelection();
-		virtual MPD::SongList getSelectedSongs();
-		
-		virtual bool isMergable() { return true; }
-		
-		// private members
-		bool ifAnyModifiedAskForDiscarding();
-		
-		bool isNextColumnAvailable();
-		bool NextColumn();
-		bool isPrevColumnAvailable();
-		bool PrevColumn();
-		
-		void LocateSong(const MPD::Song &s);
-		
-		NC::Menu< std::pair<std::string, std::string> > *Dirs;
-		NC::Menu<std::string> *TagTypes;
-		NC::Menu<MPD::MutableSong> *Tags;
-		
-		/// NOTICE: this string is always in utf8, no need to convert it
-		const std::string &CurrentDir() { return itsBrowsedDir; }
-		
-		static void ReadTags(MPD::MutableSong &);
-		static bool WriteTags(MPD::MutableSong &);
-		
-	protected:
-		virtual void Init();
-		virtual bool isLockable() { return true; }
-		
-	private:
-		void SetDimensions(size_t, size_t);
-		
-		std::vector<MPD::MutableSong *> EditedSongs;
-		NC::Menu<std::string> *FParserDialog;
-		NC::Menu<std::string> *FParser;
-		NC::Scrollpad *FParserHelper;
-		NC::Scrollpad *FParserLegend;
-		NC::Scrollpad *FParserPreview;
-		bool FParserUsePreview;
-		
-		std::string itsBrowsedDir;
-		std::string itsHighlightedDir;
+	TagEditor();
+	
+	virtual void resize() OVERRIDE;
+	virtual void switchTo() OVERRIDE;
+	
+	virtual std::wstring title() OVERRIDE;
+	
+	virtual void refresh() OVERRIDE;
+	virtual void update() OVERRIDE;
+	
+	virtual void enterPressed() OVERRIDE;
+	virtual void spacePressed() OVERRIDE;
+	virtual void mouseButtonPressed(MEVENT) OVERRIDE;
+	
+	virtual bool isTabbable() OVERRIDE { return true; }
+	virtual bool isMergable() OVERRIDE { return true; }
+	
+	// Filterable implementation
+	virtual bool allowsFiltering() OVERRIDE;
+	virtual std::string currentFilter() OVERRIDE;
+	virtual void applyFilter(const std::string &filter) OVERRIDE;
+	
+	// Searchable implementation
+	virtual bool allowsSearching() OVERRIDE;
+	virtual bool search(const std::string &constraint) OVERRIDE;
+	virtual void nextFound(bool wrap) OVERRIDE;
+	virtual void prevFound(bool wrap) OVERRIDE;
+	
+	// HasSongs implementation
+	virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
+	
+	virtual bool allowsSelection() OVERRIDE;
+	virtual void reverseSelection() OVERRIDE;
+	virtual MPD::SongList getSelectedSongs() OVERRIDE;
+	
+	// HasColumns implementation
+	virtual bool previousColumnAvailable() OVERRIDE;
+	virtual void previousColumn() OVERRIDE;
+	
+	virtual bool nextColumnAvailable() OVERRIDE;
+	virtual void nextColumn() OVERRIDE;
+	
+	// private members
+	bool ifAnyModifiedAskForDiscarding();
+	void LocateSong(const MPD::Song &s);
+	const std::string &CurrentDir() { return itsBrowsedDir; }
+	
+	NC::Menu< std::pair<std::string, std::string> > *Dirs;
+	NC::Menu<std::string> *TagTypes;
+	NC::Menu<MPD::MutableSong> *Tags;
+	
+protected:
+	virtual bool isLockable() OVERRIDE { return true; }
+	
+private:
+	void SetDimensions(size_t, size_t);
+	
+	std::vector<MPD::MutableSong *> EditedSongs;
+	NC::Menu<std::string> *FParserDialog;
+	NC::Menu<std::string> *FParser;
+	NC::Scrollpad *FParserHelper;
+	NC::Scrollpad *FParserLegend;
+	NC::Scrollpad *FParserPreview;
+	bool FParserUsePreview;
+	
+	std::string itsBrowsedDir;
+	std::string itsHighlightedDir;
 };
 
 extern TagEditor *myTagEditor;
