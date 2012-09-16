@@ -32,6 +32,7 @@
 #include "statusbar.h"
 #include "utility/comparators.h"
 #include "title.h"
+#include "screen_switcher.h"
 
 using namespace std::placeholders;
 
@@ -107,7 +108,7 @@ SearchEngine::SearchEngine()
 	w.setHighlightColor(Config.main_highlight_color);
 	w.cyclicScrolling(Config.use_cyclic_scrolling);
 	w.centeredCursor(Config.centered_cursor);
-	w.setItemDisplayer(Display::SearchEngine);
+	w.setItemDisplayer(std::bind(Display::SearchEngine, _1, proxySongList()));
 	w.setSelectedPrefix(Config.selected_item_prefix);
 	w.setSelectedSuffix(Config.selected_item_suffix);
 	SearchMode = &SearchModes[Config.search_engine_default_search_mode];
@@ -125,29 +126,11 @@ void SearchEngine::resize()
 
 void SearchEngine::switchTo()
 {
-	using Global::myScreen;
-	using Global::myLockedScreen;
-	
-	if (myScreen == this)
-	{
-		reset();
-		return;
-	}
-	
-	if (myLockedScreen)
-		updateInactiveScreen(this);
-	
-	if (hasToBeResized || myLockedScreen)
-		resize();
-	
+	SwitchTo::execute(this);
 	if (w.empty())
 		Prepare();
-
-	if (myScreen != this && myScreen->isTabbable())
-		Global::myPrevScreen = myScreen;
-	myScreen = this;
+	markSongsInPlaylist(proxySongList());
 	drawHeader();
-	markSongsInPlaylist(getProxySongList());
 }
 
 std::wstring SearchEngine::title()
@@ -201,7 +184,7 @@ void SearchEngine::enterPressed()
 			w.insertItem(ResetButton+2, SEItem(), 1, 1);
 			w.at(ResetButton+2).value().mkBuffer() << Config.color1 << "Search results: " << Config.color2 << "Found " << found << (found > 1 ? " songs" : " song") << NC::clDefault;
 			w.insertSeparator(ResetButton+3);
-			markSongsInPlaylist(getProxySongList());
+			markSongsInPlaylist(proxySongList());
 			Statusbar::msg("Searching finished");
 			if (Config.block_search_constraints_change)
 				for (size_t i = 0; i < StaticOptions-4; ++i)
@@ -313,9 +296,9 @@ void SearchEngine::prevFound(bool wrap)
 
 /***********************************************************************/
 
-std::shared_ptr< ProxySongList > SearchEngine::getProxySongList()
+ProxySongList SearchEngine::proxySongList()
 {
-	return mkProxySongList(w, [](NC::Menu<SEItem>::Item &item) -> MPD::Song * {
+	return ProxySongList(w, [](NC::Menu<SEItem>::Item &item) -> MPD::Song * {
 		MPD::Song *ptr = 0;
 		if (!item.isSeparator() && item.value().isSong())
 			ptr = &item.value().song();

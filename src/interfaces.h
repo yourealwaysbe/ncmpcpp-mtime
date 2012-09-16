@@ -23,6 +23,7 @@
 
 #include <string>
 #include "gcc.h"
+#include "screen.h"
 #include "song.h"
 #include "proxy_song_list.h"
 
@@ -43,7 +44,7 @@ struct Searchable
 
 struct HasSongs
 {
-	virtual std::shared_ptr<ProxySongList> getProxySongList() = 0;
+	virtual ProxySongList proxySongList() = 0;
 	
 	virtual bool allowsSelection() = 0;
 	virtual void reverseSelection() = 0;
@@ -57,6 +58,25 @@ struct HasColumns
 	
 	virtual bool nextColumnAvailable() = 0;
 	virtual void nextColumn() = 0;
+};
+
+struct Tabbable
+{
+	Tabbable() : m_previous_screen(0) { }
+	
+	void switchToPreviousScreen() const {
+		if (m_previous_screen)
+			m_previous_screen->switchTo();
+	}
+	void setPreviousScreen(BaseScreen *screen) {
+		m_previous_screen = screen;
+	}
+	BaseScreen *previousScreen() const {
+		return m_previous_screen;
+	}
+	
+private:
+	BaseScreen *m_previous_screen;
 };
 
 #endif // _INTERFACES_H

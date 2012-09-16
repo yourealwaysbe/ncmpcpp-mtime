@@ -1159,7 +1159,7 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
         mpd_search_commit(itsConnection);
         while (mpd_pair *item = mpd_recv_pair_tag(itsConnection, type))
         {
-            result.push_back(TagMTime(item->value, 0));
+            result.push_back(TagMTime(item->value));
             mpd_return_pair(itsConnection, item);
         }
         mpd_response_finish(itsConnection);
@@ -1295,7 +1295,7 @@ TagMTimeList Connection::CommitSearchTagsMTime()
     if (!itsSearchFieldMTime) {
         while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
         {
-            result.push_back(TagMTime(tag->value, 0));
+            result.push_back(TagMTime(tag->value));
             mpd_return_pair(itsConnection, tag);
         }
     } else {

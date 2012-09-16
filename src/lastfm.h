@@ -28,10 +28,11 @@
 #include <memory>
 #include <pthread.h>
 
+#include "interfaces.h"
 #include "lastfm_service.h"
 #include "screen.h"
 
-struct Lastfm : public Screen<NC::Scrollpad>
+struct Lastfm: Screen<NC::Scrollpad>, Tabbable
 {
 	Lastfm();
 	
@@ -39,6 +40,7 @@ struct Lastfm : public Screen<NC::Scrollpad>
 	virtual void resize() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Lastfm; }
 	
 	virtual void update() OVERRIDE;
 	
@@ -46,7 +48,6 @@ struct Lastfm : public Screen<NC::Scrollpad>
 	virtual void spacePressed() OVERRIDE { }
 	
 	virtual bool isMergable() OVERRIDE { return true; }
-	virtual bool isTabbable() OVERRIDE { return false; }
 	
 	// private members
 	void Refetch();

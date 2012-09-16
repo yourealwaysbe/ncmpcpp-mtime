@@ -21,10 +21,11 @@
 #ifndef _SONG_INFO_H
 #define _SONG_INFO_H
 
-#include "screen.h"
+#include "interfaces.h"
 #include "mutable_song.h"
+#include "screen.h"
 
-struct SongInfo : public Screen<NC::Scrollpad>
+struct SongInfo: Screen<NC::Scrollpad>, Tabbable
 {
 	struct Metadata
 	{
@@ -40,6 +41,7 @@ struct SongInfo : public Screen<NC::Scrollpad>
 	virtual void resize() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::SongInfo; }
 	
 	virtual void update() OVERRIDE { }
 	
@@ -47,7 +49,6 @@ struct SongInfo : public Screen<NC::Scrollpad>
 	virtual void spacePressed() OVERRIDE { }
 	
 	virtual bool isMergable() OVERRIDE { return true; }
-	virtual bool isTabbable() OVERRIDE { return false; }
 	
 	// private members
 	static const Metadata Tags[];

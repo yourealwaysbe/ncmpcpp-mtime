@@ -24,7 +24,7 @@
 #include "interfaces.h"
 #include "screen.h"
 
-struct PlaylistEditor : public Screen<NC::Window *>, public Filterable, public HasColumns, public HasSongs, public Searchable
+struct PlaylistEditor: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Searchable, Tabbable
 {
 	PlaylistEditor();
 	
@@ -32,6 +32,7 @@ struct PlaylistEditor : public Screen<NC::Window *>, public Filterable, public H
 	virtual void resize() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::PlaylistEditor; }
 	
 	virtual void refresh() OVERRIDE;
 	virtual void update() OVERRIDE;
@@ -40,7 +41,6 @@ struct PlaylistEditor : public Screen<NC::Window *>, public Filterable, public H
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 	// Filterable implementation
@@ -55,7 +55,7 @@ struct PlaylistEditor : public Screen<NC::Window *>, public Filterable, public H
 	virtual void prevFound(bool wrap) OVERRIDE;
 	
 	// HasSongs implementation
-	virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
+	virtual ProxySongList proxySongList() OVERRIDE;
 	
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
@@ -74,7 +74,7 @@ struct PlaylistEditor : public Screen<NC::Window *>, public Filterable, public H
 	
 	virtual void Locate(const std::string &);
 	bool isContentFiltered();
-	std::shared_ptr<ProxySongList> contentProxyList();
+	ProxySongList contentProxyList();
 	
 	NC::Menu<std::string> Playlists;
 	NC::Menu<MPD::Song> Content;

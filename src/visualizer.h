@@ -25,14 +25,15 @@
 
 #ifdef ENABLE_VISUALIZER
 
-#include "window.h"
+#include "interfaces.h"
 #include "screen.h"
+#include "window.h"
 
 #ifdef HAVE_FFTW3_H
 # include <fftw3.h>
 #endif
 
-struct Visualizer : public Screen<NC::Window>
+struct Visualizer: Screen<NC::Window>, Tabbable
 {
 	Visualizer();
 	
@@ -40,6 +41,7 @@ struct Visualizer : public Screen<NC::Window>
 	virtual void resize() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Visualizer; }
 	
 	virtual void update() OVERRIDE;
 	virtual void scroll(NC::Where) OVERRIDE { }
@@ -48,7 +50,6 @@ struct Visualizer : public Screen<NC::Window>
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT) OVERRIDE { }
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 	// private members

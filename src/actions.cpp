@@ -201,7 +201,7 @@ void Action::ResizeScreen(bool reload_main_window)
 	
 	SetResizeFlags();
 	
-	applyToVisibleWindows(&BasicScreen::resize);
+	applyToVisibleWindows(&BaseScreen::resize);
 	
 	if (Config.header_visibility || Config.new_design)
 		wHeader->resize(COLS, HeaderHeight);
@@ -210,7 +210,7 @@ void Action::ResizeScreen(bool reload_main_window)
 	wFooter->moveTo(0, FooterStartY);
 	wFooter->resize(COLS, Config.statusbar_visibility ? 2 : 1);
 	
-	applyToVisibleWindows(&BasicScreen::refresh);
+	applyToVisibleWindows(&BaseScreen::refresh);
 	
 	Status::Changes::elapsedTime();
 	if (!Mpd.isPlaying())
@@ -539,93 +539,93 @@ void ScrollDown::Run()
 
 bool ScrollUpArtist::canBeRun() const
 {
-	return proxySongList(myScreen).get();
+	return proxySongList(myScreen);
 }
 
 void ScrollUpArtist::Run()
 {
 	auto pl = proxySongList(myScreen);
 	assert(pl);
-	size_t pos = pl->choice();
-	if (MPD::Song *s = pl->getSong(pos))
+	size_t pos = pl.choice();
+	if (MPD::Song *s = pl.getSong(pos))
 	{
 		std::string artist = s->getArtist();
 		while (pos > 0)
 		{
-			s = pl->getSong(--pos);
+			s = pl.getSong(--pos);
 			if (!s || s->getArtist() != artist)
 				break;
 		}
-		pl->highlight(pos);
+		pl.highlight(pos);
 	}
 }
 
 bool ScrollUpAlbum::canBeRun() const
 {
-	return proxySongList(myScreen).get();
+	return proxySongList(myScreen);
 }
 
 void ScrollUpAlbum::Run()
 {
 	auto pl = proxySongList(myScreen);
 	assert(pl);
-	size_t pos = pl->choice();
-	if (MPD::Song *s = pl->getSong(pos))
+	size_t pos = pl.choice();
+	if (MPD::Song *s = pl.getSong(pos))
 	{
 		std::string album = s->getAlbum();
 		while (pos > 0)
 		{
-			s = pl->getSong(--pos);
+			s = pl.getSong(--pos);
 			if (!s || s->getAlbum() != album)
 				break;
 		}
-		pl->highlight(pos);
+		pl.highlight(pos);
 	}
 }
 
 bool ScrollDownArtist::canBeRun() const
 {
-	return proxySongList(myScreen).get();
+	return proxySongList(myScreen);
 }
 
 void ScrollDownArtist::Run()
 {
 	auto pl = proxySongList(myScreen);
 	assert(pl);
-	size_t pos = pl->choice();
-	if (MPD::Song *s = pl->getSong(pos))
+	size_t pos = pl.choice();
+	if (MPD::Song *s = pl.getSong(pos))
 	{
 		std::string artist = s->getArtist();
-		while (pos < pl->size() - 1)
+		while (pos < pl.size() - 1)
 		{
-			s = pl->getSong(++pos);
+			s = pl.getSong(++pos);
 			if (!s || s->getArtist() != artist)
 				break;
 		}
-		pl->highlight(pos);
+		pl.highlight(pos);
 	}
 }
 
 bool ScrollDownAlbum::canBeRun() const
 {
-	return proxySongList(myScreen).get();
+	return proxySongList(myScreen);
 }
 
 void ScrollDownAlbum::Run()
 {
 	auto pl = proxySongList(myScreen);
 	assert(pl);
-	size_t pos = pl->choice();
-	if (MPD::Song *s = pl->getSong(pos))
+	size_t pos = pl.choice();
+	if (MPD::Song *s = pl.getSong(pos))
 	{
 		std::string album = s->getAlbum();
-		while (pos < pl->size() - 1)
+		while (pos < pl.size() - 1)
 		{
-			s = pl->getSong(++pos);
+			s = pl.getSong(++pos);
 			if (!s || s->getAlbum() != album)
 				break;
 		}
-		pl->highlight(pos);
+		pl.highlight(pos);
 	}
 }
 
@@ -1119,7 +1119,7 @@ void ToggleDisplayMode::Run()
 		
 		if (Config.columns_in_playlist)
 		{
-			myPlaylist->main().setItemDisplayer(std::bind(Display::SongsInColumns, _1, myPlaylist));
+			myPlaylist->main().setItemDisplayer(std::bind(Display::SongsInColumns, _1, myPlaylist->proxySongList()));
 			if (Config.titles_visibility)
 				myPlaylist->main().setTitle(Display::Columns(myPlaylist->main().getWidth()));
 			else
@@ -1127,7 +1127,7 @@ void ToggleDisplayMode::Run()
 		}
 		else
 		{
-			myPlaylist->main().setItemDisplayer(std::bind(Display::Songs, _1, myPlaylist, Config.song_list_format));
+			myPlaylist->main().setItemDisplayer(std::bind(Display::Songs, _1, myPlaylist->proxySongList(), Config.song_list_format));
 			myPlaylist->main().setTitle("");
 		}
 	}
@@ -1149,9 +1149,9 @@ void ToggleDisplayMode::Run()
 		Config.columns_in_playlist_editor = !Config.columns_in_playlist_editor;
 		Statusbar::msg("Playlist editor display mode: %s", Config.columns_in_playlist_editor ? "Columns" : "Classic");
 		if (Config.columns_in_playlist_editor)
-			myPlaylistEditor->Content.setItemDisplayer(std::bind(Display::SongsInColumns, _1, myPlaylistEditor));
+			myPlaylistEditor->Content.setItemDisplayer(std::bind(Display::SongsInColumns, _1, myPlaylistEditor->contentProxyList()));
 		else
-			myPlaylistEditor->Content.setItemDisplayer(std::bind(Display::Songs, _1, myPlaylistEditor, Config.song_list_format));
+			myPlaylistEditor->Content.setItemDisplayer(std::bind(Display::Songs, _1, myPlaylistEditor->contentProxyList(), Config.song_list_format));
 	}
 }
 
@@ -1366,7 +1366,7 @@ void EditLibraryTag::Run()
 	{
 		Statusbar::msg("Updating tags...");
 		Mpd.StartSearch(1);
-		Mpd.AddSearch(Config.media_lib_primary_tag, myLibrary->Tags->current().value().tag());
+		Mpd.AddSearch(Config.media_lib_primary_tag, myLibrary->Tags.current().value().tag());
 		MPD::MutableSong::SetFunction set = tagTypeToSetFunction(Config.media_lib_primary_tag);
 		assert(set);
 		bool success = true;
@@ -1611,7 +1611,7 @@ void ToggleScreenLock::Run()
 	
 	if (myLockedScreen != 0)
 	{
-		BasicScreen::unlock();
+		BaseScreen::unlock();
 		Action::SetResizeFlags();
 		myScreen->resize();
 		Statusbar::msg("Screen unlocked");
@@ -1720,50 +1720,50 @@ void ReverseSelection::Run()
 
 bool RemoveSelection::canBeRun() const
 {
-	return proxySongList(myScreen).get();
+	return proxySongList(myScreen);
 }
 
 void RemoveSelection::Run()
 {
 	auto pl = proxySongList(myScreen);
-	for (size_t i = 0; i < pl->size(); ++i)
-		pl->setSelected(i, false);
+	for (size_t i = 0; i < pl.size(); ++i)
+		pl.setSelected(i, false);
 	Statusbar::msg("Selection removed");
 }
 
 bool SelectAlbum::canBeRun() const
 {
 	auto w = hasSongs(myScreen);
-	return w && w->allowsSelection() && w->getProxySongList().get();
+	return w && w->allowsSelection() && w->proxySongList();
 }
 
 void SelectAlbum::Run()
 {
 	auto pl = proxySongList(myScreen);
-	size_t pos = pl->choice();
-	if (MPD::Song *s = pl->getSong(pos))
+	size_t pos = pl.choice();
+	if (MPD::Song *s = pl.getSong(pos))
 	{
 		std::string album = s->getAlbum();
 		// select song under cursor
-		pl->setSelected(pos, true);
+		pl.setSelected(pos, true);
 		// go up
 		while (pos > 0)
 		{
-			s = pl->getSong(--pos);
+			s = pl.getSong(--pos);
 			if (!s || s->getAlbum() != album)
 				break;
 			else
-				pl->setSelected(pos, true);
+				pl.setSelected(pos, true);
 		}
 		// go down
-		pos = pl->choice();
-		while (pos < pl->size() - 1)
+		pos = pl.choice();
+		while (pos < pl.size() - 1)
 		{
-			s = pl->getSong(++pos);
+			s = pl.getSong(++pos);
 			if (!s || s->getAlbum() != album)
 				break;
 			else
-				pl->setSelected(pos, true);
+				pl.setSelected(pos, true);
 		}
 		Statusbar::msg("Album around cursor position selected");
 	}
@@ -2258,7 +2258,7 @@ void ShowArtistInfo::Run()
 	{
 		assert(!myLibrary->Tags.empty());
 		assert(Config.media_lib_primary_tag == MPD_TAG_ARTIST);
-		artist = myLibrary->Tags->current().value().tag();
+		artist = myLibrary->Tags.current().value().tag();
 	}
 	else
 	{
@@ -2284,15 +2284,10 @@ void Quit::Run()
 
 void NextScreen::Run()
 {
-	using Global::myOldScreen;
-	using Global::myPrevScreen;
-	
 	if (Config.screen_switcher_previous)
 	{
-		if (myScreen->isTabbable())
-			myPrevScreen->switchTo();
-		else
-			myOldScreen->switchTo();
+		if (auto tababble = dynamic_cast<Tabbable *>(myScreen))
+			tababble->switchToPreviousScreen();
 	}
 	else if (!Config.screens_seq.empty())
 	{
@@ -2306,15 +2301,10 @@ void NextScreen::Run()
 
 void PreviousScreen::Run()
 {
-	using Global::myOldScreen;
-	using Global::myPrevScreen;
-	
 	if (Config.screen_switcher_previous)
 	{
-		if (myScreen->isTabbable())
-			myPrevScreen->switchTo();
-		else
-			myOldScreen->switchTo();
+		if (auto tababble = dynamic_cast<Tabbable *>(myScreen))
+			tababble->switchToPreviousScreen();
 	}
 	else if (!Config.screens_seq.empty())
 	{
@@ -2326,72 +2316,115 @@ void PreviousScreen::Run()
 	}
 }
 
-#ifdef HAVE_TAGLIB_H
 bool ShowHelp::canBeRun() const
 {
-	return myScreen != myTinyTagEditor;
+	return myScreen != myHelp
+#	ifdef HAVE_TAGLIB_H
+	    && myScreen != myTinyTagEditor
+#	endif // HAVE_TAGLIB_H
+	;
 }
-#endif // HAVE_TAGLIB_H
 
 void ShowHelp::Run()
 {
 	myHelp->switchTo();
 }
 
-#ifdef HAVE_TAGLIB_H
 bool ShowPlaylist::canBeRun() const
 {
-	return myScreen != myTinyTagEditor;
+	return myScreen != myPlaylist
+#	ifdef HAVE_TAGLIB_H
+	    && myScreen != myTinyTagEditor
+#	endif // HAVE_TAGLIB_H
+	;
 }
-#endif // HAVE_TAGLIB_H
 
 void ShowPlaylist::Run()
 {
 	myPlaylist->switchTo();
 }
 
-#ifdef HAVE_TAGLIB_H
 bool ShowBrowser::canBeRun() const
 {
-	return myScreen != myTinyTagEditor;
+	return myScreen != myBrowser
+#	ifdef HAVE_TAGLIB_H
+	    && myScreen != myTinyTagEditor
+#	endif // HAVE_TAGLIB_H
+	;
 }
-#endif // HAVE_TAGLIB_H
 
 void ShowBrowser::Run()
 {
 	myBrowser->switchTo();
 }
 
-#ifdef HAVE_TAGLIB_H
+bool ChangeBrowseMode::canBeRun() const
+{
+	return myScreen == myBrowser;
+}
+
+void ChangeBrowseMode::Run()
+{
+	myBrowser->ChangeBrowseMode();
+}
+
 bool ShowSearchEngine::canBeRun() const
 {
-	return myScreen != myTinyTagEditor;
+	return myScreen != mySearcher
+#	ifdef HAVE_TAGLIB_H
+	    && myScreen != myTinyTagEditor
+#	endif // HAVE_TAGLIB_H
+	;
 }
-#endif // HAVE_TAGLIB_H
 
 void ShowSearchEngine::Run()
 {
 	mySearcher->switchTo();
 }
 
-#ifdef HAVE_TAGLIB_H
+bool ResetSearchEngine::canBeRun() const
+{
+	return myScreen == mySearcher;
+}
+
+void ResetSearchEngine::Run()
+{
+	mySearcher->reset();
+}
+
 bool ShowMediaLibrary::canBeRun() const
 {
-	return myScreen != myTinyTagEditor;
+	return myScreen != myLibrary
+#	ifdef HAVE_TAGLIB_H
+	    && myScreen != myTinyTagEditor
+#	endif // HAVE_TAGLIB_H
+	;
 }
-#endif // HAVE_TAGLIB_H
 
 void ShowMediaLibrary::Run()
 {
 	myLibrary->switchTo();
 }
 
-#ifdef HAVE_TAGLIB_H
+bool ToggleMediaLibraryColumnsMode::canBeRun() const
+{
+	return myScreen == myLibrary;
+}
+
+void ToggleMediaLibraryColumnsMode::Run()
+{
+	myLibrary->toggleColumnsMode();
+	myLibrary->refresh();
+}
+
 bool ShowPlaylistEditor::canBeRun() const
 {
-	return myScreen != myTinyTagEditor;
+	return myScreen != myPlaylistEditor
+#	ifdef HAVE_TAGLIB_H
+	    && myScreen != myTinyTagEditor
+#	endif // HAVE_TAGLIB_H
+	;
 }
-#endif // HAVE_TAGLIB_H
 
 void ShowPlaylistEditor::Run()
 {
@@ -2401,7 +2434,8 @@ void ShowPlaylistEditor::Run()
 bool ShowTagEditor::canBeRun() const
 {
 #	ifdef HAVE_TAGLIB_H
-	return myScreen != myTinyTagEditor;
+	return myScreen != myTagEditor
+	    && myScreen != myTinyTagEditor;
 #	else
 	return false;
 #	endif // HAVE_TAGLIB_H
@@ -2418,11 +2452,11 @@ void ShowTagEditor::Run()
 bool ShowOutputs::canBeRun() const
 {
 #	ifdef ENABLE_OUTPUTS
-#	ifdef HAVE_TAGLIB_H
-	return myScreen != myTinyTagEditor;
-#	else
-	return true;
+	return myScreen != myOutputs
+#	ifdef HAVE_TAGLIB_H	
+	    && myScreen != myTinyTagEditor
 #	endif // HAVE_TAGLIB_H
+	;
 #	else
 	return false;
 #	endif // ENABLE_OUTPUTS
@@ -2437,15 +2471,15 @@ void ShowOutputs::Run()
 
 bool ShowVisualizer::canBeRun() const
 {
-#	ifdef ENABLE_OUTPUTS
+#	ifdef ENABLE_VISUALIZER
+	return myScreen != myVisualizer
 #	ifdef HAVE_TAGLIB_H
-	return myScreen != myTinyTagEditor;
-#	else
-	return true;
+	    && myScreen != myTinyTagEditor
 #	endif // HAVE_TAGLIB_H
+	;
 #	else
 	return false;
-#	endif // ENABLE_OUTPUTS
+#	endif // ENABLE_VISUALIZER
 }
 
 void ShowVisualizer::Run()
@@ -2458,11 +2492,11 @@ void ShowVisualizer::Run()
 bool ShowClock::canBeRun() const
 {
 #	ifdef ENABLE_CLOCK
+	return myScreen != myClock
 #	ifdef HAVE_TAGLIB_H
-	return myScreen != myTinyTagEditor;
-#	else
-	return true;
+	    && myScreen != myTinyTagEditor
 #	endif // HAVE_TAGLIB_H
+	;
 #	else
 	return false;
 #	endif // ENABLE_CLOCK
@@ -2495,10 +2529,7 @@ void ToggleMediaLibraryMTimeSort::Run()
 {
     if (myScreen == myLibrary) {
         Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
-        myLibrary->Tags->clear();
-        myLibrary->Albums->clear();
-        myLibrary->Songs->clear();
-        myLibrary->Update();
+        myLibrary->resort();
     }
 }
 
@@ -2615,8 +2646,11 @@ void populateActions()
 	insertAction(new ShowHelp());
 	insertAction(new ShowPlaylist());
 	insertAction(new ShowBrowser());
+	insertAction(new ChangeBrowseMode());
 	insertAction(new ShowSearchEngine());
+	insertAction(new ResetSearchEngine());
 	insertAction(new ShowMediaLibrary());
+	insertAction(new ToggleMediaLibraryColumnsMode());
 	insertAction(new ShowPlaylistEditor());
 	insertAction(new ShowTagEditor());
 	insertAction(new ShowOutputs());

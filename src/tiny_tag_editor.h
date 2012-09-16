@@ -25,10 +25,11 @@
 
 #ifdef HAVE_TAGLIB_H
 
+#include "interfaces.h"
 #include "mutable_song.h"
 #include "screen.h"
 
-struct TinyTagEditor : public Screen<NC::Menu<NC::Buffer>>
+struct TinyTagEditor: Screen<NC::Menu<NC::Buffer>>
 {
 	TinyTagEditor();
 	
@@ -37,6 +38,7 @@ struct TinyTagEditor : public Screen<NC::Menu<NC::Buffer>>
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::TinyTagEditor; }
 	
 	virtual void update() OVERRIDE { }
 	
@@ -45,17 +47,17 @@ struct TinyTagEditor : public Screen<NC::Menu<NC::Buffer>>
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
 	
 	virtual bool isMergable() OVERRIDE { return true; }
-	virtual bool isTabbable() OVERRIDE { return false; }
 	
 	// private members
 	void SetEdited(const MPD::Song &);
 	
 protected:
-	virtual bool isLockable() OVERRIDE { return true; }
+	virtual bool isLockable() OVERRIDE { return false; }
 	
 private:
 	bool getTags();
 	MPD::MutableSong itsEdited;
+	BaseScreen *m_previous_screen;
 };
 
 extern TinyTagEditor *myTinyTagEditor;

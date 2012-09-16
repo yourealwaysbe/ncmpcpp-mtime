@@ -23,6 +23,7 @@
 
 #include <cassert>
 #include "actions.h"
+#include "screen_type.h"
 
 struct PushCharacters : public Action
 {
@@ -30,10 +31,7 @@ struct PushCharacters : public Action
 	: Action(aMacroUtility, ""), m_window(w), m_queue(queue) { }
 	
 protected:
-	virtual void Run() {
-		for (auto it = m_queue.begin(); it != m_queue.end(); ++it)
-			(*m_window)->pushChar(*it);
-	}
+	virtual void Run();
 	
 private:
 	NC::Window **m_window;
@@ -46,11 +44,24 @@ struct RequireRunnable : public Action
 	: Action(aMacroUtility, ""), m_action(action) { assert(action); }
 	
 protected:
-	virtual bool canBeRun() const { return m_action->canBeRun(); }
+	virtual bool canBeRun() const;
 	virtual void Run() { }
 	
 private:
 	Action *m_action;
+};
+
+struct RequireScreen : public Action
+{
+	RequireScreen(ScreenType screen_type)
+	: Action(aMacroUtility, ""), m_screen_type(screen_type) { }
+	
+protected:
+	virtual bool canBeRun() const;
+	virtual void Run() { }
+	
+private:
+	ScreenType m_screen_type;
 };
 
 #endif // _MACRO_UTILITIES

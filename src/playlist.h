@@ -27,7 +27,7 @@
 #include "screen.h"
 #include "song.h"
 
-struct Playlist : public Screen<NC::Menu<MPD::Song>>, public Filterable, public HasSongs, public Searchable
+struct Playlist: Screen<NC::Menu<MPD::Song>>, Filterable, HasSongs, Searchable, Tabbable
 {
 	Playlist();
 	
@@ -36,6 +36,7 @@ struct Playlist : public Screen<NC::Menu<MPD::Song>>, public Filterable, public 
 	virtual void resize() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Playlist; }
 	
 	virtual void update() OVERRIDE { }
 	
@@ -43,7 +44,6 @@ struct Playlist : public Screen<NC::Menu<MPD::Song>>, public Filterable, public 
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 	// Filterable implementation
@@ -58,7 +58,7 @@ struct Playlist : public Screen<NC::Menu<MPD::Song>>, public Filterable, public 
 	virtual void prevFound(bool wrap) OVERRIDE;
 	
 	// HasSongs implementation
-	virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
+	virtual ProxySongList proxySongList() OVERRIDE;
 	
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;

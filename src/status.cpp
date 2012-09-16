@@ -90,7 +90,7 @@ void Status::trace()
 		Mpd.UpdateStatus();
 	}
 	
-	applyToVisibleWindows(&BasicScreen::update);
+	applyToVisibleWindows(&BaseScreen::update);
 	
 	if (isVisible(myPlaylist)
 	&&  Timer.tv_sec == myPlaylist->Timer().tv_sec+Config.playlist_disable_highlight_delay
@@ -165,9 +165,9 @@ void Status::Changes::playlist()
 	Playlist::ReloadRemaining = true;
 	
 	if (isVisible(myBrowser))
-		markSongsInPlaylist(myBrowser->getProxySongList());
+		markSongsInPlaylist(myBrowser->proxySongList());
 	if (isVisible(mySearcher))
-		markSongsInPlaylist(mySearcher->getProxySongList());
+		markSongsInPlaylist(mySearcher->proxySongList());
 	if (isVisible(myLibrary))
 		markSongsInPlaylist(myLibrary->songsProxyList());
 	if (isVisible(myPlaylistEditor))
@@ -290,7 +290,7 @@ void Status::Changes::songID()
 		if (Config.autocenter_mode && !myPlaylist->main().isFiltered())
 			myPlaylist->main().highlight(Mpd.GetCurrentlyPlayingSongPos());
 		
-		if (Config.now_playing_lyrics && isVisible(myLyrics) && Global::myOldScreen == myPlaylist)
+		if (Config.now_playing_lyrics && isVisible(myLyrics) && myLyrics->previousScreen() == myPlaylist)
 			myLyrics->ReloadNP = 1;
 		
 		elapsedTime();
@@ -429,8 +429,6 @@ void Status::Changes::dbUpdateState()
 {
 	mpd_db_updating = Mpd.GetDBIsUpdating() ? 'U' : 0;
 	Statusbar::msg(Mpd.GetDBIsUpdating() ? "Database update started" : "Database update finished");
-    if (!Mpd.GetDBIsUpdating())
-        myLibrary->DatabaseUpdated();
 }
 
 void Status::Changes::flags()
@@ -555,5 +553,5 @@ void Status::update(MPD::Connection *, MPD::StatusChanges changes, void *)
 	if (changes.PlayerState || (changes.ElapsedTime && (!Config.new_design || Mpd.GetState() == MPD::psPlay)))
 		wFooter->refresh();
 	if (changes.Playlist || changes.Database || changes.PlayerState || changes.SongID)
-		applyToVisibleWindows(&BasicScreen::refreshWindow);
+		applyToVisibleWindows(&BaseScreen::refreshWindow);
 }

@@ -21,9 +21,10 @@
 #ifndef _SERVER_INFO
 #define _SERVER_INFO
 
+#include "interfaces.h"
 #include "screen.h"
 
-struct ServerInfo : public Screen<NC::Scrollpad>
+struct ServerInfo: Screen<NC::Scrollpad>, Tabbable
 {
 	ServerInfo();
 	
@@ -32,6 +33,7 @@ struct ServerInfo : public Screen<NC::Scrollpad>
 	virtual void resize() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::ServerInfo; }
 	
 	virtual void update() OVERRIDE;
 	
@@ -39,7 +41,6 @@ struct ServerInfo : public Screen<NC::Scrollpad>
 	virtual void spacePressed() OVERRIDE { }
 	
 	virtual bool isMergable() OVERRIDE { return false; }
-	virtual bool isTabbable() OVERRIDE { return false; }
 	
 protected:
 	virtual bool isLockable() OVERRIDE { return false; }

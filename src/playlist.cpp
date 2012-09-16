@@ -27,6 +27,7 @@
 #include "menu.h"
 #include "playlist.h"
 #include "regex_filter.h"
+#include "screen_switcher.h"
 #include "song.h"
 #include "status.h"
 #include "statusbar.h"
@@ -59,31 +60,15 @@ Playlist::Playlist() : itsTotalLength(0), itsRemainingTime(0), itsScrollBegin(0)
 	w.setSelectedPrefix(Config.selected_item_prefix);
 	w.setSelectedSuffix(Config.selected_item_suffix);
 	if (Config.columns_in_playlist)
-		w.setItemDisplayer(std::bind(Display::SongsInColumns, _1, this));
+		w.setItemDisplayer(std::bind(Display::SongsInColumns, _1, proxySongList()));
 	else
-		w.setItemDisplayer(std::bind(Display::Songs, _1, this, Config.song_list_format));
+		w.setItemDisplayer(std::bind(Display::Songs, _1, proxySongList(), Config.song_list_format));
 }
 
 void Playlist::switchTo()
 {
-	using Global::myScreen;
-	using Global::myLockedScreen;
-	using Global::myInactiveScreen;
-	
-	if (myScreen == this)
-		return;
-	
+	SwitchTo::execute(this);
 	itsScrollBegin = 0;
-	
-	if (myLockedScreen)
-		updateInactiveScreen(this);
-	
-	if (hasToBeResized || myLockedScreen)
-		resize();
-	
-	if (myScreen != this && myScreen->isTabbable())
-		Global::myPrevScreen = myScreen;
-	myScreen = this;
 	EnableHighlighting();
 	drawHeader();
 }
@@ -186,9 +171,9 @@ void Playlist::prevFound(bool wrap)
 
 /***********************************************************************/
 
-std::shared_ptr<ProxySongList> Playlist::getProxySongList()
+ProxySongList Playlist::proxySongList()
 {
-	return mkProxySongList(w, [](NC::Menu<MPD::Song>::Item &item) {
+	return ProxySongList(w, [](NC::Menu<MPD::Song>::Item &item) {
 		return &item.value();
 	});
 }

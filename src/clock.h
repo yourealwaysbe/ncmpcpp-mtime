@@ -25,10 +25,11 @@
 
 #ifdef ENABLE_CLOCK
 
-#include "window.h"
+#include "interfaces.h"
 #include "screen.h"
+#include "window.h"
 
-struct Clock : public Screen<NC::Window>
+struct Clock: Screen<NC::Window>, Tabbable
 {
 	Clock();
 	
@@ -36,6 +37,7 @@ struct Clock : public Screen<NC::Window>
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Clock; }
 	
 	virtual void update() OVERRIDE;
 	virtual void scroll(NC::Where) OVERRIDE { }
@@ -44,7 +46,6 @@ struct Clock : public Screen<NC::Window>
 	virtual void spacePressed() OVERRIDE { }
 	virtual void mouseButtonPressed(MEVENT) OVERRIDE { }
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 protected:

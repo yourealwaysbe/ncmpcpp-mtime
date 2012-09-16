@@ -28,12 +28,11 @@
 #include <list>
 
 #include "interfaces.h"
-#include "mpdpp.h"
 #include "mutable_song.h"
 #include "regex_filter.h"
 #include "screen.h"
 
-struct TagEditor : public Screen<NC::Window *>, public Filterable, public HasColumns, public HasSongs, public Searchable
+struct TagEditor: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Searchable, Tabbable
 {
 	TagEditor();
 	
@@ -41,6 +40,7 @@ struct TagEditor : public Screen<NC::Window *>, public Filterable, public HasCol
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::TagEditor; }
 	
 	virtual void refresh() OVERRIDE;
 	virtual void update() OVERRIDE;
@@ -49,7 +49,6 @@ struct TagEditor : public Screen<NC::Window *>, public Filterable, public HasCol
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT) OVERRIDE;
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 	// Filterable implementation
@@ -64,7 +63,7 @@ struct TagEditor : public Screen<NC::Window *>, public Filterable, public HasCol
 	virtual void prevFound(bool wrap) OVERRIDE;
 	
 	// HasSongs implementation
-	virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
+	virtual ProxySongList proxySongList() OVERRIDE;
 	
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;

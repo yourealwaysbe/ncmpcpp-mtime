@@ -38,6 +38,7 @@
 #include "utility/comparators.h"
 #include "title.h"
 #include "tags.h"
+#include "screen_switcher.h"
 
 using namespace std::placeholders;
 
@@ -69,7 +70,7 @@ Browser::Browser() : itsBrowseLocally(0), itsScrollBeginning(0), itsBrowsedDir("
 	w.centeredCursor(Config.centered_cursor);
 	w.setSelectedPrefix(Config.selected_item_prefix);
 	w.setSelectedSuffix(Config.selected_item_suffix);
-	w.setItemDisplayer(Display::Items);
+	w.setItemDisplayer(std::bind(Display::Items, _1, proxySongList()));
 	
 	if (SupportedExtensions.empty())
 		Mpd.GetSupportedExtensions(SupportedExtensions);
@@ -87,33 +88,17 @@ void Browser::resize()
 
 void Browser::switchTo()
 {
-	using Global::myLockedScreen;
-	using Global::myInactiveScreen;
+	SwitchTo::execute(this);
 	
-	if (myScreen == this)
-	{
-#		ifndef WIN32
-		myBrowser->ChangeBrowseMode();
-#		endif // !WIN32
-	}
-	
-	if (myLockedScreen)
-		updateInactiveScreen(this);
-	
-	if (hasToBeResized || myLockedScreen)
-		resize();
-	
-	if (isLocal() && Config.browser_sort_mode == smMTime) // local browser doesn't support sorting by mtime
+	// local browser doesn't support sorting by mtime
+	if (isLocal() && Config.browser_sort_mode == smMTime)
 		Config.browser_sort_mode = smName;
 	
 	if (w.empty())
-		myBrowser->GetDirectory(itsBrowsedDir);
+		GetDirectory(itsBrowsedDir);
 	else
-		markSongsInPlaylist(getProxySongList());
-
-	if (myScreen != this && myScreen->isTabbable())
-		Global::myPrevScreen = myScreen;
-	myScreen = this;
+		markSongsInPlaylist(proxySongList());
+	
 	drawHeader();
 }
 
@@ -302,9 +287,9 @@ void Browser::prevFound(bool wrap)
 
 /***********************************************************************/
 
-std::shared_ptr<ProxySongList> Browser::getProxySongList()
+ProxySongList Browser::proxySongList()
 {
-	return mkProxySongList(w, [](NC::Menu<MPD::Item>::Item &item) -> MPD::Song * {
+	return ProxySongList(w, [](NC::Menu<MPD::Item>::Item &item) -> MPD::Song * {
 		MPD::Song *ptr = 0;
 		if (item.value().type == itSong)
 			ptr = item.value().song.get();

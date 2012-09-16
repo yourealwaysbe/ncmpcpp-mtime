@@ -24,11 +24,12 @@
 #include <pthread.h>
 #include <queue>
 
-#include "mpdpp.h"
-#include "screen.h"
+#include "interfaces.h"
 #include "lyrics_fetcher.h"
+#include "screen.h"
+#include "song.h"
 
-struct Lyrics : public Screen<NC::Scrollpad>
+struct Lyrics: Screen<NC::Scrollpad>, Tabbable
 {
 	Lyrics();
 	
@@ -37,6 +38,7 @@ struct Lyrics : public Screen<NC::Scrollpad>
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Lyrics; }
 	
 	virtual void update() OVERRIDE;
 	
@@ -44,7 +46,6 @@ struct Lyrics : public Screen<NC::Scrollpad>
 	virtual void spacePressed() OVERRIDE;
 	
 	virtual bool isMergable() OVERRIDE { return true; }
-	virtual bool isTabbable() OVERRIDE { return false; }
 	
 	// private members
 	void Edit();

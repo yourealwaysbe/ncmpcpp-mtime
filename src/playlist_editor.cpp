@@ -34,6 +34,7 @@
 #include "tag_editor.h"
 #include "utility/comparators.h"
 #include "title.h"
+#include "screen_switcher.h"
 
 using namespace std::placeholders;
 
@@ -76,9 +77,9 @@ PlaylistEditor::PlaylistEditor()
 	Content.setSelectedPrefix(Config.selected_item_prefix);
 	Content.setSelectedSuffix(Config.selected_item_suffix);
 	if (Config.columns_in_playlist_editor)
-		Content.setItemDisplayer(std::bind(Display::SongsInColumns, _1, this));
+		Content.setItemDisplayer(std::bind(Display::SongsInColumns, _1, contentProxyList()));
 	else
-		Content.setItemDisplayer(std::bind(Display::Songs, _1, this, Config.song_list_format));
+		Content.setItemDisplayer(std::bind(Display::Songs, _1, contentProxyList(), Config.song_list_format));
 	
 	w = &Playlists;
 }
@@ -116,23 +117,9 @@ void PlaylistEditor::refresh()
 
 void PlaylistEditor::switchTo()
 {
-	using Global::myScreen;
-	using Global::myLockedScreen;
-	
-	if (myScreen == this)
-		return;
-	
-	if (myLockedScreen)
-		updateInactiveScreen(this);
-	
-	if (hasToBeResized || myLockedScreen)
-		resize();
-	
-	if (myScreen != this && myScreen->isTabbable())
-		Global::myPrevScreen = myScreen;
-	myScreen = this;
-	drawHeader();
+	SwitchTo::execute(this);
 	markSongsInPlaylist(contentProxyList());
+	drawHeader();
 	refresh();
 }
 
@@ -215,9 +202,9 @@ bool PlaylistEditor::isContentFiltered()
 	return false;
 }
 
-std::shared_ptr<ProxySongList> PlaylistEditor::contentProxyList()
+ProxySongList PlaylistEditor::contentProxyList()
 {
-	return mkProxySongList(Content, [](NC::Menu<MPD::Song>::Item &item) {
+	return ProxySongList(Content, [](NC::Menu<MPD::Song>::Item &item) {
 		return &item.value();
 	});
 }
@@ -399,9 +386,9 @@ void PlaylistEditor::prevFound(bool wrap)
 
 /***********************************************************************/
 
-std::shared_ptr<ProxySongList> PlaylistEditor::getProxySongList()
+ProxySongList PlaylistEditor::proxySongList()
 {
-	auto ptr = nullProxySongList();
+	auto ptr = ProxySongList();
 	if (isActiveWindow(Content))
 		ptr = contentProxyList();
 	return ptr;

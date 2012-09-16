@@ -37,6 +37,7 @@
 #include "utility/comparators.h"
 #include "title.h"
 #include "tags.h"
+#include "screen_switcher.h"
 
 using namespace std::placeholders;
 
@@ -194,20 +195,7 @@ std::wstring TagEditor::title()
 
 void TagEditor::switchTo()
 {
-	using Global::myLockedScreen;
-	
-	if (myScreen == this)
-		return;
-	
-	if (myLockedScreen)
-		updateInactiveScreen(this);
-	
-	if (hasToBeResized || myLockedScreen)
-		resize();
-	
-	if (myScreen != this && myScreen->isTabbable())
-		Global::myPrevScreen = myScreen;
-	myScreen = this;
+	SwitchTo::execute(this);
 	drawHeader();
 	refresh();
 }
@@ -808,11 +796,11 @@ void TagEditor::prevFound(bool wrap)
 
 /***********************************************************************/
 
-std::shared_ptr<ProxySongList> TagEditor::getProxySongList()
+ProxySongList TagEditor::proxySongList()
 {
-	auto ptr = nullProxySongList();
+	auto ptr = ProxySongList();
 	if (w == Tags)
-		ptr = mkProxySongList(*Tags, [](NC::Menu<MPD::MutableSong>::Item &item) {
+		ptr = ProxySongList(*Tags, [](NC::Menu<MPD::MutableSong>::Item &item) {
 			return &item.value();
 		});
 	return ptr;

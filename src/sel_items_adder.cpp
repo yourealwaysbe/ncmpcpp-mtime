@@ -29,6 +29,7 @@
 #include "settings.h"
 #include "statusbar.h"
 #include "utility/comparators.h"
+#include "screen_switcher.h"
 
 SelectedItemsAdder *mySelectedItemsAdder;
 
@@ -103,7 +104,6 @@ void SelectedItemsAdder::switchTo()
 {
 	using Global::myScreen;
 	
-	assert(myScreen != this);
 	auto hs = hasSongs(myScreen);
 	if (!hs || !hs->allowsSelection())
 		return;
@@ -115,15 +115,10 @@ void SelectedItemsAdder::switchTo()
 		Statusbar::msg("List of selected items is empty");
 		return;
 	}
-	
-	if (hasToBeResized)
-		resize();
-	
 	populatePlaylistSelector(myScreen);
-	
+	SwitchTo::execute(this);
 	// default to main window
 	w = &m_playlist_selector;
-	myScreen = this;
 }
 
 void SelectedItemsAdder::resize()
@@ -141,10 +136,10 @@ void SelectedItemsAdder::resize()
 		(COLS-m_position_selector_width)/2,
 		MainStartY+(MainHeight-m_position_selector_height)/2
 	);
-	if (m_old_screen && m_old_screen->hasToBeResized) // resize background window
+	if (previousScreen() && previousScreen()->hasToBeResized) // resize background window
 	{
-		m_old_screen->resize();
-		m_old_screen->refresh();
+		previousScreen()->resize();
+		previousScreen()->refresh();
 	}
 	hasToBeResized = 0;
 }
@@ -162,7 +157,7 @@ void SelectedItemsAdder::refresh()
 
 std::wstring SelectedItemsAdder::title()
 {
-	return m_old_screen->title();
+	return previousScreen()->title();
 }
 
 void SelectedItemsAdder::enterPressed()
@@ -184,10 +179,9 @@ void SelectedItemsAdder::mouseButtonPressed(MEVENT me)
 		Screen<WindowType>::mouseButtonPressed(me);
 }
 
-void SelectedItemsAdder::populatePlaylistSelector(BasicScreen *old_screen)
+void SelectedItemsAdder::populatePlaylistSelector(BaseScreen *old_screen)
 {
 	typedef SelectedItemsAdder Self;
-	m_old_screen = old_screen;
 	m_playlist_selector.reset();
 	m_playlist_selector.clear();
 	if (old_screen != myPlaylist)
@@ -245,7 +239,7 @@ void SelectedItemsAdder::addToExistingPlaylist(const std::string &playlist) cons
 	if (Mpd.CommitCommandsList())
 	{
 		Statusbar::msg("Selected item(s) added to playlist \"%s\"", playlist.c_str());
-		m_old_screen->switchTo();
+		switchToPreviousScreen();
 	}
 }
 
@@ -268,6 +262,7 @@ void SelectedItemsAdder::addAfterCurrentSong() const
 	if (!Mpd.isPlaying())
 		return;
 	size_t pos = Mpd.GetCurrentlyPlayingSongPos();
+	++pos;
 	bool success = addSongsToPlaylist(m_selected_items, false, pos);
 	if (success)
 		exitSuccessfully();
@@ -301,7 +296,7 @@ void SelectedItemsAdder::addAfterHighlightedSong() const
 void SelectedItemsAdder::cancel()
 {
 	if (isActiveWindow(m_playlist_selector))
-		m_old_screen->switchTo();
+		switchToPreviousScreen();
 	else if (isActiveWindow(m_position_selector))
 		w = &m_playlist_selector;
 }
@@ -309,7 +304,7 @@ void SelectedItemsAdder::cancel()
 void SelectedItemsAdder::exitSuccessfully() const
 {
 	Statusbar::msg("Selected items added");
-	m_old_screen->switchTo();
+	switchToPreviousScreen();
 }
 
 void SelectedItemsAdder::setDimensions()

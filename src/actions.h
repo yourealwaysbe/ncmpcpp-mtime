@@ -46,8 +46,8 @@ enum ActionType
 	aToggleMouse, aToggleBitrateVisibility, aAddRandomItems, aToggleBrowserSortMode, aToggleLibraryTagType,
 	aRefetchLyrics, aRefetchArtistInfo, aSetSelectedItemsPriority, aFilterPlaylistOnPriorities,
 	aShowSongInfo, aShowArtistInfo,
-	aShowLyrics, aQuit, aNextScreen, aPreviousScreen, aShowHelp, aShowPlaylist, aShowBrowser,
-	aShowSearchEngine, aShowMediaLibrary, aShowPlaylistEditor, aShowTagEditor, aShowOutputs,
+	aShowLyrics, aQuit, aNextScreen, aPreviousScreen, aShowHelp, aShowPlaylist, aShowBrowser, aChangeBrowseMode,
+	aShowSearchEngine, aResetSearchEngine, aShowMediaLibrary, aToggleMediaLibraryColumnsMode, aShowPlaylistEditor, aShowTagEditor, aShowOutputs,
 	aShowVisualizer, aShowClock, aShowServerInfo, aToggleMediaLibraryMTimeSort
 };
 
@@ -979,9 +979,7 @@ struct ShowHelp : public Action
 	ShowHelp() : Action(aShowHelp, "show_help") { }
 	
 protected:
-#	ifdef HAVE_TAGLIB_H
 	virtual bool canBeRun() const;
-#	endif // HAVE_TAGLIB_H
 	virtual void Run();
 };
 
@@ -990,9 +988,7 @@ struct ShowPlaylist : public Action
 	ShowPlaylist() : Action(aShowPlaylist, "show_playlist") { }
 	
 protected:
-#	ifdef HAVE_TAGLIB_H
 	virtual bool canBeRun() const;
-#	endif // HAVE_TAGLIB_H
 	virtual void Run();
 };
 
@@ -1001,9 +997,16 @@ struct ShowBrowser : public Action
 	ShowBrowser() : Action(aShowBrowser, "show_browser") { }
 	
 protected:
-#	ifdef HAVE_TAGLIB_H
 	virtual bool canBeRun() const;
-#	endif // HAVE_TAGLIB_H
+	virtual void Run();
+};
+
+struct ChangeBrowseMode : public Action
+{
+	ChangeBrowseMode() : Action(aChangeBrowseMode, "change_browse_mode") { }
+	
+protected:
+	virtual bool canBeRun() const;
 	virtual void Run();
 };
 
@@ -1012,9 +1015,16 @@ struct ShowSearchEngine : public Action
 	ShowSearchEngine() : Action(aShowSearchEngine, "show_search_engine") { }
 	
 protected:
-#	ifdef HAVE_TAGLIB_H
 	virtual bool canBeRun() const;
-#	endif // HAVE_TAGLIB_H
+	virtual void Run();
+};
+
+struct ResetSearchEngine : public Action
+{
+	ResetSearchEngine() : Action(aResetSearchEngine, "reset_search_engine") { }
+	
+protected:
+	virtual bool canBeRun() const;
 	virtual void Run();
 };
 
@@ -1023,9 +1033,17 @@ struct ShowMediaLibrary : public Action
 	ShowMediaLibrary() : Action(aShowMediaLibrary, "show_media_library") { }
 	
 protected:
-#	ifdef HAVE_TAGLIB_H
 	virtual bool canBeRun() const;
-#	endif // HAVE_TAGLIB_H
+	virtual void Run();
+};
+
+struct ToggleMediaLibraryColumnsMode : public Action
+{
+	ToggleMediaLibraryColumnsMode()
+	: Action(aToggleMediaLibraryColumnsMode, "toggle_media_library_columns_mode") { }
+	
+protected:
+	virtual bool canBeRun() const;
 	virtual void Run();
 };
 
@@ -1034,9 +1052,7 @@ struct ShowPlaylistEditor : public Action
 	ShowPlaylistEditor() : Action(aShowPlaylistEditor, "show_playlist_editor") { }
 	
 protected:
-#	ifdef HAVE_TAGLIB_H
 	virtual bool canBeRun() const;
-#	endif // HAVE_TAGLIB_H
 	virtual void Run();
 };
 

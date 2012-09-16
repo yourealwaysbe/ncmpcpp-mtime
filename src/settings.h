@@ -27,7 +27,7 @@
 #include "actions.h"
 #include "strbuffer.h"
 
-struct BasicScreen; // forward declaration for screens sequence
+struct BaseScreen; // forward declaration for screens sequence
 
 enum SortMode { smName, smMTime, smCustomFormat };
 
@@ -50,20 +50,20 @@ struct ScreenRef
 {
 	ScreenRef() : m_ptr(0) { }
 	template <typename ScreenT>
-	ScreenRef(ScreenT *&ptr) : m_ptr(reinterpret_cast<BasicScreen **>(&ptr)) { }
+	ScreenRef(ScreenT *&ptr) : m_ptr(reinterpret_cast<BaseScreen **>(&ptr)) { }
 	
-	BasicScreen &operator*() const { return **m_ptr; }
-	BasicScreen *operator->() const { return *m_ptr; }
+	BaseScreen &operator*() const { return **m_ptr; }
+	BaseScreen *operator->() const { return *m_ptr; }
 	
 	bool operator==(const ScreenRef &rhs) const { return m_ptr == rhs.m_ptr; }
 	bool operator!=(const ScreenRef &rhs) const { return m_ptr != rhs.m_ptr; }
-	bool operator==(const BasicScreen *rhs) const { return *m_ptr == rhs; }
-	bool operator!=(const BasicScreen *rhs) const { return *m_ptr != rhs; }
+	bool operator==(const BaseScreen *rhs) const { return *m_ptr == rhs; }
+	bool operator!=(const BaseScreen *rhs) const { return *m_ptr != rhs; }
 	
 	operator bool() { return m_ptr != 0; }
 	
 private:
-	BasicScreen **m_ptr;
+	BaseScreen **m_ptr;
 };
 
 struct Configuration
@@ -184,7 +184,6 @@ struct Configuration
 	bool tag_editor_extended_numeration;
 	bool media_library_display_date;
 	bool media_library_display_empty_tag;
-	bool media_library_disable_two_column_mode;
 	bool discard_colors_if_item_is_selected;
 	bool store_lyrics_in_song_dir;
 	bool ask_for_locked_screen_width_part;

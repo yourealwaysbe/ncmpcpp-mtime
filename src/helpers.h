@@ -28,31 +28,31 @@
 #include "status.h"
 #include "utility/wide_string.h"
 
-inline HasColumns *hasColumns(BasicScreen *screen)
+inline HasColumns *hasColumns(BaseScreen *screen)
 {
 	return dynamic_cast<HasColumns *>(screen);
 }
 
-inline HasSongs *hasSongs(BasicScreen *screen)
+inline HasSongs *hasSongs(BaseScreen *screen)
 {
 	return dynamic_cast<HasSongs *>(screen);
 }
 
-inline std::shared_ptr<ProxySongList> proxySongList(BasicScreen *screen)
+inline ProxySongList proxySongList(BaseScreen *screen)
 {
-	auto ptr = nullProxySongList();
+	auto pl = ProxySongList();
 	auto hs = hasSongs(screen);
 	if (hs)
-		ptr = hs->getProxySongList();
-	return ptr;
+		pl = hs->proxySongList();
+	return pl;
 }
 
-inline MPD::Song *currentSong(BasicScreen *screen)
+inline MPD::Song *currentSong(BaseScreen *screen)
 {
 	MPD::Song *ptr = 0;
 	auto pl = proxySongList(screen);
 	if (pl)
-		ptr = pl->currentSong();
+		ptr = pl.currentSong();
 	return ptr;
 }
 
@@ -471,7 +471,7 @@ bool addSongsToPlaylist(const MPD::SongList &list, bool play, size_t position = 
 
 std::string Timestamp(time_t t);
 
-void markSongsInPlaylist(std::shared_ptr<ProxySongList> pl);
+void markSongsInPlaylist(ProxySongList pl);
 
 std::wstring Scroller(const std::wstring &str, size_t &pos, size_t width);
 

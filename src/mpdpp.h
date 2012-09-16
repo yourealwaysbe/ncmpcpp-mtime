@@ -97,6 +97,8 @@ private:
 
 struct TagMTime 
 {
+    TagMTime(const std::string &tag_) : m_tag(tag_), m_mtime(0) { }
+	
     TagMTime(const std::string &tag_, time_t mtime_) : m_tag(tag_), m_mtime(mtime_) { }
 	
 	const std::string &tag() const { return m_tag; }
@@ -108,6 +110,10 @@ struct TagMTime
 
     void set_tag(std::string tag) {
         m_tag = tag;
+    }
+
+    bool hasMTime() {
+        return (m_mtime != 0);
     }
 	
 private:

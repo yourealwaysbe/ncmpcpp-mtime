@@ -27,6 +27,7 @@
 #include "status.h"
 #include "utility/wide_string.h"
 #include "title.h"
+#include "screen_switcher.h"
 
 using Global::MainHeight;
 using Global::MainStartY;
@@ -113,21 +114,7 @@ void Help::resize()
 
 void Help::switchTo()
 {
-	using Global::myScreen;
-	using Global::myLockedScreen;
-	
-	if (myScreen == this)
-		return;
-	
-	if (myLockedScreen)
-		updateInactiveScreen(this);
-	
-	if (hasToBeResized || myLockedScreen)
-		resize();
-	
-	if (myScreen != this && myScreen->isTabbable())
-		Global::myPrevScreen = myScreen;
-	myScreen = this;
+	SwitchTo::execute(this);
 	drawHeader();
 }
 
@@ -152,9 +139,9 @@ std::string Help::DisplayKeys(const ActionType at)
 	return result;
 }
 
-void Help::Section(const char *type, const char *title_)
+void Help::Section(const char *type_, const char *title_)
 {
-	w << L"\n  " << NC::fmtBold << ToWString(type) << L" - ";
+	w << L"\n  " << NC::fmtBold << ToWString(type_) << L" - ";
 	w << ToWString(title_) << NC::fmtBoldEnd << L"\n\n";
 }
 
@@ -307,7 +294,7 @@ void Help::GetKeybindings()
 #	endif // HAVE_TAGLIB_H
 	KeyDesc(aEditDirectoryName, "Edit directory name");
 	KeyDesc(aEditPlaylistName, "Edit playlist name");
-	KeyDesc(aShowBrowser, "Browse MPD database/local filesystem");
+	KeyDesc(aChangeBrowseMode, "Browse MPD database/local filesystem");
 	KeyDesc(aToggleBrowserSortMode, "Toggle sort mode");
 	KeyDesc(aJumpToPlayingSong, "Locate playing song");
 	KeyDesc(aJumpToParentDirectory, "Jump to parent directory");
@@ -321,11 +308,10 @@ void Help::GetKeybindings()
 	KeyDesc(aEditSong, "Edit song");
 #	endif // HAVE_TAGLIB_H
 	KeyDesc(aStartSearching, "Start searching");
-	KeyDesc(aShowSearchEngine, "Reset search constraints and clear results");
+	KeyDesc(aResetSearchEngine, "Reset search constraints and clear results");
 	
 	KeysSection("Media library");
-	if (!Config.media_library_disable_two_column_mode)
-		KeyDesc(aShowMediaLibrary, "Switch between two/three columns mode");
+	KeyDesc(aToggleMediaLibraryColumnsMode, "Switch between two/three columns mode");
 	KeyDesc(aPreviousColumn, "Previous column");
 	KeyDesc(aNextColumn, "Next column");
 	KeyDesc(aPressEnter, "Add item to playlist and play it");

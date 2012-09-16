@@ -25,7 +25,7 @@
 #include "mpdpp.h"
 #include "screen.h"
 
-struct Browser : public Screen<NC::Menu<MPD::Item>>, public Filterable, public HasSongs, public Searchable
+struct Browser: Screen<NC::Menu<MPD::Item>>, Filterable, HasSongs, Searchable, Tabbable
 {
 	Browser();
 	
@@ -34,6 +34,7 @@ struct Browser : public Screen<NC::Menu<MPD::Item>>, public Filterable, public H
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Browser; }
 	
 	virtual void update() OVERRIDE { }
 	
@@ -41,7 +42,6 @@ struct Browser : public Screen<NC::Menu<MPD::Item>>, public Filterable, public H
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 	// Filterable implementation
@@ -56,7 +56,7 @@ struct Browser : public Screen<NC::Menu<MPD::Item>>, public Filterable, public H
 	virtual void prevFound(bool wrap) OVERRIDE;
 	
 	// HasSongs implementation
-	virtual std::shared_ptr<ProxySongList> proxySongList() OVERRIDE;
+	virtual ProxySongList proxySongList() OVERRIDE;
 	
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;

@@ -22,9 +22,10 @@
 #define _HELP_H
 
 #include "actions.h"
+#include "interfaces.h"
 #include "screen.h"
 
-struct Help : public Screen<NC::Scrollpad>
+struct Help: Screen<NC::Scrollpad>, Tabbable
 {
 	Help();
 	
@@ -32,13 +33,13 @@ struct Help : public Screen<NC::Scrollpad>
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::Help; }
 	
 	virtual void update() OVERRIDE { }
 	
 	virtual void enterPressed() OVERRIDE { }
 	virtual void spacePressed() OVERRIDE { }
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 protected:
@@ -47,7 +48,7 @@ protected:
 private:
 	void KeysSection(const char *title_) { Section("Keys", title_); }
 	void MouseSection(const char *title_) { Section("Mouse", title_); }
-	void Section(const char *type, const char *title_);
+	void Section(const char *type_, const char *title_);
 	void KeyDesc(const ActionType at, const char *desc);
 	void MouseDesc(std::string action, const char *desc, bool indent = false);
 	void MouseColumn(const char *column);

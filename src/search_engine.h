@@ -73,7 +73,7 @@ struct SEItem
 		MPD::Song itsSong;
 };
 
-struct SearchEngine : public Screen<NC::Menu<SEItem>>, public Filterable, public HasSongs, public Searchable
+struct SearchEngine: Screen<NC::Menu<SEItem>>, Filterable, HasSongs, Searchable, Tabbable
 {
 	SearchEngine();
 	
@@ -82,6 +82,7 @@ struct SearchEngine : public Screen<NC::Menu<SEItem>>, public Filterable, public
 	virtual void switchTo() OVERRIDE;
 	
 	virtual std::wstring title() OVERRIDE;
+	virtual ScreenType type() OVERRIDE { return ScreenType::SearchEngine; }
 	
 	virtual void update() OVERRIDE { }
 	
@@ -89,7 +90,6 @@ struct SearchEngine : public Screen<NC::Menu<SEItem>>, public Filterable, public
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
 	
-	virtual bool isTabbable() OVERRIDE { return true; }
 	virtual bool isMergable() OVERRIDE { return true; }
 	
 	// Filterable implementation
@@ -104,13 +104,14 @@ struct SearchEngine : public Screen<NC::Menu<SEItem>>, public Filterable, public
 	virtual void prevFound(bool wrap) OVERRIDE;
 	
 	// HasSongs implementation
-	virtual std::shared_ptr<ProxySongList> getProxySongList() OVERRIDE;
+	virtual ProxySongList proxySongList() OVERRIDE;
 	
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
 	virtual MPD::SongList getSelectedSongs() OVERRIDE;
 	
 	// private members
+	void reset();
 	
 	static size_t StaticOptions;
 	static size_t SearchButton;
@@ -122,7 +123,6 @@ protected:
 private:
 	void Prepare();
 	void Search();
-	void reset();
 	
 	const char **SearchMode;
 	
