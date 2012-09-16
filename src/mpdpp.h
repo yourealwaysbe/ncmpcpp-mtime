@@ -121,6 +121,15 @@ private:
 	time_t m_mtime;
 };
 
+class SortSongsByTag {
+public:
+    SortSongsByTag(mpd_tag_type type) : m_type(type) { }
+    bool operator()(const Song &s1, const Song &s2);
+
+private:
+    mpd_tag_type m_type;
+};
+
 typedef std::vector<TagMTime> TagMTimeList;
 typedef std::vector<Item> ItemList;
 typedef std::vector<std::string> StringList;

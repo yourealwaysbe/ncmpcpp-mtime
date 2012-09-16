@@ -22,6 +22,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <map>
+#include <cstring>
 
 #include "charset.h"
 #include "error.h"
@@ -1146,15 +1147,16 @@ StringList Connection::GetList(mpd_tag_type type)
 	return result;
 }
 
+
 TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 {
     TagMTimeList result;
     if (!itsConnection)
         return result;
+    assert(!isCommandsListEnabled);
+    GoBusy();
 
     if (!get_mtime) {
-        assert(!isCommandsListEnabled);
-        GoBusy();
         mpd_search_db_tags(itsConnection, type);
         mpd_search_commit(itsConnection);
         while (mpd_pair *item = mpd_recv_pair_tag(itsConnection, type))
@@ -1163,40 +1165,30 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
             mpd_return_pair(itsConnection, item);
         }
         mpd_response_finish(itsConnection);
-        GoIdle();
     } else {
+        mpd_send_list_all_meta(itsConnection, "/");
         std::map<std::string, time_t> max_mtimes;
-        auto list = Mpd.GetDirectoryRecursive("/");
-        for (auto it = list.begin(); it != list.end(); ++it) {
-            const std::string &tag = it->getTag(type);
+        while (mpd_song *s = mpd_recv_song(itsConnection)) {
+            Song song(s);
+            const std::string &tag = song.getTag(type);
+            time_t mtime = song.getMTime();
             auto mt = max_mtimes.find(tag);
             if (mt == max_mtimes.end()) {
-                max_mtimes.insert(std::make_pair(tag, it->getMTime()));
+                max_mtimes.insert(std::make_pair(tag, mtime));
             } else {
-                mt->second = std::max(mt->second, it->getMTime());
+                mt->second = std::max(mt->second, mtime);
             }
         }
-
+        mpd_response_finish(itsConnection);
+ 
         for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) {
             result.push_back(TagMTime(it->first, it->second));
         }
     }
 
+    GoIdle();
 	return result;
 }
-
-time_t Connection::GetMTime(mpd_tag_type type, const std::string &value) {
-    Mpd.BlockIdle(true);
-    Mpd.StartSearch(1);
-    Mpd.AddSearch(type, value);
-    auto songs = Mpd.CommitSearchSongs();
-    time_t mtime = 0;
-    for (auto s = songs.begin(); s != songs.end(); ++s) {
-        mtime = std::max(mtime, s->getMTime());
-    }
-    return mtime;
-}
-
 
 
 void Connection::StartSearch(bool exact_match)
@@ -1321,15 +1313,6 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 
 	return result;
 }
-
-void Connection::FillMTimes(TagMTimeList &list, mpd_tag_type type) {
-    for (auto t = list.begin(); t != list.end(); ++t) {
-        time_t mtime = GetMTime(type, t->tag());
-        t->set_mtime(mtime);
-    }
-}
-
-
 
 
 ItemList Connection::GetDirectory(const std::string &path)
@@ -1524,5 +1507,13 @@ int Connection::CheckForErrors()
 	}
 	return error_code;
 }
+
+
+bool SortSongsByTag::operator()(const Song &s1, const Song &s2) {
+    const std::string &t1 = s1.getTag(m_type);
+    const std::string &t2 = s2.getTag(m_type);
+    return t1 < t2;
+}
+
 
 }
