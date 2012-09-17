@@ -2532,14 +2532,7 @@ bool ToggleMediaLibraryMTimeSort::canBeRun() const
 void ToggleMediaLibraryMTimeSort::Run() 
 {
 	if (myScreen == myLibrary) 
-	{
-		Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
-		if (Config.media_library_sort_by_mtime)
-			Statusbar::msg("Sorting library by: Modification time.");
-		else
-			Statusbar::msg("Sorting library by: Name.");
-		myLibrary->resort();
-	}
+		myLibrary->toggleMTimeSort();
 }
 
 

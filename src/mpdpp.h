@@ -104,14 +104,14 @@ struct TagMTime
 	const std::string &tag() const { return m_tag; }
 	time_t mtime() const { return m_mtime; }
 
-	void set_mtime(time_t mtime) 
+	void set_mtime(time_t mtime_) 
 	{
-		m_mtime = mtime;
+		m_mtime = mtime_;
 	}
 
-	void set_tag(std::string tag) 
+	void set_tag(std::string tag_) 
 	{
-		m_tag = tag;
+		m_tag = tag_;
 	}
 
 	bool hasMTime() 

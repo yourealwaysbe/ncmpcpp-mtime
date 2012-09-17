@@ -76,7 +76,7 @@ struct MediaLibrary: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Sea
 
 	// mtimes
 	bool hasMTimes();
-	void resort();
+	void toggleMTimeSort();
 
 	struct SearchConstraints
 	{

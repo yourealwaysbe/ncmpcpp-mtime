@@ -233,17 +233,23 @@ std::wstring MediaLibrary::title()
 
 bool MediaLibrary::hasMTimes() 
 {
-	bool hasMTimes = false;
+	bool has = false;
 	if (hasTwoColumns && !Albums.empty())
-		hasMTimes = Albums.current().value().hasMTime();
+		has = Albums.current().value().hasMTime();
 	else if (!hasTwoColumns && !Tags.empty())
-		hasMTimes = Tags.current().value().hasMTime();
-	return hasMTimes;
+		has = Tags.current().value().hasMTime();
+	return has;
 }
 
-void MediaLibrary::resort() 
+void MediaLibrary::toggleMTimeSort() 
 {
-	if (!myLibrary->hasMTimes()) 
+	Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
+	if (Config.media_library_sort_by_mtime)
+		Statusbar::msg("Sorting library by: Modification time.");
+	else
+		Statusbar::msg("Sorting library by: Name.");
+
+	if (!myLibrary->hasMTimes() && Config.media_library_sort_by_mtime) 
 	{
 		myLibrary->Tags.clear();
 		myLibrary->Albums.clear();
@@ -1029,7 +1035,6 @@ void DisplayAlbums(NC::Menu<SearchConstraints> &menu)
 void DisplayPrimaryTags(NC::Menu<MPD::TagMTime> &menu)
 {
 	const std::string &tag = menu.drawn()->value().tag();
-	const time_t mtime = menu.drawn()->value().mtime();
 	if (tag.empty())
 		menu << Config.empty_tag;
 	else 
