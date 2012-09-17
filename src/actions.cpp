@@ -2125,12 +2125,15 @@ void ToggleLibraryTagType::Run()
 		myLibrary->Tags.setTitle(Config.titles_visibility ? item_type + "s" : "");
 		myLibrary->Tags.reset();
 		item_type = lowercase(item_type);
+		std::string and_mtime = Config.media_library_sort_by_mtime ? 
+			                    " and mtime" : 
+								"";
 		if (myLibrary->Columns() == 2)
 		{
 			myLibrary->Songs.clear();
 			myLibrary->Albums.reset();
 			myLibrary->Albums.clear();
-			myLibrary->Albums.setTitle(Config.titles_visibility ? "Albums (sorted by " + item_type + ")" : "");
+			myLibrary->Albums.setTitle(Config.titles_visibility ? "Albums (sorted by " + item_type + and_mtime + ")" : "");
 			myLibrary->Albums.display();
 		}
 		else
@@ -2531,6 +2534,10 @@ void ToggleMediaLibraryMTimeSort::Run()
 	if (myScreen == myLibrary) 
 	{
 		Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
+		if (Config.media_library_sort_by_mtime)
+			Statusbar::msg("Sorting library by: Modification time.");
+		else
+			Statusbar::msg("Sorting library by: Name.");
 		myLibrary->resort();
 	}
 }

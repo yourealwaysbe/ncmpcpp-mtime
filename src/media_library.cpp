@@ -265,6 +265,18 @@ void MediaLibrary::resort()
 			Songs.clear();
 		}
 	}
+
+	if (hasTwoColumns) 
+	{
+		if (Config.titles_visibility)
+		{
+			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
+			std::string and_mtime = Config.media_library_sort_by_mtime ? 
+			                        " and mtime" : 
+				   					"";
+			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
+		}
+	}
 	myLibrary->update();
 }
 
@@ -796,7 +808,10 @@ void MediaLibrary::toggleColumnsMode()
 		if (Config.titles_visibility)
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
-			Albums.setTitle("Albums (sorted by " + item_type + ")");
+			std::string and_mtime = Config.media_library_sort_by_mtime ? 
+			                        " and mtime" : 
+									"";
+			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
 		else
 			Albums.setTitle("");
