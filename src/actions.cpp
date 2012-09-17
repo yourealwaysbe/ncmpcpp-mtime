@@ -2521,16 +2521,18 @@ void ShowServerInfo::Run()
 	myServerInfo->switchTo();
 }
 
-bool ToggleMediaLibraryMTimeSort::canBeRun() const {
-    return (myScreen == myLibrary);
+bool ToggleMediaLibraryMTimeSort::canBeRun() const 
+{
+	return (myScreen == myLibrary);
 }
 
 void ToggleMediaLibraryMTimeSort::Run() 
 {
-    if (myScreen == myLibrary) {
-        Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
-        myLibrary->resort();
-    }
+	if (myScreen == myLibrary) 
+	{
+		Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
+		myLibrary->resort();
+	}
 }
 
 

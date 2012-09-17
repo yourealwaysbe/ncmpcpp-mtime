@@ -97,24 +97,27 @@ private:
 
 struct TagMTime 
 {
-    TagMTime(const std::string &tag_) : m_tag(tag_), m_mtime(0) { }
+	TagMTime(const std::string &tag_) : m_tag(tag_), m_mtime(0) { }
 	
-    TagMTime(const std::string &tag_, time_t mtime_) : m_tag(tag_), m_mtime(mtime_) { }
+	TagMTime(const std::string &tag_, time_t mtime_) : m_tag(tag_), m_mtime(mtime_) { }
 	
 	const std::string &tag() const { return m_tag; }
 	time_t mtime() const { return m_mtime; }
 
-    void set_mtime(time_t mtime) {
-        m_mtime = mtime;
-    }
+	void set_mtime(time_t mtime) 
+	{
+		m_mtime = mtime;
+	}
 
-    void set_tag(std::string tag) {
-        m_tag = tag;
-    }
+	void set_tag(std::string tag) 
+	{
+		m_tag = tag;
+	}
 
-    bool hasMTime() {
-        return (m_mtime != 0);
-    }
+	bool hasMTime() 
+	{
+		return (m_mtime != 0);
+	}
 	
 private:
 	std::string m_tag;
@@ -123,11 +126,11 @@ private:
 
 class SortSongsByTag {
 public:
-    SortSongsByTag(mpd_tag_type type) : m_type(type) { }
-    bool operator()(const Song &s1, const Song &s2);
+	SortSongsByTag(mpd_tag_type type) : m_type(type) { }
+	bool operator()(const Song &s1, const Song &s2);
 
 private:
-    mpd_tag_type m_type;
+	mpd_tag_type m_type;
 };
 
 typedef std::vector<TagMTime> TagMTimeList;
@@ -258,11 +261,11 @@ public:
 	void AddSearchURI(const std::string &str) const;
 	SongList CommitSearchSongs();
 	StringList CommitSearchTags();
-    TagMTimeList CommitSearchTagsMTime();
+	TagMTimeList CommitSearchTagsMTime();
 	
 	StringList GetPlaylists();
 	StringList GetList(mpd_tag_type);
-    TagMTimeList GetListMTime(mpd_tag_type, bool);
+	TagMTimeList GetListMTime(mpd_tag_type, bool);
 	ItemList GetDirectory(const std::string &);
 	SongList GetDirectoryRecursive(const std::string &);
 	SongList GetSongs(const std::string &);
@@ -283,9 +286,6 @@ private:
 	
 	int CheckForErrors();
 
-    time_t GetMTime(mpd_tag_type, const std::string &);
-    void FillMTimes(TagMTimeList &list, mpd_tag_type);
-	
 	mpd_connection *itsConnection;
 	bool isCommandsListEnabled;
 	
@@ -317,7 +317,7 @@ private:
 	void *itsErrorHandlerUserdata;
 	
 	mpd_tag_type itsSearchedField;
-    bool itsSearchFieldMTime;
+	bool itsSearchFieldMTime;
 };
 
 }

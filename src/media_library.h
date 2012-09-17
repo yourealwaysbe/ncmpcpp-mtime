@@ -74,33 +74,33 @@ struct MediaLibrary: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Sea
 	void LocateSong(const MPD::Song &);
 	ProxySongList songsProxyList();
 
-    // mtimes
-    bool hasMTimes();
-    void resort();
+	// mtimes
+	bool hasMTimes();
+	void resort();
 
-    struct SearchConstraints
-    {
-        SearchConstraints() { }
-        SearchConstraints(const std::string &tag, const std::string &album, const std::string &date) : PrimaryTag(tag), Album(album), Date(date), MTime(0) { }
-        SearchConstraints(const std::string &album, const std::string &date) : Album(album), Date(date), MTime(0) { }
-        SearchConstraints(const std::string &tag, const std::string &album, const std::string &date, time_t mtime) : PrimaryTag(tag), Album(album), Date(date), MTime(mtime) { }
-        SearchConstraints(const std::string &album, const std::string &date, time_t mtime) : Album(album), Date(date), MTime(mtime) { }
+	struct SearchConstraints
+	{
+		SearchConstraints() { }
+		SearchConstraints(const std::string &tag, const std::string &album, const std::string &date) : PrimaryTag(tag), Album(album), Date(date), MTime(0) { }
+		SearchConstraints(const std::string &album, const std::string &date) : Album(album), Date(date), MTime(0) { }
+		SearchConstraints(const std::string &tag, const std::string &album, const std::string &date, time_t mtime) : PrimaryTag(tag), Album(album), Date(date), MTime(mtime) { }
+		SearchConstraints(const std::string &album, const std::string &date, time_t mtime) : Album(album), Date(date), MTime(mtime) { }
 
-        
-        std::string PrimaryTag;
-        std::string Album;
-        std::string Date;
-        time_t MTime;
-    
-        bool operator<(const SearchConstraints &a) const;
+		
+		std::string PrimaryTag;
+		std::string Album;
+		std::string Date;
+		time_t MTime;
+	
+		bool operator<(const SearchConstraints &a) const;
 
-        bool hasMTime() { return MTime != 0; } 
-    };
+		bool hasMTime() { return MTime != 0; } 
+	};
 
-    NC::Menu<MPD::TagMTime> Tags;
-    NC::Menu<SearchConstraints> Albums;
-    NC::Menu<MPD::Song> Songs;
-    
+	NC::Menu<MPD::TagMTime> Tags;
+	NC::Menu<SearchConstraints> Albums;
+	NC::Menu<MPD::Song> Songs;
+	
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
 	

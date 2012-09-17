@@ -321,7 +321,7 @@ void Help::GetKeybindings()
 #	endif // HAVE_TAGLIB_H
 	KeyDesc(aEditLibraryTag, "Edit tag (left column)/album (middle/right column)");
 	KeyDesc(aToggleLibraryTagType, "Toggle type of tag used in left column");
-    KeyDesc(aToggleMediaLibraryMTimeSort, "Toggle sorting by mtime");
+	KeyDesc(aToggleMediaLibraryMTimeSort, "Toggle sorting by mtime");
 	
 	KeysSection("Playlist editor");
 	KeyDesc(aPreviousColumn, "Previous column");

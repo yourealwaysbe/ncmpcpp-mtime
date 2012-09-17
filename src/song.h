@@ -82,7 +82,7 @@ struct Song
 	
 	static const char FormatEscapeCharacter = 1;
 	
-    const char *getTag(mpd_tag_type type, unsigned idx = 0) const;
+	const char *getTag(mpd_tag_type type, unsigned idx = 0) const;
 
 private:
 	std::string ParseFormat(std::string::const_iterator &it, const std::string &tags_separator,
