@@ -145,7 +145,7 @@ void SearchEngine::enterPressed()
 		w.current().value().buffer().clear();
 	if (option < SearchButton)
 		Statusbar::lock();
-	
+
 	if (option < ConstraintsNumber)
 	{
 		std::string constraint = ConstraintsNames[option];
@@ -201,7 +201,7 @@ void SearchEngine::enterPressed()
 	}
 	else
 		addSongToPlaylist(w.current().value().song(), true);
-	
+
 	if (option < SearchButton)
 		Statusbar::unlock();
 }
@@ -210,14 +210,14 @@ void SearchEngine::spacePressed()
 {
 	if (!w.current().value().isSong())
 		return;
-	
+
 	if (Config.space_selects)
 	{
 		w.current().setSelected(!w.current().isSelected());
 		w.scroll(NC::wDown);
 		return;
 	}
-	
+
 	addSongToPlaylist(w.current().value().song(), false);
 	w.scroll(NC::wDown);
 }
@@ -343,10 +343,10 @@ void SearchEngine::Prepare()
 	w.setTitle("");
 	w.clear();
 	w.resizeList(StaticOptions-3);
-	
+
 	w.at(ConstraintsNumber).setSeparator(true);
 	w.at(SearchButton-1).setSeparator(true);
-	
+
 	for (size_t i = 0; i < ConstraintsNumber; ++i)
 	{
 		std::string constraint = ConstraintsNames[i];
@@ -354,10 +354,10 @@ void SearchEngine::Prepare()
 		w[i].value().mkBuffer() << NC::fmtBold << constraint << NC::fmtBoldEnd << ": ";
 		ShowTag(w[i].value().buffer(), itsConstraints[i]);
 	}
-	
+
 	w.at(ConstraintsNumber+1).value().mkBuffer() << NC::fmtBold << "Search in:" << NC::fmtBoldEnd << ' ' << (Config.search_in_db ? "Database" : "Current playlist");
 	w.at(ConstraintsNumber+2).value().mkBuffer() << NC::fmtBold << "Search mode:" << NC::fmtBoldEnd << ' ' << *SearchMode;
-	
+
 	w.at(SearchButton).value().mkBuffer() << "Search";
 	w.at(ResetButton).value().mkBuffer() << "Reset";
 }
@@ -384,7 +384,7 @@ void SearchEngine::Search()
 	}
 	if (constraints_empty)
 		return;
-	
+
 	if (Config.search_in_db && (SearchMode == &SearchModes[0] || SearchMode == &SearchModes[2])) // use built-in mpd searching
 	{
 		Mpd.StartSearch(SearchMode == &SearchModes[2]);
@@ -415,7 +415,7 @@ void SearchEngine::Search()
 			w.addItem(*s);
 		return;
 	}
-	
+
 	MPD::SongList list;
 	if (Config.search_in_db)
 		list = Mpd.GetDirectoryRecursive("/");
@@ -425,10 +425,10 @@ void SearchEngine::Search()
 		for (auto s = myPlaylist->main().beginV(); s != myPlaylist->main().endV(); ++s)
 			list.push_back(*s);
 	}
-	
+
 	bool any_found = 1;
 	bool found = 1;
-	
+
 	LocaleStringComparison cmp(std::locale(), Config.ignore_leading_the);
 	for (auto it = list.begin(); it != list.end(); ++it)
 	{
@@ -453,7 +453,7 @@ void SearchEngine::Search()
 				}
 				regfree(&rx);
 			}
-			
+
 			if (found && !itsConstraints[1].empty())
 			{
 				if (!regcomp(&rx, itsConstraints[1].c_str(), REG_ICASE | Config.regex_type))
@@ -529,7 +529,7 @@ void SearchEngine::Search()
 				||	!cmp(it->getGenre(), itsConstraints[0])
 				||	!cmp(it->getDate(), itsConstraints[0])
 				||	!cmp(it->getComment(), itsConstraints[0]);
-			
+
 			if (found && !itsConstraints[1].empty())
 				found = !cmp(it->getArtist(), itsConstraints[1]);
 			if (found && !itsConstraints[2].empty())
@@ -551,7 +551,7 @@ void SearchEngine::Search()
 			if (found && !itsConstraints[10].empty())
 				found = !cmp(it->getComment(), itsConstraints[10]);
 		}
-		
+
 		if (found && any_found)
 			w.addItem(*it);
 		found = 1;
@@ -584,3 +584,4 @@ bool SEItemEntryMatcher(const Regex &rx, const NC::Menu<SEItem>::Item &item, boo
 }
 
 }
+

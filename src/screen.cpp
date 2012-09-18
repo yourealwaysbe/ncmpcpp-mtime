@@ -89,7 +89,7 @@ void BaseScreen::getWindowResizeParams(size_t &x_offset, size_t &width, bool adj
 		{
 			width = COLS-locked_width-1;
 			x_offset = locked_width+1;
-			
+
 			if (adjust_locked_screen)
 			{
 				myLockedScreen->resize();
@@ -172,3 +172,4 @@ bool isVisible(BaseScreen *screen)
 	else
 		return screen == myScreen;
 }
+

@@ -89,9 +89,9 @@ void Status::trace()
 		}
 		Mpd.UpdateStatus();
 	}
-	
+
 	applyToVisibleWindows(&BaseScreen::update);
-	
+
 	if (isVisible(myPlaylist)
 	&&  Timer.tv_sec == myPlaylist->Timer().tv_sec+Config.playlist_disable_highlight_delay
 	&&  Timer.tv_usec > myPlaylist->Timer().tv_usec
@@ -101,7 +101,7 @@ void Status::trace()
 		myPlaylist->main().setHighlighting(false);
 		myPlaylist->main().refresh();
 	}
-	
+
 	Statusbar::tryRedraw();
 }
 
@@ -141,7 +141,7 @@ void Status::Changes::playlist()
 				myPlaylist->unregisterHash(it->value().getHash());
 			myPlaylist->main().resizeList(playlist_length);
 		}
-		
+
 		auto songs = Mpd.GetPlaylistChanges(Mpd.GetOldPlaylistID());
 		for (auto s = songs.begin(); s != songs.end(); ++s)
 		{
@@ -158,13 +158,13 @@ void Status::Changes::playlist()
 			myPlaylist->registerHash(s->getHash());
 		}
 	});
-	
+
 	if (Mpd.isPlaying())
 		drawTitle(myPlaylist->nowPlayingSong());
-	
+
 	Playlist::ReloadTotalLength = true;
 	Playlist::ReloadRemaining = true;
-	
+
 	if (isVisible(myBrowser))
 		markSongsInPlaylist(myBrowser->proxySongList());
 	if (isVisible(mySearcher))
@@ -248,12 +248,12 @@ void Status::Changes::playerState()
 			break;
 		}
 	}
-	
+
 #	ifdef ENABLE_VISUALIZER
 	if (myScreen == myVisualizer)
 		wFooter->setTimeout(state == MPD::psPlay ? Visualizer::WindowTimeout : 500);
 #	endif // ENABLE_VISUALIZER
-	
+
 	if (Config.new_design)
 	{
 		*wHeader << NC::XY(0, 1) << NC::fmtBold << player_state << NC::fmtBoldEnd;
@@ -280,20 +280,20 @@ void Status::Changes::songID()
 		GNUC_UNUSED int res;
 		if (!Config.execute_on_song_change.empty())
 			res = system(Config.execute_on_song_change.c_str());
-		
+
 #		ifdef HAVE_CURL_CURL_H
 		if (Config.fetch_lyrics_in_background)
 			Lyrics::DownloadInBackground(myPlaylist->nowPlayingSong());
 #		endif // HAVE_CURL_CURL_H
-		
+
 		drawTitle(myPlaylist->nowPlayingSong());
-		
+
 		if (Config.autocenter_mode && !myPlaylist->main().isFiltered())
 			myPlaylist->main().highlight(Mpd.GetCurrentlyPlayingSongPos());
-		
+
 		if (Config.now_playing_lyrics && isVisible(myLyrics) && myLyrics->previousScreen() == myPlaylist)
 			myLyrics->ReloadNP = 1;
-		
+
 		elapsedTime();
 	}
 }
@@ -306,10 +306,10 @@ void Status::Changes::elapsedTime()
 			*wFooter << NC::XY(0, 1) << wclrtoeol;
 		return;
 	}
-	
+
 	MPD::Song np = myPlaylist->nowPlayingSong();
 	drawTitle(np);
-	
+
 	std::string tracklength;
 	if (Config.new_design)
 	{
@@ -332,30 +332,30 @@ void Status::Changes::elapsedTime()
 			tracklength += intTo<std::string>::apply(Mpd.GetBitrate());
 			tracklength += " kbps";
 		}
-		
+
 		NC::WBuffer first, second;
 		stringToBuffer(ToWString(IConv::utf8ToLocale(np.toString(Config.new_header_first_line, Config.tags_separator, "$"))), first);
 		stringToBuffer(ToWString(IConv::utf8ToLocale(np.toString(Config.new_header_second_line, Config.tags_separator, "$"))), second);
-		
+
 		size_t first_len = wideLength(first.str());
 		size_t first_margin = (std::max(tracklength.length()+1, VolumeState.length()))*2;
 		size_t first_start = first_len < COLS-first_margin ? (COLS-first_len)/2 : tracklength.length()+1;
-		
+
 		size_t second_len = wideLength(second.str());
 		size_t second_margin = (std::max(player_state.length(), size_t(8))+1)*2;
 		size_t second_start = second_len < COLS-second_margin ? (COLS-second_len)/2 : player_state.length()+1;
-		
+
 		if (!Global::SeekingInProgress)
 			*wHeader << NC::XY(0, 0) << wclrtoeol << tracklength;
 		*wHeader << NC::XY(first_start, 0);
 		first.write(*wHeader, first_line_scroll_begin, COLS-tracklength.length()-VolumeState.length()-1, L" ** ");
-		
+
 		*wHeader << NC::XY(0, 1) << wclrtoeol << NC::fmtBold << player_state << NC::fmtBoldEnd;
 		*wHeader << NC::XY(second_start, 1);
 		second.write(*wHeader, second_line_scroll_begin, COLS-player_state.length()-8-2, L" ** ");
-		
+
 		*wHeader << NC::XY(wHeader->getWidth()-VolumeState.length(), 0) << Config.volume_color << VolumeState << NC::clEnd;
-		
+
 		flags();
 	}
 	else if (Statusbar::isUnlocked() && Config.statusbar_visibility)
@@ -436,7 +436,7 @@ void Status::Changes::flags()
 {
 	if (!Config.header_visibility && !Config.new_design)
 		return;
-	
+
 	std::string switch_state;
 	if (Config.new_design)
 	{
@@ -471,7 +471,7 @@ void Status::Changes::flags()
 			switch_state += mpd_crossfade;
 		if (mpd_db_updating)
 			switch_state += mpd_db_updating;
-		
+
 		// this is done by raw ncurses because creating another
 		// window only for handling this is quite silly
 		attrset(A_BOLD|COLOR_PAIR(Config.state_line_color));
@@ -495,7 +495,7 @@ void Status::Changes::mixer()
 {
 	if (!Config.display_volume_level || (!Config.header_visibility && !Config.new_design))
 		return;
-	
+
 	VolumeState = Config.new_design ? " Vol: " : " Volume: ";
 	int volume = Mpd.GetVolume();
 	if (volume < 0)
@@ -550,9 +550,10 @@ void Status::update(MPD::Connection *, MPD::StatusChanges changes, void *)
 		Changes::mixer();
 	if (changes.Outputs)
 		Changes::outputs();
-	
+
 	if (changes.PlayerState || (changes.ElapsedTime && (!Config.new_design || Mpd.GetState() == MPD::psPlay)))
 		wFooter->refresh();
 	if (changes.Playlist || changes.Database || changes.PlayerState || changes.SongID)
 		applyToVisibleWindows(&BaseScreen::refreshWindow);
 }
+

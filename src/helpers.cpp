@@ -105,7 +105,7 @@ std::wstring Scroller(const std::wstring &str, size_t &pos, size_t width)
 		return s;
 	std::wstring result;
 	size_t len = wideLength(s);
-	
+
 	if (len > width)
 	{
 		s += L" ** ";
@@ -130,3 +130,4 @@ std::wstring Scroller(const std::wstring &str, size_t &pos, size_t width)
 		result = s;
 	return result;
 }
+

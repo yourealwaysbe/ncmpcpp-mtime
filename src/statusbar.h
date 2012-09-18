@@ -78,9 +78,9 @@ struct ApplyFilterImmediately
 {
 	ApplyFilterImmediately(Filterable *f, const std::wstring &filter)
 	: m_f(f), m_ws(filter) { }
-	
+
 	void operator()(const std::wstring &ws);
-	
+
 private:
 	Filterable *m_f;
 	std::wstring m_ws;
@@ -91,3 +91,4 @@ private:
 }
 
 #endif // _STATUSBAR_H
+

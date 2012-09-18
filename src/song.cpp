@@ -275,7 +275,7 @@ std::string Song::ShowTime(unsigned length)
 	int minutes = length/60;
 	length -= minutes*60;
 	int seconds = length;
-	
+
 	std::string result;
 	if (hours > 0)
 		result = print<32, std::string>::apply("%d:%02d:%02d", hours, minutes, seconds);
@@ -299,7 +299,7 @@ bool MPD::Song::isFormatOk(const std::string &type, const std::string &fmt)
 		std::cerr << type << ": number of opening and closing braces does not equal\n";
 		return false;
 	}
-	
+
 	for (size_t i = fmt.find('%'); i != std::string::npos; i = fmt.find('%', i))
 	{
 		if (isdigit(fmt[++i]))
@@ -332,7 +332,7 @@ std::string Song::ParseFormat(std::string::const_iterator &it, const std::string
 		}
 		if (*it == '}')
 			break;
-		
+
 		if (*it == '%')
 		{
 			size_t delimiter = 0;
@@ -341,7 +341,7 @@ std::string Song::ParseFormat(std::string::const_iterator &it, const std::string
 				delimiter = atol(&*it);
 				while (isdigit(*++it)) { }
 			}
-			
+
 			if (*it == '%')
 			{
 				result += *it;
@@ -349,7 +349,7 @@ std::string Song::ParseFormat(std::string::const_iterator &it, const std::string
 			}
 			else
 				get = charToGetFunction(*it);
-			
+
 			if (get)
 			{
 				std::string tag = getTags(get, tags_separator);
@@ -406,3 +406,4 @@ std::string Song::ParseFormat(std::string::const_iterator &it, const std::string
 }
 
 }
+

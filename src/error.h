@@ -29,3 +29,4 @@
 void FatalError(const std::string &msg) GNUC_NORETURN;
 
 #endif
+

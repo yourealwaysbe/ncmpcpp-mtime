@@ -29,16 +29,16 @@
 struct Key
 {
 	enum Type { Standard, NCurses };
-	
+
 	Key(wchar_t ch, Type ct) : m_char(ch), m_type(ct) { }
-	
+
 	wchar_t getChar() const {
 		return m_char;
 	}
 	Type getType() const {
 		return m_type;
 	}
-	
+
 #	define KEYS_DEFINE_OPERATOR(CMP) \
 	bool operator CMP (const Key &k) const { \
 		if (m_char CMP k.m_char) \
@@ -52,17 +52,17 @@ struct Key
 	KEYS_DEFINE_OPERATOR(>);
 	KEYS_DEFINE_OPERATOR(>=);
 #	undef KEYS_DEFINE_OPERATOR
-	
+
 	bool operator==(const Key &k) const {
 		return m_char == k.m_char && m_type == k.m_type;
 	}
 	bool operator!=(const Key &k) const {
 		return !(*this == k);
 	}
-	
+
 	static Key read(NC::Window &w);
 	static Key noOp;
-	
+
 	private:
 		wchar_t m_char;
 		Type m_type;
@@ -72,7 +72,7 @@ struct Key
 struct Binding
 {
 	typedef std::vector<Action *> ActionChain;
-	
+
 	Binding(ActionType at) : m_is_single(true), m_action(Action::Get(at)) { }
 	Binding(const ActionChain &actions) {
 		assert(actions.size() > 0);
@@ -84,7 +84,7 @@ struct Binding
 			m_chain = new ActionChain(actions);
 		}
 	}
-	
+
 	bool isSingle() const {
 		return m_is_single;
 	}
@@ -96,7 +96,7 @@ struct Binding
 		assert(m_is_single);
 		return m_action;
 	}
-	
+
 private:
 	bool m_is_single;
 	union {
@@ -111,29 +111,30 @@ struct BindingsConfiguration
 	typedef std::multimap<Key, Binding> BindingsMap;
 	typedef BindingsMap::iterator BindingIterator;
 	typedef BindingsMap::const_iterator ConstBindingIterator;
-	
+
 	bool read(const std::string &file);
 	void generateDefaults();
-	
+
 	std::pair<BindingIterator, BindingIterator> get(const Key &k) {
 		return m_bindings.equal_range(k);
 	}
-	
+
 	ConstBindingIterator begin() const { return m_bindings.begin(); }
 	ConstBindingIterator end() const { return m_bindings.end(); }
-	
+
 private:
 	bool notBound(const Key &k) const {
 		return k != Key::noOp && m_bindings.find(k) == m_bindings.end();
 	}
-	
+
 	template <typename T> void bind(Key k, T t) {
 		m_bindings.insert(std::make_pair(k, Binding(t)));
 	}
-	
+
 	BindingsMap m_bindings;
 };
 
 extern BindingsConfiguration Bindings;
 
 #endif // _BINDINGS_H
+

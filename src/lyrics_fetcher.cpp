@@ -53,30 +53,30 @@ LyricsFetcher::Result LyricsFetcher::fetch(const std::string &artist, const std:
 {
 	Result result;
 	result.first = false;
-	
+
 	std::string url = getURL();
 	replace(url, "%artist%", artist.c_str());
 	replace(url, "%title%", title.c_str());
-	
+
 	std::string data;
 	CURLcode code = Curl::perform(data, url);
-	
+
 	if (code != CURLE_OK)
 	{
 		result.second = curl_easy_strerror(code);
 		return result;
 	}
-	
+
 	bool parse_ok = getContent(getOpenTag(), getCloseTag(), data);
-	
+
 	if (!parse_ok || notLyrics(data))
 	{
 		result.second = msgNotFound;
 		return result;
 	}
-	
+
 	postProcess(data);
-	
+
 	result.second = data;
 	result.first = true;
 	return result;
@@ -112,18 +112,18 @@ LyricsFetcher::Result LyricwikiFetcher::fetch(const std::string &artist, const s
 	if (result.first == true)
 	{
 		result.first = false;
-		
+
 		std::string data;
 		CURLcode code = Curl::perform(data, result.second);
-		
+
 		if (code != CURLE_OK)
 		{
 			result.second = curl_easy_strerror(code);
 			return result;
 		}
-		
+
 		bool parse_ok = getContent("'17'/></a></div>", "<!--", data);
-		
+
 		if (!parse_ok)
 		{
 			result.second = msgNotFound;
@@ -135,11 +135,11 @@ LyricsFetcher::Result LyricwikiFetcher::fetch(const std::string &artist, const s
 			result.second = "Licence restriction";
 			return result;
 		}
-		
+
 		replace(data, "<br />", "\n");
 		stripHtmlTags(data);
 		trim(data);
-		
+
 		result.second = data;
 		result.first = true;
 	}
@@ -157,38 +157,38 @@ LyricsFetcher::Result GoogleLyricsFetcher::fetch(const std::string &artist, cons
 {
 	Result result;
 	result.first = false;
-	
+
 	std::string search_str = artist;
 	search_str += "+";
 	search_str += title;
 	search_str += "+";
 	search_str += getSiteKeyword();
-	
+
 	std::string google_url = "http://www.google.com/search?hl=en&ie=UTF-8&oe=UTF-8&q=";
 	google_url += search_str;
 	google_url += "&btnI=I%27m+Feeling+Lucky";
-	
+
 	std::string data;
 	CURLcode code = Curl::perform(data, google_url, google_url);
-	
+
 	if (code != CURLE_OK)
 	{
 		result.second = curl_easy_strerror(code);
 		return result;
 	}
-	
+
 	bool found_url = getContent("<A HREF=\"", "\">here</A>", data);
-	
+
 	if (!found_url || !isURLOk(data))
 	{
 		result.second = msgNotFound;
 		return result;
 	}
-	
+
 	data = unescapeHtmlUtf8(data);
 	//result.second = data;
 	//return result;
-	
+
 	URL = data.c_str();
 	return LyricsFetcher::fetch("", "");
 }
@@ -262,7 +262,6 @@ void SonglyricsFetcher::postProcess(std::string &data)
 	data = unescapeHtmlUtf8(data);
 	LyricsFetcher::postProcess(data);
 }
-
 
 /**********************************************************************/
 

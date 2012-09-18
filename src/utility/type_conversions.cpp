@@ -173,3 +173,4 @@ std::string itemTypeToString(MPD::ItemType type)
 	}
 	return result;
 }
+

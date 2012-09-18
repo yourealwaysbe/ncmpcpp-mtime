@@ -190,24 +190,24 @@ Key Key::read(NC::Window &w)
 bool BindingsConfiguration::read(const std::string &file)
 {
 	bool result = true;
-	
+
 	std::ifstream f(file);
 	if (!f.is_open())
 		return result;
-	
+
 	size_t line_no = 0;
 	bool key_def_in_progress = false;
 	Key key = Key::noOp;
 	Binding::ActionChain actions;
 	std::string line, strkey;
-	
+
 	auto error = [&]() -> std::ostream & {
 		std::cerr << file << ":" << line_no << ": ";
 		key_def_in_progress = false;
 		result = false;
 		return std::cerr;
 	};
-	
+
 	auto bind_key_def = [&]() -> bool {
 		if (!actions.empty())
 		{
@@ -221,13 +221,13 @@ bool BindingsConfiguration::read(const std::string &file)
 			return false;
 		}
 	};
-	
+
 	while (!f.eof() && ++line_no)
 	{
 		getline(f, line);
 		if (line.empty() || line[0] == '#')
 			continue;
-		
+
 		if (!line.compare(0, 7, "def_key")) // beginning of key definition
 		{
 			if (key_def_in_progress)
@@ -513,7 +513,8 @@ void BindingsConfiguration::generateDefaults()
 		bind(k, aSetSelectedItemsPriority);
 	if (notBound(k = stringToKey("q")))
 		bind(k, aQuit);
-	
+
 	if (notBound(k = stringToKey("-")))
 		bind(k, aVolumeDown);
 }
+

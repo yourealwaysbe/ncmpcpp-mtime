@@ -34,7 +34,7 @@ enum SortMode { smName, smMTime, smCustomFormat };
 struct Column
 {
 	Column() : stretch_limit(-1), right_alignment(0), display_empty_tag(1) { }
-	
+
 	std::wstring name;
 	std::string type;
 	int width;
@@ -51,17 +51,17 @@ struct ScreenRef
 	ScreenRef() : m_ptr(0) { }
 	template <typename ScreenT>
 	ScreenRef(ScreenT *&ptr) : m_ptr(reinterpret_cast<BaseScreen **>(&ptr)) { }
-	
+
 	BaseScreen &operator*() const { return **m_ptr; }
 	BaseScreen *operator->() const { return *m_ptr; }
-	
+
 	bool operator==(const ScreenRef &rhs) const { return m_ptr == rhs.m_ptr; }
 	bool operator!=(const ScreenRef &rhs) const { return m_ptr != rhs.m_ptr; }
 	bool operator==(const BaseScreen *rhs) const { return *m_ptr == rhs; }
 	bool operator!=(const BaseScreen *rhs) const { return *m_ptr != rhs; }
-	
+
 	operator bool() { return m_ptr != 0; }
-	
+
 private:
 	BaseScreen **m_ptr;
 };
@@ -69,17 +69,17 @@ private:
 struct Configuration
 {
 	Configuration();
-	
+
 	const std::string &GetHomeDirectory();
 	void CheckForCommandLineConfigFilePath(char **argv, int argc);
-	
+
 	void SetDefaults();
 	void Read();
 	void GenerateColumns();
-	
+
 	std::string ncmpcpp_directory;
 	std::string lyrics_directory;
-	
+
 	std::string mpd_host;
 	std::string mpd_music_dir;
 	std::string visualizer_fifo_path;
@@ -104,18 +104,18 @@ struct Configuration
 	std::string lastfm_preferred_language;
 	std::wstring progressbar;
 	std::wstring visualizer_chars;
-	
+
 	std::string pattern;
-	
+
 	std::vector<Column> columns;
-	
+
 	NC::Buffer browser_playlist_prefix;
 	NC::Buffer selected_item_prefix;
 	NC::Buffer selected_item_suffix;
 	NC::Buffer now_playing_prefix;
 	NC::Buffer now_playing_suffix;
 	NC::Buffer modified_item_prefix;
-	
+
 	NC::Color color1;
 	NC::Color color2;
 	NC::Color empty_tags_color;
@@ -131,12 +131,12 @@ struct Configuration
 	NC::Color alternative_ui_separator_color;
 	NC::Color active_column_color;
 	NC::Color visualizer_color;
-	
+
 	NC::Border window_border;
 	NC::Border active_window_border;
-	
+
 	mpd_tag_type media_lib_primary_tag;
-	
+
 	bool enable_idle_notifications;
 	bool colors_enabled;
 	bool playlist_show_remaining_time;
@@ -188,7 +188,7 @@ struct Configuration
 	bool store_lyrics_in_song_dir;
 	bool ask_for_locked_screen_width_part;
 	bool progressbar_boldness;
-	
+
 	int mpd_port;
 	int mpd_connection_timeout;
 	int crossfade_time;
@@ -197,26 +197,26 @@ struct Configuration
 	int message_delay_time;
 	int lyrics_db;
 	int regex_type;
-	
+
 	unsigned lines_scrolled;
 	unsigned search_engine_default_search_mode;
 	unsigned visualizer_sync_interval;
-	
+
 	double locked_screen_width_part;
-	
+
 	size_t selected_item_prefix_length;
 	size_t selected_item_suffix_length;
 	size_t now_playing_prefix_length;
 	size_t now_playing_suffix_length;
-	
+
 	ScreenRef startup_screen;
 	std::list<ScreenRef> screens_seq;
-	
+
 	SortMode browser_sort_mode;
-	
+
 private:
 	void MakeProperPath(std::string &dir);
-	
+
 	std::string home_directory;
 	std::string config_file_path;
 };

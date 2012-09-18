@@ -27,64 +27,64 @@
 struct PlaylistEditor: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Searchable, Tabbable
 {
 	PlaylistEditor();
-	
+
 	virtual void switchTo() OVERRIDE;
 	virtual void resize() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::PlaylistEditor; }
-	
+
 	virtual void refresh() OVERRIDE;
 	virtual void update() OVERRIDE;
-	
+
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// Filterable implementation
 	virtual bool allowsFiltering() OVERRIDE;
 	virtual std::string currentFilter() OVERRIDE;
 	virtual void applyFilter(const std::string &filter) OVERRIDE;
-	
+
 	// Searchable implementation
 	virtual bool allowsSearching() OVERRIDE;
 	virtual bool search(const std::string &constraint) OVERRIDE;
 	virtual void nextFound(bool wrap) OVERRIDE;
 	virtual void prevFound(bool wrap) OVERRIDE;
-	
+
 	// HasSongs implementation
 	virtual ProxySongList proxySongList() OVERRIDE;
-	
+
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
 	virtual MPD::SongList getSelectedSongs() OVERRIDE;
-	
+
 	// HasColumns implementation
 	virtual bool previousColumnAvailable() OVERRIDE;
 	virtual void previousColumn() OVERRIDE;
-	
+
 	virtual bool nextColumnAvailable() OVERRIDE;
 	virtual void nextColumn() OVERRIDE;
-	
+
 	// private members
 	void requestPlaylistsUpdate() { playlistsUpdateRequested = true; }
 	void requestContentsUpdate() { contentUpdateRequested = true; }
-	
+
 	virtual void Locate(const std::string &);
 	bool isContentFiltered();
 	ProxySongList contentProxyList();
-	
+
 	NC::Menu<std::string> Playlists;
 	NC::Menu<MPD::Song> Content;
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-	
+
 private:
 	void AddToPlaylist(bool);
-	
+
 	bool playlistsUpdateRequested;
 	bool contentUpdateRequested;
 };

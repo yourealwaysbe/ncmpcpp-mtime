@@ -36,3 +36,4 @@ bool RequireScreen::canBeRun() const
 {
 	return Global::myScreen->type() == m_screen_type;
 }
+

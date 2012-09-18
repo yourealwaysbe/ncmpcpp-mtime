@@ -32,39 +32,39 @@
 struct Lyrics: Screen<NC::Scrollpad>, Tabbable
 {
 	Lyrics();
-	
+
 	// Screen<NC::Scrollpad> implementation
 	virtual void resize() OVERRIDE;
 	virtual void switchTo() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::Lyrics; }
-	
+
 	virtual void update() OVERRIDE;
-	
+
 	virtual void enterPressed() OVERRIDE { }
 	virtual void spacePressed() OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// private members
 	void Edit();
-	
+
 #	ifdef HAVE_CURL_CURL_H
 	void Refetch();
-	
+
 	static void ToggleFetcher();
 	static void DownloadInBackground(const MPD::Song &s);
 #	endif // HAVE_CURL_CURL_H
-	
+
 	bool ReloadNP;
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return false; }
-	
+
 private:
 	void Load();
-	
+
 #	ifdef HAVE_CURL_CURL_H
 	static void *DownloadInBackgroundImpl(void *song_ptr);
 	static void DownloadInBackgroundImplHelper(const MPD::Song &s);
@@ -77,23 +77,23 @@ private:
 	// maximum number of worker threads. if it's reached, next lyrics requests
 	// are put into itsToDownload queue.
 	static const size_t itsMaxWorkersNumber = 4;
-	
+
 	void *Download();
 	static void *DownloadWrapper(void *);
 	static void Save(const std::string &filename, const std::string &lyrics);
-	
+
 	void Take();
 	bool isReadyToTake;
 	bool isDownloadInProgress;
 	pthread_t itsDownloader;
-	
+
 	static LyricsFetcher **itsFetcher;
 #	endif // HAVE_CURL_CURL_H
-	
+
 	size_t itsScrollBegin;
 	MPD::Song itsSong;
 	std::string itsFilename;
-	
+
 	static std::string GenerateFilename(const MPD::Song &s);
 };
 

@@ -61,7 +61,7 @@ namespace
 	NC::Color stringToColor(const std::string &color)
 	{
 		NC::Color result = NC::clDefault;
-		
+
 		if (color == "black")
 			result = NC::clBlack;
 		else if (color == "red")
@@ -78,15 +78,15 @@ namespace
 			result = NC::clCyan;
 		else if (color == "white")
 			result = NC::clWhite;
-		
+
 		return result;
 	}
-	
+
 	NC::Border stringToBorder(const std::string &border)
 	{
 		return NC::Border(stringToColor(border));
 	}
-	
+
 	ScreenRef intToScreen(int n)
 	{
 		switch (n)
@@ -123,7 +123,7 @@ namespace
 				return ScreenRef();
 		}
 	}
-	
+
 	std::string GetOptionName(const std::string &s)
 	{
 		size_t equal = s.find('=');
@@ -133,7 +133,7 @@ namespace
 		trim(result);
 		return result;
 	}
-	
+
 	std::string RemoveDollarFormatting(const std::string &s)
 	{
 		std::string result;
@@ -156,7 +156,6 @@ void CreateDir(const std::string &dir)
 #	endif // !WIN32
 	);
 }
-
 
 void Configuration::SetDefaults()
 {
@@ -328,10 +327,10 @@ void Configuration::Read()
 {
 	std::ifstream f(config_file_path.c_str());
 	std::string cl, v, name;
-	
+
 	if (!f.is_open())
 		return;
-	
+
 	while (!f.eof())
 	{
 		getline(f, cl);
@@ -339,7 +338,7 @@ void Configuration::Read()
 		{
 			name = GetOptionName(cl);
 			v = getEnclosedString(cl, '"', '"', 0);
- 			
+
 			if (name == "ncmpcpp_directory")
 			{
 				if (!v.empty())
@@ -983,13 +982,14 @@ void Configuration::GenerateColumns()
 	std::string width;
 	size_t pos = 0;
 	while (!(width = getEnclosedString(song_list_columns_format, '(', ')', &pos)).empty())
-	{ 
+	{
+
 		Column col;
 		col.color = stringToColor(getEnclosedString(song_list_columns_format, '[', ']', &pos));
 		std::string tag_type = getEnclosedString(song_list_columns_format, '{', '}', &pos);
-		
+
 		col.fixed = *width.rbegin() == 'f';
-		
+
 		// alternative name
 		size_t tag_type_colon_pos = tag_type.find(':');
 		if (tag_type_colon_pos != std::string::npos)
@@ -997,16 +997,16 @@ void Configuration::GenerateColumns()
 			col.name = ToWString(tag_type.substr(tag_type_colon_pos+1));
 			tag_type.resize(tag_type_colon_pos);
 		}
-		
+
 		if (!tag_type.empty())
 		{
 			size_t i = -1;
-			
+
 			// extract tag types in format a|b|c etc.
 			do
 				col.type += tag_type[(++i)++]; // nice one.
 			while (tag_type[i] == '|');
-			
+
 			// apply attributes
 			for (; i < tag_type.length(); ++i)
 			{
@@ -1023,11 +1023,11 @@ void Configuration::GenerateColumns()
 		}
 		else // empty column
 			col.display_empty_tag = 0;
-		
+
 		col.width = stringToInt(width);
 		columns.push_back(col);
 	}
-	
+
 	// calculate which column is the last one to have relative width and stretch it accordingly
 	if (!columns.empty())
 	{
@@ -1044,7 +1044,7 @@ void Configuration::GenerateColumns()
 		if (it != columns.rend())
 			it->stretch_limit = stretch_limit;
 	}
-	
+
 	// generate format for converting tags in columns to string for Playlist::SongInColumnsToString()
 	char tag[] = "{% }|";
 	song_in_columns_to_string_format = "{";
@@ -1073,3 +1073,4 @@ void Configuration::MakeProperPath(std::string &dir)
 	if (*dir.rbegin() != '/')
 		dir += '/';
 }
+

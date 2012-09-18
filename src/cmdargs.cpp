@@ -123,10 +123,10 @@ void ParseArgv(int argc, char **argv)
 			;
 			exit(0);
 		}
-		
+
 		if (!Action::ConnectToMPD())
 			exit(1);
-		
+
 		if (!strcmp(argv[i], "-s") || !strcmp(argv[i], "--screen"))
 		{
 			if (++i == argc) {
@@ -210,3 +210,4 @@ void ParseArgv(int argc, char **argv)
 		}
 	}
 }
+

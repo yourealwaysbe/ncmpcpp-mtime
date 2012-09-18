@@ -33,3 +33,4 @@ MPD::Song::GetFunction charToGetFunction(char c);
 std::string itemTypeToString(MPD::ItemType type);
 
 #endif // _UTILITY_TYPE_CONVERSIONS
+

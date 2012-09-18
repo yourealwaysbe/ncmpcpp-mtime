@@ -69,11 +69,11 @@ void convert(int n, char **files, bool dry_run)
     }
     if (dry_run)
         cout << "Dry run mode enabled, pretending to modify files.\n";
-    
+
     for (int i = 0; i < n; ++i)
     {
         cout << "Modifying " << files[i] << "... ";
-        
+
         TagLib::FileRef f(files[i]);
         if (!f.isNull())
         {
@@ -83,7 +83,7 @@ void convert(int n, char **files, bool dry_run)
                 TagLib::MPEG::File *mp3_f = 0;
                 TagLib::Ogg::Vorbis::File *ogg_f = 0;
                 TagLib::FLAC::File *flac_f = 0;
-                
+
                 bool success;
                 if ((mp3_f = dynamic_cast<TagLib::MPEG::File *>(f.file())))
                 {
@@ -102,7 +102,7 @@ void convert(int n, char **files, bool dry_run)
                     cout << "Not mp3/ogg/flac file, skipping.\n";
                     continue;
                 }
-                
+
                 if (success)
                 {
                     if (!dry_run)
@@ -135,3 +135,4 @@ int main(int argc, char **argv)
     }
     return 0;
 }
+

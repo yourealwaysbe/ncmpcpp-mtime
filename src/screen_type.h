@@ -48,3 +48,4 @@ ScreenType stringtoStarterScreenType(const std::string &s);
 ScreenType stringToScreenType(const std::string &s);
 
 #endif // NCMPCPP_SCREEN_TYPE_H
+

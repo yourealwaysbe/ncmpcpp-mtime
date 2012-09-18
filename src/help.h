@@ -28,23 +28,23 @@
 struct Help: Screen<NC::Scrollpad>, Tabbable
 {
 	Help();
-	
+
 	virtual void resize() OVERRIDE;
 	virtual void switchTo() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::Help; }
-	
+
 	virtual void update() OVERRIDE { }
-	
+
 	virtual void enterPressed() OVERRIDE { }
 	virtual void spacePressed() OVERRIDE { }
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-	
+
 private:
 	void KeysSection(const char *title_) { Section("Keys", title_); }
 	void MouseSection(const char *title_) { Section("Mouse", title_); }
@@ -52,7 +52,7 @@ private:
 	void KeyDesc(const ActionType at, const char *desc);
 	void MouseDesc(std::string action, const char *desc, bool indent = false);
 	void MouseColumn(const char *column);
-	
+
 	std::string DisplayKeys(const ActionType at);
 	void GetKeybindings();
 };

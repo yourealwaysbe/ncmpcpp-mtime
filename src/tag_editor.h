@@ -35,62 +35,62 @@
 struct TagEditor: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Searchable, Tabbable
 {
 	TagEditor();
-	
+
 	virtual void resize() OVERRIDE;
 	virtual void switchTo() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::TagEditor; }
-	
+
 	virtual void refresh() OVERRIDE;
 	virtual void update() OVERRIDE;
-	
+
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT) OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// Filterable implementation
 	virtual bool allowsFiltering() OVERRIDE;
 	virtual std::string currentFilter() OVERRIDE;
 	virtual void applyFilter(const std::string &filter) OVERRIDE;
-	
+
 	// Searchable implementation
 	virtual bool allowsSearching() OVERRIDE;
 	virtual bool search(const std::string &constraint) OVERRIDE;
 	virtual void nextFound(bool wrap) OVERRIDE;
 	virtual void prevFound(bool wrap) OVERRIDE;
-	
+
 	// HasSongs implementation
 	virtual ProxySongList proxySongList() OVERRIDE;
-	
+
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
 	virtual MPD::SongList getSelectedSongs() OVERRIDE;
-	
+
 	// HasColumns implementation
 	virtual bool previousColumnAvailable() OVERRIDE;
 	virtual void previousColumn() OVERRIDE;
-	
+
 	virtual bool nextColumnAvailable() OVERRIDE;
 	virtual void nextColumn() OVERRIDE;
-	
+
 	// private members
 	bool ifAnyModifiedAskForDiscarding();
 	void LocateSong(const MPD::Song &s);
 	const std::string &CurrentDir() { return itsBrowsedDir; }
-	
+
 	NC::Menu< std::pair<std::string, std::string> > *Dirs;
 	NC::Menu<std::string> *TagTypes;
 	NC::Menu<MPD::MutableSong> *Tags;
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-	
+
 private:
 	void SetDimensions(size_t, size_t);
-	
+
 	std::vector<MPD::MutableSong *> EditedSongs;
 	NC::Menu<std::string> *FParserDialog;
 	NC::Menu<std::string> *FParser;
@@ -98,7 +98,7 @@ private:
 	NC::Scrollpad *FParserLegend;
 	NC::Scrollpad *FParserPreview;
 	bool FParserUsePreview;
-	
+
 	std::string itsBrowsedDir;
 	std::string itsHighlightedDir;
 };

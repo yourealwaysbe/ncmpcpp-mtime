@@ -39,3 +39,4 @@ std::string VolumeState;
 timeval Timer;
 
 }
+
