@@ -103,10 +103,20 @@ public:
 	SortSearchConstraints() : m_cmp(std::locale(), Config.ignore_leading_the) { }
 	bool operator()(const SearchConstraints &a, const SearchConstraints &b) const {
 		if (Config.media_library_sort_by_mtime)
+<<<<<<< HEAD
 		{
 			return a.MTime > b.MTime;
 		}
 		else
+=======
+
+		{
+			return a.MTime > b.MTime;
+		}
+
+		else
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		{
 			int result;
 			result = m_cmp(a.PrimaryTag, b.PrimaryTag);
@@ -125,6 +135,10 @@ class ArtistSorting {
 public:
 	ArtistSorting() : m_cmp(std::locale(), Config.ignore_leading_the) { }
 	bool operator()(const MPD::TagMTime &a,
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	                const MPD::TagMTime &b) const {
 		if (Config.media_library_sort_by_mtime)
 			return a.mtime() > b.mtime();
@@ -132,7 +146,6 @@ public:
 			return m_cmp(a.tag(), b.tag()) < 0;
 	}
 };
-
 
 }
 
@@ -144,7 +157,7 @@ MediaLibrary::MediaLibrary()
 	itsMiddleColStartX = itsLeftColWidth+1;
 	itsRightColWidth = COLS-COLS/3*2-1;
 	itsRightColStartX = itsLeftColWidth+itsMiddleColWidth+2;
-	
+
 	Tags = NC::Menu<MPD::TagMTime>(0, MainStartY, itsLeftColWidth, MainHeight, Config.titles_visibility ? tagTypeToString(Config.media_lib_primary_tag) + "s" : "", Config.main_color, NC::brNone);
 	Tags.setHighlightColor(Config.active_column_color);
 	Tags.cyclicScrolling(Config.use_cyclic_scrolling);
@@ -152,7 +165,7 @@ MediaLibrary::MediaLibrary()
 	Tags.setSelectedPrefix(Config.selected_item_prefix);
 	Tags.setSelectedSuffix(Config.selected_item_suffix);
 	Tags.setItemDisplayer(DisplayPrimaryTags);
-	
+
 	Albums = NC::Menu<SearchConstraints>(itsMiddleColStartX, MainStartY, itsMiddleColWidth, MainHeight, Config.titles_visibility ? "Albums" : "", Config.main_color, NC::brNone);
 	Albums.setHighlightColor(Config.main_highlight_color);
 	Albums.cyclicScrolling(Config.use_cyclic_scrolling);
@@ -160,7 +173,7 @@ MediaLibrary::MediaLibrary()
 	Albums.setSelectedPrefix(Config.selected_item_prefix);
 	Albums.setSelectedSuffix(Config.selected_item_suffix);
 	Albums.setItemDisplayer(DisplayAlbums);
-	
+
 	Songs = NC::Menu<MPD::Song>(itsRightColStartX, MainStartY, itsRightColWidth, MainHeight, Config.titles_visibility ? "Songs" : "", Config.main_color, NC::brNone);
 	Songs.setHighlightColor(Config.main_highlight_color);
 	Songs.cyclicScrolling(Config.use_cyclic_scrolling);
@@ -168,7 +181,7 @@ MediaLibrary::MediaLibrary()
 	Songs.setSelectedPrefix(Config.selected_item_prefix);
 	Songs.setSelectedSuffix(Config.selected_item_suffix);
 	Songs.setItemDisplayer(std::bind(Display::Songs, _1, songsProxyList(), Config.song_library_format));
-	
+
 	w = &Tags;
 }
 
@@ -192,15 +205,15 @@ void MediaLibrary::resize()
 		itsRightColStartX = x_offset+itsMiddleColWidth+1;
 		itsRightColWidth = width-itsMiddleColWidth-1;
 	}
-	
+
 	Tags.resize(itsLeftColWidth, MainHeight);
 	Albums.resize(itsMiddleColWidth, MainHeight);
 	Songs.resize(itsRightColWidth, MainHeight);
-	
+
 	Tags.moveTo(itsLeftColStartX, MainStartY);
 	Albums.moveTo(itsMiddleColStartX, MainStartY);
 	Songs.moveTo(itsRightColStartX, MainStartY);
-	
+
 	hasToBeResized = 0;
 }
 
@@ -232,6 +245,10 @@ std::wstring MediaLibrary::title()
 }
 
 bool MediaLibrary::hasMTimes()
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 {
 	bool has = false;
 	if (hasTwoColumns && !Albums.empty())
@@ -242,6 +259,10 @@ bool MediaLibrary::hasMTimes()
 }
 
 void MediaLibrary::toggleMTimeSort()
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 {
 	Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
 	if (Config.media_library_sort_by_mtime)
@@ -250,12 +271,22 @@ void MediaLibrary::toggleMTimeSort()
 		Statusbar::msg("Sorting library by: Name");
 
 	if (!myLibrary->hasMTimes() && Config.media_library_sort_by_mtime)
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		myLibrary->Tags.clear();
 		myLibrary->Albums.clear();
 		myLibrary->Songs.clear();
 	}
+<<<<<<< HEAD
 	else
+=======
+
+	else
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		if (!hasTwoColumns)
 		{
@@ -264,7 +295,13 @@ void MediaLibrary::toggleMTimeSort()
 			Albums.clear();
 			Songs.clear();
 		}
+<<<<<<< HEAD
 		else
+=======
+
+		else
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		{
 			std::sort(Albums.beginV(), Albums.endV(), SortSearchConstraints());
 			Albums.refresh();
@@ -273,13 +310,24 @@ void MediaLibrary::toggleMTimeSort()
 	}
 
 	if (hasTwoColumns)
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		if (Config.titles_visibility)
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
 			std::string and_mtime = Config.media_library_sort_by_mtime ?
+<<<<<<< HEAD
 			                        " and mtime" :
 			                        "";
+=======
+
+			                        " and mtime" :
+
+				   					"";
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
 	}
@@ -304,7 +352,7 @@ void MediaLibrary::update()
 		}
 		Tags.refresh();
 	}
-	
+
 	if (!hasTwoColumns && !Tags.empty() && Albums.reallyEmpty() && Songs.reallyEmpty())
 	{
 		// idle has to be blocked for now since it would be enabled and
@@ -324,6 +372,10 @@ void MediaLibrary::update()
 				Mpd.StartFieldSearch(MPD_TAG_DATE);
 
 				Mpd.AddSearch(Config.media_lib_primary_tag,
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 				              Tags.current().value().tag());
 				Mpd.AddSearch(MPD_TAG_ALBUM, album);
 				auto dates = Mpd.CommitSearchTags();
@@ -383,21 +435,27 @@ void MediaLibrary::update()
 			std::sort(Albums.beginV(), Albums.endV(), SortSearchConstraints());
 		Albums.refresh();
 	}
-	
+
 	if (!hasTwoColumns && !Tags.empty() && isActiveWindow(Albums) && Albums.reallyEmpty())
 	{
 		Albums.setHighlightColor(Config.main_highlight_color);
 		Tags.setHighlightColor(Config.active_column_color);
 		w = &Tags;
 	}
-	
+
 	if (!(hasTwoColumns ? Albums.empty() : Tags.empty()) && Songs.reallyEmpty())
 	{
 		Songs.reset();
-		
+
 		Mpd.StartSearch(1);
 		Mpd.AddSearch(Config.media_lib_primary_tag,
+<<<<<<< HEAD
 		              hasTwoColumns ? Albums.current().value().PrimaryTag :
+=======
+
+		              hasTwoColumns ? Albums.current().value().PrimaryTag :
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		                              Tags.current().value().tag());
 		if (Albums.current().value().Date != AllTracksMarker)
 		{
@@ -408,12 +466,12 @@ void MediaLibrary::update()
 		auto songs = Mpd.CommitSearchSongs();
 		for (auto s = songs.begin(); s != songs.end(); ++s)
 			Songs.addItem(*s, myPlaylist->checkForSong(*s));
-		
+
 		if (Albums.current().value().Date == AllTracksMarker)
 			std::sort(Songs.beginV(), Songs.endV(), SortAllTracks());
 		else
 			std::sort(Songs.beginV(), Songs.endV(), SortSongsByTrack);
-		
+
 		Songs.refresh();
 	}
 }
@@ -700,6 +758,10 @@ MPD::SongList MediaLibrary::getSelectedSongs()
 					Mpd.AddSearch(Config.media_lib_primary_tag, sc.PrimaryTag);
 				else
 					Mpd.AddSearch(Config.media_lib_primary_tag,
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 					              Tags.current().value().tag());
 				Mpd.AddSearch(MPD_TAG_ALBUM, sc.Album);
 				Mpd.AddSearch(MPD_TAG_DATE, sc.Date);
@@ -815,7 +877,13 @@ void MediaLibrary::toggleColumnsMode()
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
 			std::string and_mtime = Config.media_library_sort_by_mtime ?
+<<<<<<< HEAD
 			                        " and mtime" :
+=======
+
+			                        " and mtime" :
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 									"";
 			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
@@ -872,12 +940,12 @@ void MediaLibrary::LocateSong(const MPD::Song &s)
 		Statusbar::msg("Can't use this function because the song has no %s tag set", item_type.c_str());
 		return;
 	}
-	
+
 	if (myScreen != this)
 		switchTo();
 	Statusbar::put() << "Jumping to song...";
 	Global::wFooter->refresh();
-	
+
 	if (!hasTwoColumns)
 	{
 		Tags.showAll();
@@ -897,11 +965,11 @@ void MediaLibrary::LocateSong(const MPD::Song &s)
 			}
 		}
 	}
-	
+
 	Albums.showAll();
 	if (Albums.empty())
 		update();
-	
+
 	std::string album = s.getAlbum();
 	std::string date = s.getDate();
 	if ((hasTwoColumns && Albums.current().value().PrimaryTag != primary_tag)
@@ -920,11 +988,11 @@ void MediaLibrary::LocateSong(const MPD::Song &s)
 			}
 		}
 	}
-	
+
 	Songs.showAll();
 	if (Songs.empty())
 		update();
-	
+
 	if (s.getHash() != Songs.current().value().getHash())
 	{
 		for (size_t i = 0; i < Songs.size(); ++i)
@@ -936,7 +1004,7 @@ void MediaLibrary::LocateSong(const MPD::Song &s)
 			}
 		}
 	}
-	
+
 	Tags.setHighlightColor(Config.main_highlight_color);
 	Albums.setHighlightColor(Config.main_highlight_color);
 	Songs.setHighlightColor(Config.active_column_color);
@@ -1023,8 +1091,6 @@ bool SongEntryMatcher(const Regex &rx, const MPD::Song &s)
 	return rx.match(SongToString(s));
 }
 
-
-
 /***********************************************************************/
 
 void DisplayAlbums(NC::Menu<SearchConstraints> &menu)
@@ -1038,9 +1104,12 @@ void DisplayPrimaryTags(NC::Menu<MPD::TagMTime> &menu)
 	if (tag.empty())
 		menu << Config.empty_tag;
 	else
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		menu << tag;
 }
-
 
 /***********************************************************************/
 
@@ -1052,6 +1121,5 @@ bool SortSongsByTrack(const MPD::Song &a, const MPD::Song &b)
 	return a.getTrack() < b.getTrack();
 }
 
-
-
 }
+

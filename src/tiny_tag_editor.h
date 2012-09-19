@@ -32,28 +32,28 @@
 struct TinyTagEditor: Screen<NC::Menu<NC::Buffer>>
 {
 	TinyTagEditor();
-	
+
 	// Screen< NC::Menu<NC::Buffer> > implementation
 	virtual void resize() OVERRIDE;
 	virtual void switchTo() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::TinyTagEditor; }
-	
+
 	virtual void update() OVERRIDE { }
-	
+
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE { }
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// private members
 	void SetEdited(const MPD::Song &);
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return false; }
-	
+
 private:
 	bool getTags();
 	MPD::MutableSong itsEdited;

@@ -160,7 +160,6 @@ unsigned MutableSong::getDuration() const
 		return Song::getDuration();
 }
 
-
 void MutableSong::setDuration(unsigned int duration)
 {
 	m_duration = duration;
@@ -201,3 +200,4 @@ void MutableSong::replaceTag(mpd_tag_type tag_type, std::string &&orig_value, co
 }
 
 }
+

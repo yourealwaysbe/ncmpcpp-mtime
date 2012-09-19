@@ -73,13 +73,13 @@ void ServerInfo::update()
 	if (Global::Timer.tv_sec <= past.tv_sec)
 		return;
 	past = Global::Timer;
-	
+
 	MPD::Statistics stats = Mpd.getStatistics();
 	if (stats.empty())
 		return;
-	
+
 	w.clear();
-	
+
 	w << NC::fmtBold << L"Version: " << NC::fmtBoldEnd << L"0." << Mpd.Version() << L".*\n";
 	w << NC::fmtBold << L"Uptime: " << NC::fmtBoldEnd;
 	ShowTime(w, stats.uptime(), 1);
@@ -102,7 +102,7 @@ void ServerInfo::update()
 	w << NC::fmtBold << L"Tag Types:" << NC::fmtBoldEnd;
 	for (auto it = itsTagTypes.begin(); it != itsTagTypes.end(); ++it)
 		w << (it != itsTagTypes.begin() ? L", " : L" ") << *it;
-	
+
 	w.flush();
 	w.refresh();
 }

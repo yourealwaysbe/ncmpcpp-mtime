@@ -67,21 +67,21 @@ void charset_convert(const char *from, const char *to, const char *&inbuf,
 	assert(inbuf);
 	assert(from);
 	assert(to);
-	
+
 	iconv_t cd = iconv_open(to, from);
 	if (cd == iconv_t(-1))
 	{
 		std::cerr << "Error while executing iconv_open: " << strerror(errno) << "\n";
 		return;
 	}
-	
+
 	if (!len)
 		len = strlen(inbuf);
 	size_t buflen = len*MB_CUR_MAX+1;
 	char *outbuf = static_cast<char *>(malloc(buflen));
 	char *outstart = outbuf;
 	const char *instart = inbuf;
-	
+
 	if (iconv(cd, const_cast<ICONV_CONST char **>(&inbuf), &len, &outbuf, &buflen) == size_t(-1))
 	{
 		std::cerr << "Error while executing iconv: " << strerror(errno) << "\n";
@@ -145,3 +145,4 @@ void localeToUtf8_(std::string &s)
 }
 
 #endif // HAVE_ICONV_H
+

@@ -71,7 +71,7 @@ Browser::Browser() : itsBrowseLocally(0), itsScrollBeginning(0), itsBrowsedDir("
 	w.setSelectedPrefix(Config.selected_item_prefix);
 	w.setSelectedSuffix(Config.selected_item_suffix);
 	w.setItemDisplayer(std::bind(Display::Items, _1, proxySongList()));
-	
+
 	if (SupportedExtensions.empty())
 		Mpd.GetSupportedExtensions(SupportedExtensions);
 }
@@ -89,16 +89,16 @@ void Browser::resize()
 void Browser::switchTo()
 {
 	SwitchTo::execute(this);
-	
+
 	// local browser doesn't support sorting by mtime
 	if (isLocal() && Config.browser_sort_mode == smMTime)
 		Config.browser_sort_mode = smName;
-	
+
 	if (w.empty())
 		GetDirectory(itsBrowsedDir);
 	else
 		markSongsInPlaylist(proxySongList());
-	
+
 	drawHeader();
 }
 
@@ -113,7 +113,7 @@ void Browser::enterPressed()
 {
 	if (w.empty())
 		return;
-	
+
 	const MPD::Item &item = w.current().value();
 	switch (item.type)
 	{
@@ -146,7 +146,7 @@ void Browser::spacePressed()
 {
 	if (w.empty())
 		return;
-	
+
 	size_t i = itsBrowsedDir != "/" ? 1 : 0;
 	if (Config.space_selects && w.choice() >= i)
 	{
@@ -155,12 +155,12 @@ void Browser::spacePressed()
 		w.scroll(NC::wDown);
 		return;
 	}
-	
+
 	const MPD::Item &item = w.current().value();
-	
+
 	if (isParentDirectory(item))
 		return;
-	
+
 	switch (item.type)
 	{
 		case itDirectory:
@@ -349,12 +349,12 @@ void Browser::LocateSong(const MPD::Song &s)
 {
 	if (s.getDirectory().empty())
 		return;
-	
+
 	itsBrowseLocally = !s.isFromDatabase();
-	
+
 	if (myScreen != this)
 		switchTo();
-	
+
 	if (itsBrowsedDir != s.getDirectory())
 		GetDirectory(s.getDirectory());
 	for (size_t i = 0; i < w.size(); ++i)
@@ -372,15 +372,15 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 {
 	if (dir.empty())
 		dir = "/";
-	
+
 	int highlightme = -1;
 	itsScrollBeginning = 0;
 	if (itsBrowsedDir != dir)
 		w.reset();
 	itsBrowsedDir = dir;
-	
+
 	w.clear();
-	
+
 	if (dir != "/")
 	{
 		MPD::Item parent;
@@ -388,7 +388,7 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 		parent.type = itDirectory;
 		w.addItem(parent);
 	}
-	
+
 	MPD::ItemList list;
 #	ifndef WIN32
 	if (isLocal())
@@ -401,7 +401,7 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 	if (!isLocal()) // local directory is already sorted
 		std::sort(list.begin(), list.end(),
 			LocaleBasedItemSorting(std::locale(), Config.ignore_leading_the, Config.browser_sort_mode));
-	
+
 	for (MPD::ItemList::iterator it = list.begin(); it != list.end(); ++it)
 	{
 		switch (it->type)
@@ -442,22 +442,22 @@ void Browser::GetDirectory(std::string dir, std::string subdir)
 void Browser::GetLocalDirectory(MPD::ItemList &v, const std::string &directory, bool recursively) const
 {
 	DIR *dir = opendir((directory.empty() ? itsBrowsedDir : directory).c_str());
-	
+
 	if (!dir)
 		return;
-	
+
 	dirent *file;
-	
+
 	struct stat file_stat;
 	std::string full_path;
-	
+
 	size_t old_size = v.size();
 	while ((file = readdir(dir)))
 	{
 		// omit . and ..
 		if (file->d_name[0] == '.' && (file->d_name[1] == '\0' || (file->d_name[1] == '.' && file->d_name[2] == '\0')))
 			continue;
-		
+
 		if (!Config.local_browser_show_hidden_files && file->d_name[0] == '.')
 			continue;
 		MPD::Item new_item;
@@ -503,17 +503,17 @@ void Browser::ClearDirectory(const std::string &path) const
 	DIR *dir = opendir(path.c_str());
 	if (!dir)
 		return;
-	
+
 	dirent *file;
 	struct stat file_stat;
 	std::string full_path;
-	
+
 	while ((file = readdir(dir)))
 	{
 		// omit . and ..
 		if (file->d_name[0] == '.' && (file->d_name[1] == '\0' || (file->d_name[1] == '.' && file->d_name[2] == '\0')))
 			continue;
-		
+
 		full_path = path;
 		if (*full_path.rbegin() != '/')
 			full_path += '/';
@@ -542,7 +542,7 @@ void Browser::ChangeBrowseMode()
 		Statusbar::msg("For browsing local filesystem connection to MPD via UNIX Socket is required");
 		return;
 	}
-	
+
 	itsBrowseLocally = !itsBrowseLocally;
 	Statusbar::msg("Browse mode: %s", itsBrowseLocally ? "Local filesystem" : "MPD database");
 	itsBrowsedDir = itsBrowseLocally ? Config.GetHomeDirectory() : "/";
@@ -558,19 +558,19 @@ bool Browser::deleteItem(const MPD::Item &item)
 	// parent dir
 	if (item.type == itDirectory && item.name == "..")
 		return false;
-	
+
 	// playlist created by mpd
 	if (!isLocal() && item.type == itPlaylist && CurrentDir() == "/")
 		return Mpd.DeletePlaylist(item.name);
-	
+
 	std::string path;
 	if (!isLocal())
 		path = Config.mpd_music_dir;
 	path += item.type == itSong ? item.song->getURI() : item.name;
-	
+
 	if (item.type == itDirectory)
 		ClearDirectory(path);
-	
+
 	return remove(path.c_str()) == 0;
 }
 #endif // !WIN32
@@ -582,7 +582,7 @@ bool hasSupportedExtension(const std::string &file)
 	size_t last_dot = file.rfind(".");
 	if (last_dot > file.length())
 		return false;
-	
+
 	std::string ext = lowercase(file.substr(last_dot+1));
 	return SupportedExtensions.find(ext) != SupportedExtensions.end();
 }
@@ -616,3 +616,4 @@ bool BrowserEntryMatcher(const Regex &rx, const MPD::Item &item, bool filter)
 }
 
 }
+

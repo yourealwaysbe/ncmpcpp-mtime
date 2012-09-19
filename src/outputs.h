@@ -33,25 +33,25 @@
 struct Outputs: Screen<NC::Menu<MPD::Output>>, Tabbable
 {
 	Outputs();
-	
+
 	// Screen< NC::Menu<MPD::Output> > implementation
 	virtual void switchTo() OVERRIDE;
 	virtual void resize() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::Outputs; }
-	
+
 	virtual void update() OVERRIDE { }
-	
+
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE { }
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// private members
 	void FetchList();
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
 };

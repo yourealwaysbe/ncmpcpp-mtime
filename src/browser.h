@@ -28,43 +28,43 @@
 struct Browser: Screen<NC::Menu<MPD::Item>>, Filterable, HasSongs, Searchable, Tabbable
 {
 	Browser();
-	
+
 	// Screen< NC::Menu<MPD::Item> > implementation
 	virtual void resize() OVERRIDE;
 	virtual void switchTo() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::Browser; }
-	
+
 	virtual void update() OVERRIDE { }
-	
+
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// Filterable implementation
 	virtual bool allowsFiltering() OVERRIDE;
 	virtual std::string currentFilter() OVERRIDE;
 	virtual void applyFilter(const std::string &filter) OVERRIDE;
-	
+
 	// Searchable implementation
 	virtual bool allowsSearching() OVERRIDE;
 	virtual bool search(const std::string &constraint) OVERRIDE;
 	virtual void nextFound(bool wrap) OVERRIDE;
 	virtual void prevFound(bool wrap) OVERRIDE;
-	
+
 	// HasSongs implementation
 	virtual ProxySongList proxySongList() OVERRIDE;
-	
+
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
 	virtual MPD::SongList getSelectedSongs() OVERRIDE;
-	
+
 	// private members
 	const std::string &CurrentDir() { return itsBrowsedDir; }
-	
+
 	bool isLocal() { return itsBrowseLocally; }
 	void LocateSong(const MPD::Song &);
 	void GetDirectory(std::string, std::string = "/");
@@ -74,14 +74,14 @@ struct Browser: Screen<NC::Menu<MPD::Item>>, Filterable, HasSongs, Searchable, T
 	void ChangeBrowseMode();
 	bool deleteItem(const MPD::Item &);
 #	endif // !WIN32
-	
+
 	static bool isParentDirectory(const MPD::Item &item) {
 		return item.type == MPD::itDirectory && item.name == "..";
 	}
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-	
+
 private:
 	bool itsBrowseLocally;
 	size_t itsScrollBeginning;

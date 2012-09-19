@@ -61,7 +61,7 @@ PlaylistEditor::PlaylistEditor()
 	LeftColumnWidth = COLS/3-1;
 	RightColumnStartX = LeftColumnWidth+1;
 	RightColumnWidth = COLS-LeftColumnWidth-1;
-	
+
 	Playlists = NC::Menu<std::string>(0, MainStartY, LeftColumnWidth, MainHeight, Config.titles_visibility ? "Playlists" : "", Config.main_color, NC::brNone);
 	Playlists.setHighlightColor(Config.active_column_color);
 	Playlists.cyclicScrolling(Config.use_cyclic_scrolling);
@@ -69,7 +69,7 @@ PlaylistEditor::PlaylistEditor()
 	Playlists.setSelectedPrefix(Config.selected_item_prefix);
 	Playlists.setSelectedSuffix(Config.selected_item_suffix);
 	Playlists.setItemDisplayer(Display::Default<std::string>);
-	
+
 	Content = NC::Menu<MPD::Song>(RightColumnStartX, MainStartY, RightColumnWidth, MainHeight, Config.titles_visibility ? "Playlist content" : "", Config.main_color, NC::brNone);
 	Content.setHighlightColor(Config.main_highlight_color);
 	Content.cyclicScrolling(Config.use_cyclic_scrolling);
@@ -80,7 +80,7 @@ PlaylistEditor::PlaylistEditor()
 		Content.setItemDisplayer(std::bind(Display::SongsInColumns, _1, contentProxyList()));
 	else
 		Content.setItemDisplayer(std::bind(Display::Songs, _1, contentProxyList(), Config.song_list_format));
-	
+
 	w = &Playlists;
 }
 
@@ -88,18 +88,18 @@ void PlaylistEditor::resize()
 {
 	size_t x_offset, width;
 	getWindowResizeParams(x_offset, width);
-	
+
 	LeftColumnStartX = x_offset;
 	LeftColumnWidth = width/3-1;
 	RightColumnStartX = LeftColumnStartX+LeftColumnWidth+1;
 	RightColumnWidth = width-LeftColumnWidth-1;
-	
+
 	Playlists.resize(LeftColumnWidth, MainHeight);
 	Content.resize(RightColumnWidth, MainHeight);
-	
+
 	Playlists.moveTo(LeftColumnStartX, MainStartY);
 	Content.moveTo(RightColumnStartX, MainStartY);
-	
+
 	hasToBeResized = 0;
 }
 
@@ -143,7 +143,7 @@ void PlaylistEditor::update()
 		});
 		Playlists.refresh();
 	}
-	
+
 	if (!Playlists.empty() && (Content.reallyEmpty() || contentUpdateRequested))
 	{
 		contentUpdateRequested = false;
@@ -177,14 +177,14 @@ void PlaylistEditor::update()
 		});
 		Content.display();
 	}
-	
+
 	if (isActiveWindow(Content) && Content.reallyEmpty())
 	{
 		Content.setHighlightColor(Config.main_highlight_color);
 		Playlists.setHighlightColor(Config.active_column_color);
 		w = &Playlists;
 	}
-	
+
 	if (Playlists.empty() && Content.reallyEmpty())
 	{
 		Content.Window::clear();
@@ -212,7 +212,7 @@ ProxySongList PlaylistEditor::contentProxyList()
 void PlaylistEditor::AddToPlaylist(bool add_n_play)
 {
 	MPD::SongList list;
-	
+
 	if (isActiveWindow(Playlists) && !Playlists.empty())
 	{
 		if (Mpd.LoadPlaylist(Playlists.current().value()))
@@ -224,7 +224,7 @@ void PlaylistEditor::AddToPlaylist(bool add_n_play)
 	}
 	else if (isActiveWindow(Content) && !Content.empty())
 		addSongToPlaylist(Content.current().value(), add_n_play);
-	
+
 	if (!add_n_play)
 		w->scroll(NC::wDown);
 }
@@ -527,3 +527,4 @@ bool SongEntryMatcher(const Regex &rx, const MPD::Song &s)
 }
 
 }
+

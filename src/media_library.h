@@ -27,47 +27,47 @@
 struct MediaLibrary: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Searchable, Tabbable
 {
 	MediaLibrary();
-	
+
 	virtual void switchTo() OVERRIDE;
 	virtual void resize() OVERRIDE;
-	
+
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::MediaLibrary; }
-	
+
 	virtual void refresh() OVERRIDE;
 	virtual void update() OVERRIDE;
-	
+
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-	
+
 	virtual bool isMergable() OVERRIDE { return true; }
-	
+
 	// Filterable implementation
 	virtual bool allowsFiltering() OVERRIDE;
 	virtual std::string currentFilter() OVERRIDE;
 	virtual void applyFilter(const std::string &filter) OVERRIDE;
-	
+
 	// Searchable implementation
 	virtual bool allowsSearching() OVERRIDE;
 	virtual bool search(const std::string &constraint) OVERRIDE;
 	virtual void nextFound(bool wrap) OVERRIDE;
 	virtual void prevFound(bool wrap) OVERRIDE;
-	
+
 	// HasSongs implementation
 	virtual ProxySongList proxySongList() OVERRIDE;
-	
+
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
 	virtual MPD::SongList getSelectedSongs() OVERRIDE;
-	
+
 	// HasColumns implementation
 	virtual bool previousColumnAvailable() OVERRIDE;
 	virtual void previousColumn() OVERRIDE;
-	
+
 	virtual bool nextColumnAvailable() OVERRIDE;
 	virtual void nextColumn() OVERRIDE;
-	
+
 	// private members
 	void toggleColumnsMode();
 	int Columns();
@@ -86,24 +86,27 @@ struct MediaLibrary: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Sea
 		SearchConstraints(const std::string &tag, const std::string &album, const std::string &date, time_t mtime) : PrimaryTag(tag), Album(album), Date(date), MTime(mtime) { }
 		SearchConstraints(const std::string &album, const std::string &date, time_t mtime) : Album(album), Date(date), MTime(mtime) { }
 
-		
 		std::string PrimaryTag;
 		std::string Album;
 		std::string Date;
 		time_t MTime;
-	
+
 		bool operator<(const SearchConstraints &a) const;
 
 		bool hasMTime() { return MTime != 0; }
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	};
 
 	NC::Menu<MPD::TagMTime> Tags;
 	NC::Menu<SearchConstraints> Albums;
 	NC::Menu<MPD::Song> Songs;
-	
+
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-	
+
 private:
 	void AddToPlaylist(bool);
 };

@@ -78,3 +78,4 @@ void stripHtmlTags(std::string &s)
 			s[i] = ' ';
 	}
 }
+

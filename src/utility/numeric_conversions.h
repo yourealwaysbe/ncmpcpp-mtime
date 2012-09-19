@@ -73,3 +73,4 @@ template <> struct unsignedLongIntTo<std::wstring> {
 };
 
 #endif // _UTILITY_NUMERIC_CONVERSIONS_H
+

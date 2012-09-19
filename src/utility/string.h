@@ -81,3 +81,4 @@ std::string getEnclosedString(const std::string &s, char a, char b, size_t *pos)
 void removeInvalidCharsFromFilename(std::string &filename);
 
 #endif // _UTILITY_STRING
+

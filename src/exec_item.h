@@ -27,19 +27,20 @@ template <typename ItemT, typename FunType> struct ExecItem
 {
 	typedef ItemT Item;
 	typedef std::function<FunType> Function;
-	
+
 	ExecItem() { }
 	ExecItem(const Item &item_, Function f) : m_item(item_), m_exec(f) { }
-	
+
 	Function &exec() { return m_exec; }
 	const Function &exec() const { return m_exec; }
-	
+
 	Item &item() { return m_item; }
 	const Item &item() const { return m_item; }
-	
+
 private:
 	Item m_item;
 	Function m_exec;
 };
 
 #endif // _EXEC_ITEM_H
+

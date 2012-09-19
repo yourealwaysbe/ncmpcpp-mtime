@@ -29,7 +29,7 @@
 #include "song.h"
 
 namespace MPD {//
-	
+
 enum ItemType { itDirectory, itSong, itPlaylist };
 enum PlayerState { psUnknown, psStop, psPlay, psPause };
 enum ReplayGainMode { rgmOff, rgmTrack, rgmAlbum };
@@ -37,9 +37,9 @@ enum ReplayGainMode { rgmOff, rgmTrack, rgmAlbum };
 struct Statistics
 {
 	friend class Connection;
-	
+
 	bool empty() const;
-	
+
 	unsigned artists() const;
 	unsigned albums() const;
 	unsigned songs() const;
@@ -47,10 +47,10 @@ struct Statistics
 	unsigned long uptime() const;
 	unsigned long dbUpdateTime() const;
 	unsigned long dbPlayTime() const;
-	
+
 private:
 	Statistics(mpd_stats *stats) : m_stats(stats, mpd_stats_free) { }
-	
+
 	std::shared_ptr<mpd_stats> m_stats;
 };
 
@@ -84,18 +84,22 @@ struct StatusChanges
 struct Output
 {
 	Output(const std::string &name_, bool enabled) : m_name(name_), m_enabled(enabled) { }
-	
+
 	const std::string &name() const { return m_name; }
 	bool isEnabled() const { return m_enabled; }
-	
+
 private:
 	std::string m_name;
 	bool m_enabled;
 };
 
+struct TagMTime
 
+<<<<<<< HEAD
 
 struct TagMTime
+=======
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 {
 	TagMTime(const std::string &tag_) : m_tag(tag_), m_mtime(0) { }
 
@@ -105,16 +109,28 @@ struct TagMTime
 	time_t mtime() const { return m_mtime; }
 
 	void set_mtime(time_t mtime_)
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		m_mtime = mtime_;
 	}
 
 	void set_tag(std::string tag_)
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		m_tag = tag_;
 	}
 
 	bool hasMTime()
+<<<<<<< HEAD
+=======
+
+>>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		return (m_mtime != 0);
 	}
@@ -141,42 +157,42 @@ typedef std::vector<Output> OutputList;
 class Connection
 {
 	friend struct Statistics;
-	
+
 	typedef void (*StatusUpdater) (Connection *, StatusChanges, void *);
 	typedef void (*ErrorHandler) (Connection *, int, const char *, void *);
-	
+
 public:
 	Connection();
 	~Connection();
-	
+
 	bool Connect();
 	bool Connected() const;
 	void Disconnect();
-	
+
 	const std::string & GetHostname() { return itsHost; }
 	int GetPort() { return itsPort; }
-	
+
 	unsigned Version() const;
-	
+
 	void SetIdleEnabled(bool val) { isIdleEnabled = val; }
 	void BlockIdle(bool val) { itsIdleBlocked = val; }
 	bool SupportsIdle() const { return supportsIdle; }
 	void OrderDataFetching() { hasData = 1; }
 	int GetFD() const { return itsFD; }
-	
+
 	void SetHostname(const std::string &);
 	void SetPort(int port) { itsPort = port; }
 	void SetTimeout(int timeout) { itsTimeout = timeout; }
 	void SetPassword(const std::string &password) { itsPassword = password; }
 	bool SendPassword();
-	
+
 	Statistics getStatistics();
-	
+
 	void SetStatusUpdater(StatusUpdater, void *);
 	void SetErrorHandler(ErrorHandler, void *);
 	void UpdateStatus();
 	bool UpdateDirectory(const std::string &);
-	
+
 	void Play();
 	void Play(int);
 	void PlayID(int);
@@ -190,9 +206,9 @@ public:
 	void Seek(unsigned);
 	void Shuffle();
 	bool ClearMainPlaylist();
-	
+
 	bool isPlaying() const { return GetState() > psStop; }
-	
+
 	PlayerState GetState() const { return itsCurrentStatus ? PlayerState(mpd_status_get_state(itsCurrentStatus)) : psUnknown; }
 	PlayerState GetOldState() const { return itsOldStatus ? PlayerState(mpd_status_get_state(itsOldStatus)) : psUnknown; }
 	bool GetRepeat() const { return itsCurrentStatus ? mpd_status_get_repeat(itsCurrentStatus) : 0; }
@@ -207,32 +223,32 @@ public:
 	unsigned GetElapsedTime() const { return itsCurrentStatus ? itsElapsed : 0; }
 	int GetTotalTime() const { return itsCurrentStatus ? mpd_status_get_total_time(itsCurrentStatus) : 0; }
 	unsigned GetBitrate() const { return itsCurrentStatus ? mpd_status_get_kbit_rate(itsCurrentStatus) : 0; }
-	
+
 	size_t GetPlaylistLength() const { return itsCurrentStatus ? mpd_status_get_queue_length(itsCurrentStatus) : 0; }
 	SongList GetPlaylistChanges(unsigned);
-	
+
 	const std::string &GetErrorMessage() const { return itsErrorMessage; }
-	
+
 	Song GetCurrentlyPlayingSong();
 	int GetCurrentlyPlayingSongPos() const;
 	int GetCurrentSongPos() const;
 	Song GetSong(const std::string &);
 	SongList GetPlaylistContent(const std::string &);
-	
+
 	void GetSupportedExtensions(std::set<std::string> &);
-	
+
 	void SetRepeat(bool);
 	void SetRandom(bool);
 	void SetSingle(bool);
 	void SetConsume(bool);
 	void SetCrossfade(unsigned);
 	void SetVolume(unsigned);
-	
+
 	std::string GetReplayGainMode();
 	void SetReplayGainMode(ReplayGainMode);
-	
+
 	bool SetPriority(const Song &s, int prio);
-	
+
 	int AddSong(const std::string &, int = -1); // returns id of added song
 	int AddSong(const Song &, int = -1); // returns id of added song
 	bool AddRandomTag(mpd_tag_type, size_t);
@@ -243,7 +259,7 @@ public:
 	bool PlaylistDelete(const std::string &, unsigned);
 	void StartCommandsList();
 	bool CommitCommandsList();
-	
+
 	bool DeletePlaylist(const std::string &);
 	bool LoadPlaylist(const std::string &name);
 	int SavePlaylist(const std::string &);
@@ -252,7 +268,7 @@ public:
 	void AddToPlaylist(const std::string &, const std::string &);
 	bool PlaylistMove(const std::string &, int, int);
 	bool Rename(const std::string &, const std::string &);
-	
+
 	void StartSearch(bool);
 	void StartFieldSearch(mpd_tag_type);
 	void StartFieldSearchMTime(mpd_tag_type, bool);
@@ -262,7 +278,7 @@ public:
 	SongList CommitSearchSongs();
 	StringList CommitSearchTags();
 	TagMTimeList CommitSearchTagsMTime();
-	
+
 	StringList GetPlaylists();
 	StringList GetList(mpd_tag_type);
 	TagMTimeList GetListMTime(mpd_tag_type, bool);
@@ -270,52 +286,52 @@ public:
 	SongList GetDirectoryRecursive(const std::string &);
 	SongList GetSongs(const std::string &);
 	StringList GetDirectories(const std::string &);
-	
+
 	OutputList GetOutputs();
 	bool EnableOutput(int);
 	bool DisableOutput(int);
-	
+
 	StringList GetURLHandlers();
 	StringList GetTagTypes();
-	
+
 private:
 	//void check
-	
+
 	void GoIdle();
 	int GoBusy();
-	
+
 	int CheckForErrors();
 
 	mpd_connection *itsConnection;
 	bool isCommandsListEnabled;
-	
+
 	std::string itsErrorMessage;
-	
+
 	int itsFD;
 	bool isIdle;
 	bool isIdleEnabled;
 	bool itsIdleBlocked;
 	bool supportsIdle;
 	bool hasData;
-	
+
 	std::string itsHost;
 	int itsPort;
 	int itsTimeout;
 	std::string itsPassword;
-	
+
 	mpd_status *itsCurrentStatus;
 	mpd_status *itsOldStatus;
-	
+
 	unsigned itsElapsed;
 	time_t itsElapsedTimer[2];
-	
+
 	StatusChanges itsChanges;
-	
+
 	StatusUpdater itsUpdater;
 	void *itsStatusUpdaterUserdata;
 	ErrorHandler itsErrorHandler;
 	void *itsErrorHandlerUserdata;
-	
+
 	mpd_tag_type itsSearchedField;
 	bool itsSearchFieldMTime;
 };

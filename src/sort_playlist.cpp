@@ -33,10 +33,10 @@ SortPlaylistDialog::SortPlaylistDialog()
 {
 	typedef SortPlaylistDialog Self;
 	typedef WindowType::Item::Type Entry;
-	
+
 	using Global::MainHeight;
 	using Global::MainStartY;
-	
+
 	setDimensions();
 	w = WindowType((COLS-m_width)/2, (MainHeight-m_height)/2+MainStartY, m_width, m_height, "Sort songs by...", Config.main_color, Config.window_border);
 	w.cyclicScrolling(Config.use_cyclic_scrolling);
@@ -44,7 +44,7 @@ SortPlaylistDialog::SortPlaylistDialog()
 	w.setItemDisplayer([](Self::WindowType &menu) {
 		menu << menu.drawn()->value().item().first;
 	});
-	
+
 	w.addItem(Entry(std::make_pair("Artist", &MPD::Song::getArtist),
 		std::bind(&Self::moveSortOrderHint, this)
 	));
@@ -163,13 +163,13 @@ void SortPlaylistDialog::sort() const
 		while (!(end-1)->isSelected())
 			--end;
 	}
-	
+
 	size_t start_pos = begin - pl.begin();
 	MPD::SongList playlist;
 	playlist.reserve(end - begin);
 	for (; begin != end; ++begin)
 		playlist.push_back(begin->value());
-	
+
 	typedef MPD::SongList::iterator Iterator;
 	LocaleStringComparison cmp(std::locale(), Config.ignore_leading_the);
 	std::function<void(Iterator, Iterator)> iter_swap, quick_sort;
@@ -193,24 +193,25 @@ void SortPlaylistDialog::sort() const
 			Iterator pivot = first+rand()%(last-first);
 			iter_swap(pivot, last-1);
 			pivot = last-1;
-			
+
 			Iterator tmp = first;
 			for (Iterator i = first; i != pivot; ++i)
 				if (song_cmp(*i, *pivot))
 					iter_swap(i, tmp++);
 			iter_swap(tmp, pivot);
-			
+
 			quick_sort(first, tmp);
 			quick_sort(tmp+1, last);
 		}
 	};
-	
+
 	Statusbar::msg("Sorting...");
 	Mpd.StartCommandsList();
 	quick_sort(playlist.begin(), playlist.end());
 	if (Mpd.CommitCommandsList())
 	{
-		Statusbar::msg("Playlist sorted");	
+		Statusbar::msg("Playlist sorted");
+
 		switchToPreviousScreen();
 	}
 }
@@ -225,3 +226,4 @@ void SortPlaylistDialog::setDimensions()
 	m_height = std::min(size_t(17), Global::MainHeight);
 	m_width = 30;
 }
+

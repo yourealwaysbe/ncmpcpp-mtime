@@ -40,7 +40,7 @@ void drawHeader()
 	using Global::myScreen;
 	using Global::wHeader;
 	using Global::VolumeState;
-	
+
 	if (!Config.header_visibility)
 		return;
 	if (Config.new_design)
@@ -63,3 +63,4 @@ void drawHeader()
 	}
 	wHeader->refresh();
 }
+
