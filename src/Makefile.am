@@ -48,7 +48,7 @@ ncmpcpp_SOURCES = \
 	tiny_tag_editor.cpp \
 	title.cpp \
 	visualizer.cpp \
-	window.cpp 
+	window.cpp
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
@@ -108,4 +108,4 @@ noinst_HEADERS = \
 	tiny_tag_editor.h \
 	title.h \
 	visualizer.h \
-	window.h 
+	window.h

@@ -982,15 +982,11 @@ void Configuration::GenerateColumns()
 	std::string width;
 	size_t pos = 0;
 	while (!(width = getEnclosedString(song_list_columns_format, '(', ')', &pos)).empty())
-<<<<<<< HEAD
 	{
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-	{ 
->>>>>>> parent of a6778ea... formatted correctly
 		Column col;
 		col.color = stringToColor(getEnclosedString(song_list_columns_format, '[', ']', &pos));
 		std::string tag_type = getEnclosedString(song_list_columns_format, '{', '}', &pos);

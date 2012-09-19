@@ -1105,15 +1105,11 @@ protected:
 
 struct ToggleMediaLibraryMTimeSort : public Action
 {
-<<<<<<< HEAD
 	ToggleMediaLibraryMTimeSort() : Action(aToggleMediaLibraryMTimeSort,
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-	ToggleMediaLibraryMTimeSort() : Action(aToggleMediaLibraryMTimeSort, 
->>>>>>> parent of a6778ea... formatted correctly
 	                                       "toggle_media_library_sort_by_mtime") { }
 	virtual bool canBeRun() const;
 	virtual void Run();

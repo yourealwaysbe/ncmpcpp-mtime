@@ -1155,15 +1155,11 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 	assert(!isCommandsListEnabled);
 	GoBusy();
 
-<<<<<<< HEAD
 	if (!get_mtime)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-	if (!get_mtime) 
->>>>>>> parent of a6778ea... formatted correctly
 	{
 		mpd_search_db_tags(itsConnection, type);
 		mpd_search_commit(itsConnection);
@@ -1173,7 +1169,6 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 			mpd_return_pair(itsConnection, item);
 		}
 		mpd_response_finish(itsConnection);
-<<<<<<< HEAD
 	}
 <<<<<<< HEAD
 	else
@@ -1190,20 +1185,11 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-	} 
-	else 
-	{
-		mpd_send_list_all_meta(itsConnection, "/");
-		std::map<std::string, time_t> max_mtimes;
-		while (mpd_song *s = mpd_recv_song(itsConnection)) 
->>>>>>> parent of a6778ea... formatted correctly
 		{
 			Song song(s);
 			const std::string &tag = song.getTag(type);
 			time_t mtime = song.getMTime();
 			auto mt = max_mtimes.find(tag);
-<<<<<<< HEAD
 			if (mt == max_mtimes.end())
 <<<<<<< HEAD
 				max_mtimes.insert(std::make_pair(tag, mtime));
@@ -1223,16 +1209,6 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-			if (mt == max_mtimes.end()) 
-				max_mtimes.insert(std::make_pair(tag, mtime));
-			else 
-				mt->second = std::max(mt->second, mtime);
-		}
-		mpd_response_finish(itsConnection);
- 
-		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) 
->>>>>>> parent of a6778ea... formatted correctly
 		{
 			result.push_back(TagMTime(it->first, it->second));
 		}
@@ -1335,22 +1311,17 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 	GoBusy();
 	mpd_search_commit(itsConnection);
 
-<<<<<<< HEAD
 	if (!itsSearchFieldMTime)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-	if (!itsSearchFieldMTime) 
->>>>>>> parent of a6778ea... formatted correctly
 	{
 		while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
 		{
 			result.push_back(TagMTime(tag->value));
 			mpd_return_pair(itsConnection, tag);
 		}
-<<<<<<< HEAD
 	}
 <<<<<<< HEAD
 	else
@@ -1366,42 +1337,26 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 		while (mpd_song *s = mpd_recv_song(itsConnection))
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-	} 
-	else 
-	{
-		std::map<std::string, time_t> max_mtimes;
-		while (mpd_song *s = mpd_recv_song(itsConnection)) 
->>>>>>> parent of a6778ea... formatted correctly
 		{
 			Song song(s);
 			const std::string &tag = song.getTag(itsSearchedField);
 			time_t mtime = song.getMTime();
 			auto mt = max_mtimes.find(tag);
-<<<<<<< HEAD
 			if (mt == max_mtimes.end())
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-			if (mt == max_mtimes.end()) 
->>>>>>> parent of a6778ea... formatted correctly
 				max_mtimes.insert(std::make_pair(tag, mtime));
 			else
 				mt->second = std::max(mt->second, mtime);
 		}
-<<<<<<< HEAD
 
 		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
- 
-		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) 
->>>>>>> parent of a6778ea... formatted correctly
 		{
 			result.push_back(TagMTime(it->first, it->second));
 		}
@@ -1608,13 +1563,9 @@ int Connection::CheckForErrors()
 bool SortSongsByTag::operator()(const Song &s1, const Song &s2)
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 bool SortSongsByTag::operator()(const Song &s1, const Song &s2)
 =======
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-bool SortSongsByTag::operator()(const Song &s1, const Song &s2) 
->>>>>>> parent of a6778ea... formatted correctly
 {
 	const std::string &t1 = s1.getTag(m_type);
 	const std::string &t2 = s2.getTag(m_type);

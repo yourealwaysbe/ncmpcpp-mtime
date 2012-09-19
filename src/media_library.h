@@ -93,15 +93,11 @@ struct MediaLibrary: Screen<NC::Window *>, Filterable, HasColumns, HasSongs, Sea
 
 		bool operator<(const SearchConstraints &a) const;
 
-<<<<<<< HEAD
 		bool hasMTime() { return MTime != 0; }
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
-=======
-		bool hasMTime() { return MTime != 0; } 
->>>>>>> parent of a6778ea... formatted correctly
 	};
 
 	NC::Menu<MPD::TagMTime> Tags;
@@ -118,5 +114,4 @@ private:
 extern MediaLibrary *myLibrary;
 
 #endif
-
 
