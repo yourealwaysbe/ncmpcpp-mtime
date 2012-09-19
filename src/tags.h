@@ -40,4 +40,3 @@ bool write(MPD::MutableSong &);
 #endif // HAVE_TAGLIB_H
 
 #endif // _TAGS_H
-

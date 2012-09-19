@@ -72,7 +72,7 @@ void Lyrics::update()
 #	ifdef HAVE_CURL_CURL_H
 	if (isReadyToTake)
 		Take();
-
+	
 	if (isDownloadInProgress)
 	{
 		w.flush();
@@ -102,18 +102,18 @@ void Lyrics::switchTo()
 		// take lyrics if they were downloaded
 		if (isReadyToTake)
 			Take();
-
+		
 		if (isDownloadInProgress || itsWorkersNumber > 0)
 		{
 			Statusbar::msg("Lyrics are being downloaded...");
 			return;
 		}
 #		endif // HAVE_CURL_CURL_H
-
+		
 		const MPD::Song *s = currentSong(myScreen);
 		if (!s)
 			return;
-
+		
 		if (!s->getArtist().empty() && !s->getTitle().empty())
 		{
 			SwitchTo::execute(this);
@@ -147,7 +147,7 @@ void Lyrics::DownloadInBackground(const MPD::Song &s)
 {
 	if (s.empty() || s.getArtist().empty() || s.getTitle().empty())
 		return;
-
+	
 	std::string filename = GenerateFilename(s);
 	std::ifstream f(filename.c_str());
 	if (f.is_open())
@@ -156,7 +156,7 @@ void Lyrics::DownloadInBackground(const MPD::Song &s)
 		return;
 	}
 	Statusbar::msg("Fetching lyrics for \"%s\"...", s.toString(Config.song_status_format_no_colors, Config.tags_separator).c_str());
-
+	
 	MPD::Song *s_copy = new MPD::Song(s);
 	pthread_mutex_lock(&itsDIBLock);
 	if (itsWorkersNumber == itsMaxWorkersNumber)
@@ -178,7 +178,7 @@ void *Lyrics::DownloadInBackgroundImpl(void *void_ptr)
 	MPD::Song *s = static_cast<MPD::Song *>(void_ptr);
 	DownloadInBackgroundImplHelper(*s);
 	delete s;
-
+	
 	while (true)
 	{
 		pthread_mutex_lock(&itsDIBLock);
@@ -196,11 +196,11 @@ void *Lyrics::DownloadInBackgroundImpl(void *void_ptr)
 		DownloadInBackgroundImplHelper(*s);
 		delete s;
 	}
-
+	
 	pthread_mutex_lock(&itsDIBLock);
 	--itsWorkersNumber;
 	pthread_mutex_unlock(&itsDIBLock);
-
+	
 	pthread_exit(0);
 }
 
@@ -208,7 +208,7 @@ void Lyrics::DownloadInBackgroundImplHelper(const MPD::Song &s)
 {
 	std::string artist = Curl::escape(s.getArtist());
 	std::string title = Curl::escape(s.getTitle());
-
+	
 	LyricsFetcher::Result result;
 	bool fetcher_defined = itsFetcher && *itsFetcher;
 	for (LyricsFetcher **plugin = fetcher_defined ? itsFetcher : lyricsPlugins; *plugin != 0; ++plugin)
@@ -227,9 +227,9 @@ void *Lyrics::Download()
 {
 	std::string artist = Curl::escape(itsSong.getArtist());
 	std::string title_ = Curl::escape(itsSong.getTitle());
-
+	
 	LyricsFetcher::Result result;
-
+	
 	// if one of plugins is selected, try only this one,
 	// otherwise try all of them until one of them succeeds
 	bool fetcher_defined = itsFetcher && *itsFetcher;
@@ -244,7 +244,7 @@ void *Lyrics::Download()
 		if (fetcher_defined)
 			break;
 	}
-
+	
 	if (result.first == true)
 	{
 		Save(itsFilename, result.second);
@@ -254,7 +254,7 @@ void *Lyrics::Download()
 	}
 	else
 		w << '\n' << L"Lyrics weren't found.";
-
+	
 	isReadyToTake = 1;
 	pthread_exit(0);
 }
@@ -304,17 +304,17 @@ void Lyrics::Load()
 	if (isDownloadInProgress)
 		return;
 #	endif // HAVE_CURL_CURL_H
-
+	
 	assert(!itsSong.getArtist().empty());
 	assert(!itsSong.getTitle().empty());
-
+	
 	itsFilename = GenerateFilename(itsSong);
-
+	
 	CreateDir(Config.lyrics_directory);
-
+	
 	w.clear();
 	w.reset();
-
+	
 	std::ifstream input(itsFilename.c_str());
 	if (input.is_open())
 	{
@@ -347,15 +347,15 @@ void Lyrics::Load()
 void Lyrics::Edit()
 {
 	assert(Global::myScreen == this);
-
+	
 	if (Config.external_editor.empty())
 	{
 		Statusbar::msg("Proper external_editor variable has to be set in configuration file");
 		return;
 	}
-
+	
 	Statusbar::msg("Opening lyrics in external editor...");
-
+	
 	GNUC_UNUSED int res;
 	if (Config.use_console_editor)
 	{

@@ -36,41 +36,41 @@
 struct Visualizer: Screen<NC::Window>, Tabbable
 {
 	Visualizer();
-
+	
 	virtual void switchTo() OVERRIDE;
 	virtual void resize() OVERRIDE;
-
+	
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::Visualizer; }
-
+	
 	virtual void update() OVERRIDE;
 	virtual void scroll(NC::Where) OVERRIDE { }
-
+	
 	virtual void enterPressed() OVERRIDE { }
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT) OVERRIDE { }
-
+	
 	virtual bool isMergable() OVERRIDE { return true; }
-
+	
 	// private members
 	void SetFD();
 	void ResetFD();
 	void FindOutputID();
-
+	
 	static const int WindowTimeout;
-
+	
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-
+	
 private:
 	void DrawSoundWave(int16_t *, ssize_t, size_t, size_t);
 #	ifdef HAVE_FFTW3_H
 	void DrawFrequencySpectrum(int16_t *, ssize_t, size_t, size_t);
 #	endif // HAVE_FFTW3_H
-
+	
 	int m_output_id;
 	timeval m_timer;
-
+	
 	int m_fifo;
 	unsigned m_samples;
 #	ifdef HAVE_FFTW3_H

@@ -104,7 +104,7 @@ Window::Window(size_t startx,
 	||  m_width+m_start_x > size_t(COLS)
 	||  m_height+m_start_y > size_t(LINES))
 		FatalError("Constructed window is bigger than terminal size");
-
+	
 	if (m_border != brNone)
 	{
 		m_border_window = newpad(m_height, m_width);
@@ -120,9 +120,9 @@ Window::Window(size_t startx,
 		m_start_y += 2;
 		m_height -= 2;
 	}
-
+	
 	m_window = newpad(m_height, m_width);
-
+	
 	setColor(m_color);
 	keypad(m_window, 1);
 }
@@ -220,7 +220,7 @@ void Window::setColor(Color fg, Color bg)
 {
 	if (fg == clDefault)
 		fg = m_base_color;
-
+	
 	if (fg != clDefault)
 		wattron(m_window, COLOR_PAIR(bg*8+fg));
 	else
@@ -440,7 +440,7 @@ int Window::readKey()
 	// the given timeout. unfortunately, this results in delays
 	// since ncmpcpp doesn't see that data arrived while waiting
 	// for input from stdin, but it seems there is no better option.
-
+	
 	fd_set fdset;
 	FD_ZERO(&fdset);
 #	if !defined(USE_PDCURSES)
@@ -449,7 +449,7 @@ int Window::readKey()
 #	else
 	timeval timeout = { 0, 0 };
 #	endif
-
+	
 	int fd_max = STDIN_FILENO;
 	for (FDCallbacks::const_iterator it = m_fds.begin(); it != m_fds.end(); ++it)
 	{
@@ -457,7 +457,7 @@ int Window::readKey()
 			fd_max = it->first;
 		FD_SET(it->first, &fdset);
 	}
-
+	
 	if (select(fd_max+1, &fdset, 0, 0, m_window_timeout < 0 ? 0 : &timeout) > 0)
 	{
 #		if !defined(USE_PDCURSES)
@@ -485,50 +485,50 @@ std::string Window::getString(const std::string &base, size_t length_, size_t wi
 {
 	int input;
 	size_t beginning, maxbeginning, minx, x, real_x, y, maxx, real_maxx;
-
+	
 	getyx(m_window, y, x);
 	minx = real_maxx = maxx = real_x = x;
-
+	
 	width--;
 	if (width == size_t(-1))
 		width = m_width-x-1;
-
+	
 	curs_set(1);
-
+	
 	std::wstring wbase = ToWString(base);
 	std::wstring *tmp = &wbase;
 	std::list<std::wstring>::iterator history_it = m_history->end();
-
+	
 	std::string tmp_in;
 	wchar_t wc_in;
 	bool gotoend = 1;
 	bool block_scrolling = 0;
-
+	
 	// disable scrolling if wide chars are used
 	for (std::wstring::const_iterator it = tmp->begin(); it != tmp->end(); ++it)
 		if (wcwidth(*it) > 1)
 			block_scrolling = 1;
-
+	
 	beginning = -1;
-
+	
 	do
 	{
 		if (tmp->empty())
 			block_scrolling = 0;
-
+		
 		maxbeginning = block_scrolling ? 0 : (tmp->length() < width ? 0 : tmp->length()-width);
 		maxx = minx + (wideLength(*tmp) < width ? wideLength(*tmp) : width);
-
+		
 		real_maxx = minx + (tmp->length() < width ? tmp->length() : width);
-
+		
 		if (beginning > maxbeginning)
 			beginning = maxbeginning;
-
+		
 		if (gotoend)
 		{
 			size_t real_real_maxx = minx;
 			size_t biggest_x = minx+width;
-
+				
 			if (block_scrolling && maxx >= biggest_x)
 			{
 				size_t i = 0;
@@ -537,27 +537,27 @@ std::string Window::getString(const std::string &base, size_t length_, size_t wi
 			}
 			else
 				real_real_maxx = real_maxx;
-
+				
 			real_x = real_real_maxx;
 			x = block_scrolling ? (maxx > biggest_x ? biggest_x : maxx) : maxx;
 			beginning = maxbeginning;
 			gotoend = 0;
 		}
-
+		
 		mvwhline(m_window, y, minx, ' ', width+1);
-
+		
 		if (!encrypted)
 			mvwprintw(m_window, y, minx, "%ls", tmp->substr(beginning, width+1).c_str());
 		else
 			mvwhline(m_window, y, minx, '*', maxx-minx);
-
+		
 		if (m_get_string_helper)
 			m_get_string_helper(*tmp);
-
+		
 		wmove(m_window, y, x);
 		prefresh(m_window, 0, 0, m_start_y, m_start_x, m_start_y+m_height-1, m_start_x+m_width-1);
 		input = readKey();
-
+		
 		switch (input)
 		{
 			case ERR:
@@ -647,15 +647,15 @@ std::string Window::getString(const std::string &base, size_t length_, size_t wi
 			{
 				if (tmp->length() >= length_)
 					break;
-
+				
 				tmp_in += input;
 				if (int(mbrtowc(&wc_in, tmp_in.c_str(), MB_CUR_MAX, 0)) < 0)
 					break;
-
+				
 				int wcwidth_res = wcwidth(wc_in);
 				if (wcwidth_res > 1)
 					block_scrolling = 1;
-
+				
 				if (wcwidth_res > 0) // is char printable? we want to ignore things like Ctrl-?, Fx etc.
 				{
 					if ((real_x-minx)+beginning >= tmp->length())
@@ -687,7 +687,7 @@ std::string Window::getString(const std::string &base, size_t length_, size_t wi
 	}
 	while (input != KEY_ENTER);
 	curs_set(0);
-
+	
 	if (m_history && !encrypted)
 	{
 		if (history_it != m_history->end())
@@ -699,7 +699,7 @@ std::string Window::getString(const std::string &base, size_t length_, size_t wi
 		else
 			m_history->push_back(*tmp);
 	}
-
+	
 	return ToString(*tmp);
 }
 
@@ -816,6 +816,7 @@ void Window::scroll(Where where)
 	idlok(m_window, 0);
 	scrollok(m_window, 0);
 }
+
 
 Window &Window::operator<<(Colors colors)
 {
@@ -968,4 +969,3 @@ Window &Window::operator<<(size_t s)
 }
 
 }
-

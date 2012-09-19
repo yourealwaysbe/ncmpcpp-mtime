@@ -57,7 +57,7 @@ Visualizer::Visualizer()
 	m_fftw_output = static_cast<fftw_complex *>(fftw_malloc(sizeof(fftw_complex)*m_fftw_results));
 	m_fftw_plan = fftw_plan_dft_r2c_1d(m_samples, m_fftw_input, m_fftw_output, FFTW_ESTIMATE);
 #	endif // HAVE_FFTW3_H
-
+	
 	FindOutputID();
 }
 
@@ -90,13 +90,13 @@ void Visualizer::update()
 {
 	if (m_fifo < 0)
 		return;
-
+	
 	// PCM in format 44100:16:1 (for mono visualization) and 44100:16:2 (for stereo visualization) is supported
 	int16_t buf[m_samples];
 	ssize_t data = read(m_fifo, buf, sizeof(buf));
 	if (data < 0) // no data available in fifo
 		return;
-
+	
 	if (m_output_id != -1 && Global::Timer.tv_sec > m_timer.tv_sec+Config.visualizer_sync_interval)
 	{
 		Mpd.DisableOutput(m_output_id);
@@ -104,7 +104,7 @@ void Visualizer::update()
 		Mpd.EnableOutput(m_output_id);
 		m_timer = Global::Timer;
 	}
-
+	
 	void (Visualizer::*draw)(int16_t *, ssize_t, size_t, size_t);
 #	ifdef HAVE_FFTW3_H
 	if (!Config.visualizer_use_wave)
@@ -112,7 +112,7 @@ void Visualizer::update()
 	else
 #	endif // HAVE_FFTW3_H
 		draw = &Visualizer::DrawSoundWave;
-
+	
 	w.clear();
 	ssize_t samples_read = data/sizeof(int16_t);
 	if (Config.visualizer_in_stereo)
@@ -178,13 +178,13 @@ void Visualizer::DrawFrequencySpectrum(int16_t *buf, ssize_t samples, size_t y_o
 		else
 			m_fftw_input[i] = 0;
 	}
-
+	
 	fftw_execute(m_fftw_plan);
-
+	
 	// count magnitude of each frequency and scale it to fit the screen
 	for (unsigned i = 0; i < m_fftw_results; ++i)
 		m_freq_magnitudes[i] = sqrt(m_fftw_output[i][0]*m_fftw_output[i][0] + m_fftw_output[i][1]*m_fftw_output[i][1])/1e5*height/5;
-
+	
 	const size_t win_width = w.getWidth();
 	const int freqs_per_col = m_fftw_results/win_width /* cut bandwidth a little to achieve better look */ * 7/10;
 	for (size_t i = 0; i < win_width; ++i)

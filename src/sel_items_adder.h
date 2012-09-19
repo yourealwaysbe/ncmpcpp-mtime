@@ -29,30 +29,30 @@
 struct SelectedItemsAdder: Screen<NC::Menu<ExecItem<std::string, void()>> *>, Tabbable
 {
 	typedef typename std::remove_pointer<WindowType>::type Component;
-
+	
 	SelectedItemsAdder();
-
+	
 	virtual void switchTo() OVERRIDE;
 	virtual void resize() OVERRIDE;
 	virtual void refresh() OVERRIDE;
-
+	
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::SelectedItemsAdder; }
-
+	
 	virtual void update() OVERRIDE { }
-
+	
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE { }
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-
+	
 	virtual bool isMergable() OVERRIDE { return false; }
-
+	
 protected:
 	virtual bool isLockable() OVERRIDE { return false; }
-
+	
 private:
 	void populatePlaylistSelector(BaseScreen *screen);
-
+	
 	void addToCurrentPlaylist();
 	void addToNewPlaylist() const;
 	void addToExistingPlaylist(const std::string &playlist) const;
@@ -63,18 +63,18 @@ private:
 	void addAfterHighlightedSong() const;
 	void cancel();
 	void exitSuccessfully() const;
-
+	
 	void setDimensions();
-
+	
 	size_t m_playlist_selector_width;
 	size_t m_playlist_selector_height;
-
+	
 	size_t m_position_selector_width;
 	size_t m_position_selector_height;
-
+	
 	Component m_playlist_selector;
 	Component m_position_selector;
-
+	
 	MPD::SongList m_selected_items;
 };
 

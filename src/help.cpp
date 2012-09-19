@@ -206,7 +206,7 @@ void Help::GetKeybindings()
 #	endif // ENABLE_CLOCK
 	w << '\n';
 	KeyDesc(aShowServerInfo, "Show server info");
-
+	
 	KeysSection("Global");
 	KeyDesc(aStop, "Stop");
 	KeyDesc(aPause, "Pause");
@@ -265,7 +265,7 @@ void Help::GetKeybindings()
 	KeyDesc(aShowLyrics, "Show/hide song lyrics");
 	w << '\n';
 	KeyDesc(aQuit, "Quit");
-
+	
 	KeysSection("Playlist");
 	KeyDesc(aPressEnter, "Play selected item");
 	KeyDesc(aDelete, "Delete selected item(s) from playlist");
@@ -285,7 +285,7 @@ void Help::GetKeybindings()
 	KeyDesc(aFilterPlaylistOnPriorities, "Filter playlist on priorities");
 	KeyDesc(aJumpToPlayingSong, "Jump to playing song");
 	KeyDesc(aTogglePlayingSongCentering, "Toggle playing song centering");
-
+	
 	KeysSection("Browser");
 	KeyDesc(aPressEnter, "Enter directory/Add item to playlist and play it");
 	KeyDesc(aPressSpace, "Add item to playlist/select it");
@@ -300,7 +300,7 @@ void Help::GetKeybindings()
 	KeyDesc(aJumpToParentDirectory, "Jump to parent directory");
 	KeyDesc(aDelete, "Delete item");
 	KeyDesc(aJumpToPlaylistEditor, "Jump to playlist editor (playlists only)");
-
+	
 	KeysSection("Search engine");
 	KeyDesc(aPressEnter, "Add item to playlist and play it/change option");
 	KeyDesc(aPressSpace, "Add item to playlist");
@@ -309,7 +309,7 @@ void Help::GetKeybindings()
 #	endif // HAVE_TAGLIB_H
 	KeyDesc(aStartSearching, "Start searching");
 	KeyDesc(aResetSearchEngine, "Reset search constraints and clear results");
-
+	
 	KeysSection("Media library");
 	KeyDesc(aToggleMediaLibraryColumnsMode, "Switch between two/three columns mode");
 	KeyDesc(aPreviousColumn, "Previous column");
@@ -322,7 +322,7 @@ void Help::GetKeybindings()
 	KeyDesc(aEditLibraryTag, "Edit tag (left column)/album (middle/right column)");
 	KeyDesc(aToggleLibraryTagType, "Toggle type of tag used in left column");
 	KeyDesc(aToggleMediaLibraryMTimeSort, "Toggle sorting by mtime");
-
+	
 	KeysSection("Playlist editor");
 	KeyDesc(aPreviousColumn, "Previous column");
 	KeyDesc(aNextColumn, "Next column");
@@ -336,20 +336,20 @@ void Help::GetKeybindings()
 	KeyDesc(aMoveSelectedItemsDown, "Move selected item(s) down");
 	KeyDesc(aClearPlaylist, "Clear playlist");
 	KeyDesc(aCropPlaylist, "Clear playlist except selected items");
-
+	
 	KeysSection("Lyrics");
 	KeyDesc(aPressSpace, "Toggle reloading lyrics upon song change");
 	KeyDesc(aEditLyrics, "Open lyrics in external editor");
 	KeyDesc(aRefetchLyrics, "Refetch lyrics");
-
+	
 	KeysSection("Artist info");
 	KeyDesc(aRefetchArtistInfo, "Refetch artist info");
-
+	
 #	ifdef HAVE_TAGLIB_H
 	KeysSection("Tiny tag editor");
 	KeyDesc(aPressEnter, "Edit tag");
 	KeyDesc(aSaveTagChanges, "Save");
-
+	
 	KeysSection("Tag editor");
 	KeyDesc(aPressEnter, "Edit tag/filename of selected item (left column)");
 	KeyDesc(aPressEnter, "Perform operation on all/selected items (middle column)");
@@ -359,39 +359,39 @@ void Help::GetKeybindings()
 	KeyDesc(aNextColumn, "Next column");
 	KeyDesc(aJumpToParentDirectory, "Jump to parent directory (left column, directories view)");
 #	endif // HAVE_TAGLIB_H
-
+	
 #	ifdef ENABLE_OUTPUTS
 	KeysSection("Outputs");
 	KeyDesc(aPressEnter, "Toggle output");
 #	endif // ENABLE_OUTPUTS
-
+	
 #	if defined(ENABLE_VISUALIZER) && defined(HAVE_FFTW3_H)
 	KeysSection("Music visualizer");
 	KeyDesc(aPressSpace, "Toggle visualization type");
 #	endif // ENABLE_VISUALIZER && HAVE_FFTW3_H
-
+	
 	MouseSection("Global");
 	MouseDesc("Left click on \"Playing/Paused\"", "Play/pause");
 	MouseDesc("Left click on progressbar", "Jump to pointed position in playing song");
 	w << '\n';
 	MouseDesc("Mouse wheel on \"Volume: xx\"", "Play/pause");
 	MouseDesc("Mouse wheel on main window", "Scroll");
-
+	
 	MouseSection("Playlist");
 	MouseDesc("Left click", "Select pointed item");
 	MouseDesc("Right click", "Play");
-
+	
 	MouseSection("Browser");
 	MouseDesc("Left click on directory", "Enter pointed directory");
 	MouseDesc("Right click on directory", "Add pointed directory to playlist");
 	w << '\n';
 	MouseDesc("Left click on song/playlist", "Add pointed item to playlist");
 	MouseDesc("Right click on song/playlist", "Add pointed item to playlist and play it");
-
+	
 	MouseSection("Search engine");
 	MouseDesc("Left click", "Highlight/switch value");
 	MouseDesc("Right click", "Change value");
-
+	
 	MouseSection("Media library");
 	MouseColumn("Left/middle");
 	MouseDesc("Left click", "Select pointed item", true);
@@ -400,7 +400,7 @@ void Help::GetKeybindings()
 	MouseColumn("Right");
 	MouseDesc("Left Click", "Add pointed item to playlist", true);
 	MouseDesc("Right Click", "Add pointed item to playlist and play it", true);
-
+	
 	MouseSection("Playlist editor");
 	MouseColumn("Left");
 	MouseDesc("Left click", "Select pointed item", true);
@@ -409,12 +409,12 @@ void Help::GetKeybindings()
 	MouseColumn("Right");
 	MouseDesc("Left click", "Add pointed item to playlist", true);
 	MouseDesc("Right click", "Add pointed item to playlist and play it", true);
-
+	
 #	ifdef HAVE_TAGLIB_H
 	MouseSection("Tiny tag editor");
 	MouseDesc("Left click", "Select option");
 	MouseDesc("Right click", "Set value/execute");
-
+	
 	MouseSection("Tag editor");
 	MouseColumn("Left");
 	MouseDesc("Left click", "Enter pointed directory/select pointed album", true);
@@ -428,7 +428,7 @@ void Help::GetKeybindings()
 	MouseDesc("Left click", "Select pointed item", true);
 	MouseDesc("Right click", "Set value", true);
 #	endif // HAVE_TAGLIB_H
-
+	
 #	ifdef ENABLE_OUTPUTS
 	MouseSection("Outputs");
 	MouseDesc("Left click", "Select pointed output");

@@ -29,10 +29,10 @@ struct PushCharacters : public Action
 {
 	PushCharacters(NC::Window **w, std::vector<int> &&queue)
 	: Action(aMacroUtility, ""), m_window(w), m_queue(queue) { }
-
+	
 protected:
 	virtual void Run();
-
+	
 private:
 	NC::Window **m_window;
 	std::vector<int> m_queue;
@@ -42,11 +42,11 @@ struct RequireRunnable : public Action
 {
 	RequireRunnable(Action *action)
 	: Action(aMacroUtility, ""), m_action(action) { assert(action); }
-
+	
 protected:
 	virtual bool canBeRun() const;
 	virtual void Run() { }
-
+	
 private:
 	Action *m_action;
 };
@@ -55,14 +55,13 @@ struct RequireScreen : public Action
 {
 	RequireScreen(ScreenType screen_type)
 	: Action(aMacroUtility, ""), m_screen_type(screen_type) { }
-
+	
 protected:
 	virtual bool canBeRun() const;
 	virtual void Run() { }
-
+	
 private:
 	ScreenType m_screen_type;
 };
 
 #endif // _MACRO_UTILITIES
-

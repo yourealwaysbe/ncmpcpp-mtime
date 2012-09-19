@@ -188,9 +188,9 @@ void read(MPD::MutableSong &s)
 	TagLib::FileRef f(s.getURI().c_str());
 	if (f.isNull())
 		return;
-
+	
 	s.setDuration(f.audioProperties()->length());
-
+	
 	if (auto mpeg_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
 	{
 		if (auto id3v1 = mpeg_file->ID3v1Tag())
@@ -218,11 +218,11 @@ bool write(MPD::MutableSong &s)
 	if (s.isFromDatabase())
 		old_name += Config.mpd_music_dir;
 	old_name += s.getURI();
-
+	
 	TagLib::FileRef f(old_name.c_str());
 	if (f.isNull())
 		return false;
-
+	
 	if (auto mp3_file = dynamic_cast<TagLib::MPEG::File *>(f.file()))
 	{
 		clearID3v1Tags(mp3_file->ID3v1Tag());
@@ -238,10 +238,10 @@ bool write(MPD::MutableSong &s)
 	}
 	else
 		writeCommonTags(s, f.tag());
-
+	
 	if (!f.save())
 		return false;
-
+	
 	if (!s.getNewURI().empty())
 	{
 		std::string new_name;
@@ -276,4 +276,3 @@ bool write(MPD::MutableSong &s)
 }
 
 #endif // HAVE_TAGLIB_H
-

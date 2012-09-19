@@ -29,10 +29,10 @@ namespace MPD {//
 struct MutableSong : public Song
 {
 	typedef void (MutableSong::*SetFunction)(const std::string &, unsigned);
-
+	
 	MutableSong() : m_duration(0) { }
 	MutableSong(Song s) : Song(s), m_duration(0) { }
-
+	
 	virtual std::string getArtist(unsigned idx = 0) const;
 	virtual std::string getTitle(unsigned idx = 0) const;
 	virtual std::string getAlbum(unsigned idx = 0) const;
@@ -44,7 +44,7 @@ struct MutableSong : public Song
 	virtual std::string getPerformer(unsigned idx = 0) const;
 	virtual std::string getDisc(unsigned idx = 0) const;
 	virtual std::string getComment(unsigned idx = 0) const;
-
+	
 	void setArtist(const std::string &value, unsigned idx = 0);
 	void setTitle(const std::string &value, unsigned idx = 0);
 	void setAlbum(const std::string &value, unsigned idx = 0);
@@ -56,41 +56,41 @@ struct MutableSong : public Song
 	void setPerformer(const std::string &value, unsigned idx = 0);
 	void setDisc(const std::string &value, unsigned idx = 0);
 	void setComment(const std::string &value, unsigned idx = 0);
-
+	
 	const std::string &getNewURI() const;
 	void setNewURI(const std::string &value);
-
+	
 	virtual unsigned getDuration() const;
 	void setDuration(unsigned duration);
-
+	
 	void setTags(SetFunction set, const std::string &value, const std::string &delimiter);
-
+	
 	bool isModified() const;
 	void clearModifications();
-
+	
 private:
 	struct Tag
 	{
 		Tag(mpd_tag_type type_, unsigned idx_) : m_type(type_), m_idx(idx_) { }
-
+		
 		mpd_tag_type type() const { return m_type; }
 		unsigned idx() const { return m_idx; }
-
+		
 		bool operator<(const Tag &t) const
 		{
 			if (m_type != t.m_type)
 				return m_type < t.m_type;
 			return m_idx < t.m_idx;
 		}
-
+		
 	private:
 		mpd_tag_type m_type;
 		unsigned m_idx;
 	};
-
+	
 	void replaceTag(mpd_tag_type tag_type, std::string &&orig_value,
 	                const std::string &value, unsigned idx);
-
+	
 	template <typename F>
 	std::string getTag(mpd_tag_type tag_type, F orig_value, unsigned idx) const {
 		auto it = m_tags.find(Tag(tag_type, idx));
@@ -101,7 +101,7 @@ private:
 			result = it->second;
 		return result;
 	}
-
+	
 	std::string m_uri;
 	unsigned m_duration;
 	std::map<Tag, std::string> m_tags;
@@ -110,4 +110,3 @@ private:
 }
 
 #endif // _EDITABLE_SONG_H
-

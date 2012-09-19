@@ -84,7 +84,7 @@ void Playlist::resize()
 		w.setTitle(Display::Columns(w.getWidth()));
 	else
 		w.setTitle("");
-
+	
 	hasToBeResized = 0;
 }
 
@@ -262,7 +262,7 @@ void Playlist::UpdateTimer()
 std::string Playlist::TotalLength()
 {
 	std::ostringstream result;
-
+	
 	if (ReloadTotalLength)
 	{
 		itsTotalLength = 0;
@@ -277,9 +277,9 @@ std::string Playlist::TotalLength()
 			itsRemainingTime += w[i].value().getDuration();
 		ReloadRemaining = false;
 	}
-
+	
 	result << '(' << w.size() << (w.size() == 1 ? " item" : " items");
-
+	
 	if (w.isFiltered())
 	{
 		w.showAll();
@@ -288,7 +288,7 @@ std::string Playlist::TotalLength()
 		if (w.size() != real_size)
 			result << " (out of " << Mpd.GetPlaylistLength() << ")";
 	}
-
+	
 	if (itsTotalLength)
 	{
 		result << ", length: ";
@@ -364,4 +364,3 @@ bool playlistEntryMatcher(const Regex &rx, const MPD::Song &s)
 }
 
 }
-

@@ -24,4 +24,3 @@
 void ParseArgv(int argc, char **argv);
 
 #endif // NCMPCPP_CMDARGS_H
-

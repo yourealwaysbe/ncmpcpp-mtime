@@ -100,7 +100,7 @@ void SongInfo::PrepareSong(MPD::Song &s)
 	path_to_file += s.getURI();
 	TagLib::FileRef f(path_to_file.c_str());
 #	endif // HAVE_TAGLIB_H
-
+	
 	w << NC::fmtBold << Config.color1 << L"Filename: " << NC::fmtBoldEnd << Config.color2 << s.getName() << '\n' << NC::clEnd;
 	w << NC::fmtBold << L"Directory: " << NC::fmtBoldEnd << Config.color2;
 	ShowTag(w, s.getDirectory());
@@ -115,11 +115,10 @@ void SongInfo::PrepareSong(MPD::Song &s)
 	}
 #	endif // HAVE_TAGLIB_H
 	w << NC::clDefault;
-
+	
 	for (const Metadata *m = Tags; m->Name; ++m)
 	{
 		w << NC::fmtBold << '\n' << ToWString(m->Name) << L": " << NC::fmtBoldEnd;
 		ShowTag(w, s.getTags(m->Get, Config.tags_separator));
 	}
 }
-

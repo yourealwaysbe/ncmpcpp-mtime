@@ -82,7 +82,7 @@ void TinyTagEditor::switchTo()
 		if (itsEdited.isFromDatabase())
 			full_path += Config.mpd_music_dir;
 		full_path += itsEdited.getURI();
-
+		
 		const char msg[] = "Couldn't read file \"%ls\"";
 		Statusbar::msg(msg, wideShorten(ToWString(full_path), COLS-const_strlen(msg)).c_str());
 	}
@@ -120,7 +120,7 @@ void TinyTagEditor::enterPressed()
 		w.at(option).value() << NC::fmtBold << "Filename:" << NC::fmtBoldEnd << ' ' << (itsEdited.getNewURI().empty() ? itsEdited.getName() : itsEdited.getNewURI());
 	}
 	Statusbar::unlock();
-
+	
 	if (option == 22)
 	{
 		Statusbar::msg("Updating tags...");
@@ -173,36 +173,36 @@ bool TinyTagEditor::getTags()
 	if (itsEdited.isFromDatabase())
 		path_to_file += Config.mpd_music_dir;
 	path_to_file += itsEdited.getURI();
-
+	
 	TagLib::FileRef f(path_to_file.c_str());
 	if (f.isNull())
 		return false;
 	itsEdited.setComment(f.tag()->comment().to8Bit(1));
-
+	
 	std::string ext = itsEdited.getURI();
 	ext = lowercase(ext.substr(ext.rfind(".")+1));
-
+	
 	w.clear();
 	w.reset();
-
+	
 	w.resizeList(24);
-
+	
 	for (size_t i = 0; i < 7; ++i)
 		w.at(i).setInactive(true);
-
+	
 	w.at(7).setSeparator(true);
 	w.at(19).setSeparator(true);
 	w.at(21).setSeparator(true);
-
+	
 	if (!Tags::extendedSetSupported(f.file()))
 	{
 		w.at(10).setInactive(true);
 		for (size_t i = 15; i <= 17; ++i)
 			w.at(i).setInactive(true);
 	}
-
+	
 	w.highlight(8);
-
+	
 	w.at(0).value() << NC::fmtBold << Config.color1 << "Song name: " << NC::fmtBoldEnd << Config.color2 << itsEdited.getName() << NC::clEnd;
 	w.at(1).value() << NC::fmtBold << Config.color1 << "Location in DB: " << NC::fmtBoldEnd << Config.color2;
 	ShowTag(w.at(1).value(), itsEdited.getDirectory());
@@ -211,16 +211,16 @@ bool TinyTagEditor::getTags()
 	w.at(4).value() << NC::fmtBold << Config.color1 << "Bitrate: " << NC::fmtBoldEnd << Config.color2 << f.audioProperties()->bitrate() << " kbps" << NC::clEnd;
 	w.at(5).value() << NC::fmtBold << Config.color1 << "Sample rate: " << NC::fmtBoldEnd << Config.color2 << f.audioProperties()->sampleRate() << " Hz" << NC::clEnd;
 	w.at(6).value() << NC::fmtBold << Config.color1 << "Channels: " << NC::fmtBoldEnd << Config.color2 << (f.audioProperties()->channels() == 1 ? "Mono" : "Stereo") << NC::clDefault;
-
+	
 	unsigned pos = 8;
 	for (const SongInfo::Metadata *m = SongInfo::Tags; m->Name; ++m, ++pos)
 	{
 		w.at(pos).value() << NC::fmtBold << m->Name << ":" << NC::fmtBoldEnd << ' ';
 		ShowTag(w.at(pos).value(), itsEdited.getTags(m->Get, Config.tags_separator));
 	}
-
+	
 	w.at(20).value() << NC::fmtBold << "Filename:" << NC::fmtBoldEnd << ' ' << itsEdited.getName();
-
+	
 	w.at(22).value() << "Save";
 	w.at(23).value() << "Cancel";
 	return true;

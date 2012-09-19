@@ -416,12 +416,12 @@ void stringToBuffer(const std::basic_string<CharT> &s, NC::BasicBuffer<CharT> &b
 template <typename T> void ShowTime(T &buf, size_t length, bool short_names)
 {
 	StringConverter<T> cnv;
-
+	
 	const unsigned MINUTE = 60;
 	const unsigned HOUR = 60*MINUTE;
 	const unsigned DAY = 24*HOUR;
 	const unsigned YEAR = 365*DAY;
-
+	
 	unsigned years = length/YEAR;
 	if (years)
 	{
@@ -476,4 +476,3 @@ void markSongsInPlaylist(ProxySongList pl);
 std::wstring Scroller(const std::wstring &str, size_t &pos, size_t width);
 
 #endif
-

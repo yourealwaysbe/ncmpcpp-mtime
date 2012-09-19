@@ -33,7 +33,7 @@ const char *LastfmService::msgParseFailed = "Fetched data could not be parsed";
 LastfmService::Result LastfmService::fetch(Args &args)
 {
 	Result result;
-
+	
 	std::string url = baseURL;
 	url += methodName();
 	for (Args::const_iterator it = args.begin(); it != args.end(); ++it)
@@ -43,23 +43,23 @@ LastfmService::Result LastfmService::fetch(Args &args)
 		url += "=";
 		url += Curl::escape(it->second);
 	}
-
+	
 	std::string data;
 	CURLcode code = Curl::perform(data, url);
-
+	
 	if (code != CURLE_OK)
 	{
 		result.second = curl_easy_strerror(code);
 		return result;
 	}
-
+	
 	if (actionFailed(data))
 	{
 		stripHtmlTags(data);
 		result.second = data;
 		return result;
 	}
-
+	
 	if (!parse(data))
 	{
 		// if relevant part of data was not found and one of arguments
@@ -78,7 +78,7 @@ LastfmService::Result LastfmService::fetch(Args &args)
 			return result;
 		}
 	}
-
+	
 	result.first = true;
 	result.second = data;
 	return result;
@@ -114,7 +114,7 @@ bool ArtistInfo::parse(std::string &data)
 {
 	size_t a, b;
 	bool parse_failed = false;
-
+	
 	if ((a = data.find("<content>")) != std::string::npos)
 	{
 		a += const_strlen("<content>");
@@ -123,39 +123,39 @@ bool ArtistInfo::parse(std::string &data)
 	}
 	else
 		parse_failed = true;
-
+	
 	if (parse_failed)
 	{
 		data = msgParseFailed;
 		return false;
 	}
-
+	
 	if (a == b)
 	{
 		data = "No description available for this artist.";
 		return false;
 	}
-
+	
 	std::vector< std::pair<std::string, std::string> > similars;
 	for (size_t i = data.find("<name>"), j, k = data.find("<url>"), l;
 		    i != std::string::npos; i = data.find("<name>", i), k = data.find("<url>", k))
 	{
 		j = data.find("</name>", i);
 		i += const_strlen("<name>");
-
+		
 		l = data.find("</url>", k);
 		k += const_strlen("<url>");
-
+		
 		similars.push_back(std::make_pair(data.substr(i, j-i), data.substr(k, l-k)));
 		stripHtmlTags(similars.back().first);
 	}
-
+	
 	a += const_strlen("<![CDATA[");
 	b -= const_strlen("]]>");
 	data = data.substr(a, b-a);
-
+	
 	postProcess(data);
-
+	
 	data += "\n\nSimilar artists:\n";
 	for (size_t i = 1; i < similars.size(); ++i)
 	{
@@ -167,7 +167,7 @@ bool ArtistInfo::parse(std::string &data)
 	}
 	data += "\n\n";
 	data += similars.front().second;
-
+	
 	return true;
 }
 

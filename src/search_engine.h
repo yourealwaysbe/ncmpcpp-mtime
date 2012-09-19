@@ -37,22 +37,22 @@ struct SEItem
 		if (!isThisSong)
 			delete itsBuffer;
 	}
-
+	
 	NC::Buffer &mkBuffer() {
 		assert(!isThisSong);
 		delete itsBuffer;
 		itsBuffer = new NC::Buffer();
 		return *itsBuffer;
 	}
-
+	
 	bool isSong() const { return isThisSong; }
-
+	
 	NC::Buffer &buffer() { assert(!isThisSong && itsBuffer); return *itsBuffer; }
 	MPD::Song &song() { assert(isThisSong); return itsSong; }
-
+	
 	const NC::Buffer &buffer() const { assert(!isThisSong && itsBuffer); return *itsBuffer; }
 	const MPD::Song &song() const { assert(isThisSong); return itsSong; }
-
+	
 	SEItem &operator=(const SEItem &se) {
 		if (this == &se)
 			return *this;
@@ -65,10 +65,10 @@ struct SEItem
 			itsBuffer = 0;
 		return *this;
 	}
-
+	
 	private:
 		bool isThisSong;
-
+		
 		NC::Buffer *itsBuffer;
 		MPD::Song itsSong;
 };
@@ -76,62 +76,62 @@ struct SEItem
 struct SearchEngine: Screen<NC::Menu<SEItem>>, Filterable, HasSongs, Searchable, Tabbable
 {
 	SearchEngine();
-
+	
 	// Screen< NC::Menu<SEItem> > implementation
 	virtual void resize() OVERRIDE;
 	virtual void switchTo() OVERRIDE;
-
+	
 	virtual std::wstring title() OVERRIDE;
 	virtual ScreenType type() OVERRIDE { return ScreenType::SearchEngine; }
-
+	
 	virtual void update() OVERRIDE { }
-
+	
 	virtual void enterPressed() OVERRIDE;
 	virtual void spacePressed() OVERRIDE;
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE;
-
+	
 	virtual bool isMergable() OVERRIDE { return true; }
-
+	
 	// Filterable implementation
 	virtual bool allowsFiltering() OVERRIDE;
 	virtual std::string currentFilter() OVERRIDE;
 	virtual void applyFilter(const std::string &filter) OVERRIDE;
-
+	
 	// Searchable implementation
 	virtual bool allowsSearching() OVERRIDE;
 	virtual bool search(const std::string &constraint) OVERRIDE;
 	virtual void nextFound(bool wrap) OVERRIDE;
 	virtual void prevFound(bool wrap) OVERRIDE;
-
+	
 	// HasSongs implementation
 	virtual ProxySongList proxySongList() OVERRIDE;
-
+	
 	virtual bool allowsSelection() OVERRIDE;
 	virtual void reverseSelection() OVERRIDE;
 	virtual MPD::SongList getSelectedSongs() OVERRIDE;
-
+	
 	// private members
 	void reset();
-
+	
 	static size_t StaticOptions;
 	static size_t SearchButton;
 	static size_t ResetButton;
-
+	
 protected:
 	virtual bool isLockable() OVERRIDE { return true; }
-
+	
 private:
 	void Prepare();
 	void Search();
-
+	
 	const char **SearchMode;
-
+	
 	static const char *SearchModes[];
-
+	
 	static const size_t ConstraintsNumber = 11;
 	static const char *ConstraintsNames[];
 	std::string itsConstraints[ConstraintsNumber];
-
+	
 	static bool MatchToPattern;
 };
 

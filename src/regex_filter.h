@@ -28,10 +28,10 @@ template <typename T> struct RegexFilter
 	typedef NC::Menu<T> MenuT;
 	typedef typename NC::Menu<T>::Item Item;
 	typedef std::function<bool(const Regex &, const T &)> FilterFunction;
-
+	
 	RegexFilter(const std::string &regex_, int cflags, FilterFunction filter)
 	: m_rx(regex_, cflags), m_filter(filter) { }
-
+	
 	bool operator()(const Item &item) {
 		if (m_rx.regex().empty())
 			return true;
@@ -39,7 +39,7 @@ template <typename T> struct RegexFilter
 			return false;
 		return m_filter(m_rx, item.value());
 	}
-
+	
 	static std::string currentFilter(MenuT &menu)
 	{
 		std::string filter;
@@ -48,7 +48,7 @@ template <typename T> struct RegexFilter
 			filter = rf->m_rx.regex();
 		return filter;
 	}
-
+	
 private:
 	Regex m_rx;
 	FilterFunction m_filter;
@@ -59,10 +59,10 @@ template <typename T> struct RegexItemFilter
 	typedef NC::Menu<T> MenuT;
 	typedef typename NC::Menu<T>::Item Item;
 	typedef std::function<bool(const Regex &, const Item &)> FilterFunction;
-
+	
 	RegexItemFilter(const std::string &regex_, int cflags, FilterFunction filter)
 	: m_rx(regex_, cflags), m_filter(filter) { }
-
+	
 	bool operator()(const Item &item) {
 		if (m_rx.regex().empty())
 			return true;
@@ -70,7 +70,7 @@ template <typename T> struct RegexItemFilter
 			return false;
 		return m_filter(m_rx, item);
 	}
-
+	
 	static std::string currentFilter(MenuT &menu)
 	{
 		std::string filter;
@@ -79,11 +79,10 @@ template <typename T> struct RegexItemFilter
 			filter = rf->m_rx.regex();
 		return filter;
 	}
-
+	
 private:
 	Regex m_rx;
 	FilterFunction m_filter;
 };
 
 #endif
-

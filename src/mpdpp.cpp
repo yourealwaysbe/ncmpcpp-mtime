@@ -210,7 +210,7 @@ void Connection::UpdateStatus()
 {
 	if (!itsConnection)
 		return;
-
+	
 	int idle_mask = 0;
 	if (isIdle)
 	{
@@ -237,7 +237,7 @@ void Connection::UpdateStatus()
 			return;
 		}
 	}
-
+	
 	// if CheckForErrors() invokes callback, it can do some communication with mpd.
 	// the problem is, we *have* to be out from idle mode here and issuing commands
 	// will enter it again, which certainly is not desired, so let's block it for
@@ -245,21 +245,21 @@ void Connection::UpdateStatus()
 	BlockIdle(true);
 	CheckForErrors();
 	BlockIdle(false);
-
+	
 	if (!itsConnection)
 		return;
-
+	
 	if (itsOldStatus)
 		mpd_status_free(itsOldStatus);
-
+	
 	itsOldStatus = itsCurrentStatus;
 	itsCurrentStatus = 0;
-
+	
 	itsCurrentStatus = mpd_run_status(itsConnection);
-
+	
 	if (CheckForErrors())
 		return;
-
+	
 	if (itsCurrentStatus && itsUpdater)
 	{
 		if (supportsIdle)
@@ -272,7 +272,7 @@ void Connection::UpdateStatus()
 		}
 		else
 			itsElapsed = mpd_status_get_elapsed_time(itsCurrentStatus);
-
+		
 		if (!itsOldStatus)
 		{
 			itsChanges.Playlist = 1;
@@ -306,49 +306,49 @@ void Connection::UpdateStatus()
 			{
 				itsChanges.Playlist = mpd_status_get_queue_version(itsOldStatus)
 					!= mpd_status_get_queue_version(itsCurrentStatus);
-
+				
 				itsChanges.ElapsedTime = mpd_status_get_elapsed_time(itsOldStatus)
 						      != mpd_status_get_elapsed_time(itsCurrentStatus);
-
+				
 				itsChanges.Database = mpd_status_get_update_id(itsOldStatus)
 						 &&  !mpd_status_get_update_id(itsCurrentStatus);
-
+				
 				itsChanges.DBUpdating = mpd_status_get_update_id(itsOldStatus)
 						     != mpd_status_get_update_id(itsCurrentStatus);
-
+				
 				itsChanges.Volume = mpd_status_get_volume(itsOldStatus)
 						 != mpd_status_get_volume(itsCurrentStatus);
-
+				
 				itsChanges.StatusFlags = itsChanges.Repeat
 						||	 itsChanges.Random
 						||	 itsChanges.Single
 						||	 itsChanges.Consume
 						||	 itsChanges.Crossfade
 						||	 itsChanges.DBUpdating;
-
+				
 				// there is no way to determine if the output has changed or not
 				// from mpd status, it's possible only with idle notifications
 				itsChanges.Outputs = 0;
 			}
-
+			
 			itsChanges.SongID = mpd_status_get_song_id(itsOldStatus)
 					 != mpd_status_get_song_id(itsCurrentStatus);
-
+			
 			itsChanges.Crossfade = mpd_status_get_crossfade(itsOldStatus)
 					    != mpd_status_get_crossfade(itsCurrentStatus);
-
+			
 			itsChanges.Random = mpd_status_get_random(itsOldStatus)
 					 != mpd_status_get_random(itsCurrentStatus);
-
+			
 			itsChanges.Repeat = mpd_status_get_repeat(itsOldStatus)
 					 != mpd_status_get_repeat(itsCurrentStatus);
-
+			
 			itsChanges.Single = mpd_status_get_single(itsOldStatus)
 					 != mpd_status_get_single(itsCurrentStatus);
-
+			
 			itsChanges.Consume = mpd_status_get_consume(itsOldStatus)
 					  != mpd_status_get_consume(itsCurrentStatus);
-
+			
 			itsChanges.PlayerState = mpd_status_get_state(itsOldStatus)
 					      != mpd_status_get_state(itsCurrentStatus);
 		}
@@ -377,7 +377,7 @@ bool Connection::UpdateDirectory(const std::string &path)
 		assert(!isIdle);
 		return mpd_send_update(itsConnection, path.c_str());
 	}
-
+	
 }
 
 void Connection::Play()
@@ -733,7 +733,7 @@ void Connection::GetSupportedExtensions(std::set<std::string> &acc)
 		return;
 	assert(!isCommandsListEnabled);
 	GoBusy();
-
+	
 	mpd_send_command(itsConnection, "decoders", NULL);
 	while (mpd_pair *pair = mpd_recv_pair_named(itsConnection, "suffix"))
 	{
@@ -741,7 +741,7 @@ void Connection::GetSupportedExtensions(std::set<std::string> &acc)
 		mpd_return_pair(itsConnection, pair);
 	}
 	mpd_response_finish(itsConnection);
-
+	
 	GoIdle();
 }
 
@@ -949,7 +949,7 @@ bool Connection::AddRandomTag(mpd_tag_type tag, size_t number)
 	if (!itsConnection && !number)
 		return false;
 	assert(!isCommandsListEnabled);
-
+	
 	auto tags = GetList(tag);
 	if (number > tags.size())
 	{
@@ -980,9 +980,9 @@ bool Connection::AddRandomSongs(size_t number)
 	if (!itsConnection && !number)
 		return false;
 	assert(!isCommandsListEnabled);
-
+	
 	StringList files;
-
+	
 	GoBusy();
 	mpd_send_list_all(itsConnection, "/");
 	while (mpd_pair *item = mpd_recv_pair_named(itsConnection, "file"))
@@ -991,7 +991,7 @@ bool Connection::AddRandomSongs(size_t number)
 		mpd_return_pair(itsConnection, item);
 	}
 	mpd_response_finish(itsConnection);
-
+	
 	if (number > files.size())
 	{
 		if (itsErrorHandler)
@@ -1108,7 +1108,7 @@ int Connection::SavePlaylist(const std::string &name)
 	GoBusy();
 	mpd_send_save(itsConnection, name.c_str());
 	mpd_response_finish(itsConnection);
-
+	
 	if (mpd_connection_get_error(itsConnection) == MPD_ERROR_SERVER
 	&&  mpd_connection_get_server_error(itsConnection) == MPD_SERVER_ERROR_EXIST)
 		return MPD_SERVER_ERROR_EXIST;
@@ -1147,6 +1147,7 @@ StringList Connection::GetList(mpd_tag_type type)
 	return result;
 }
 
+
 TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 {
 	TagMTimeList result;
@@ -1156,10 +1157,6 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 	GoBusy();
 
 	if (!get_mtime)
-<<<<<<< HEAD
-=======
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		mpd_search_db_tags(itsConnection, type);
 		mpd_search_commit(itsConnection);
@@ -1170,45 +1167,24 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 		}
 		mpd_response_finish(itsConnection);
 	}
-<<<<<<< HEAD
 	else
-=======
-
-	else
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		mpd_send_list_all_meta(itsConnection, "/");
 		std::map<std::string, time_t> max_mtimes;
 		while (mpd_song *s = mpd_recv_song(itsConnection))
-<<<<<<< HEAD
-=======
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		{
 			Song song(s);
 			const std::string &tag = song.getTag(type);
 			time_t mtime = song.getMTime();
 			auto mt = max_mtimes.find(tag);
 			if (mt == max_mtimes.end())
-<<<<<<< HEAD
 				max_mtimes.insert(std::make_pair(tag, mtime));
 			else
-=======
-
-				max_mtimes.insert(std::make_pair(tag, mtime));
-			else
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 				mt->second = std::max(mt->second, mtime);
 		}
 		mpd_response_finish(itsConnection);
 
 		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it)
-<<<<<<< HEAD
-=======
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		{
 			result.push_back(TagMTime(it->first, it->second));
 		}
@@ -1217,6 +1193,7 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 	GoIdle();
 	return result;
 }
+
 
 void Connection::StartSearch(bool exact_match)
 {
@@ -1312,10 +1289,6 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 	mpd_search_commit(itsConnection);
 
 	if (!itsSearchFieldMTime)
-<<<<<<< HEAD
-=======
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 	{
 		while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
 		{
@@ -1323,40 +1296,22 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 			mpd_return_pair(itsConnection, tag);
 		}
 	}
-<<<<<<< HEAD
 	else
 	{
 		std::map<std::string, time_t> max_mtimes;
 		while (mpd_song *s = mpd_recv_song(itsConnection))
-=======
-
-	else
-
-	{
-		std::map<std::string, time_t> max_mtimes;
-		while (mpd_song *s = mpd_recv_song(itsConnection))
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		{
 			Song song(s);
 			const std::string &tag = song.getTag(itsSearchedField);
 			time_t mtime = song.getMTime();
 			auto mt = max_mtimes.find(tag);
 			if (mt == max_mtimes.end())
-<<<<<<< HEAD
-=======
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 				max_mtimes.insert(std::make_pair(tag, mtime));
 			else
 				mt->second = std::max(mt->second, mtime);
 		}
 
 		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it)
-<<<<<<< HEAD
-=======
-
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 		{
 			result.push_back(TagMTime(it->first, it->second));
 		}
@@ -1366,6 +1321,7 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 
 	return result;
 }
+
 
 ItemList Connection::GetDirectory(const std::string &path)
 {
@@ -1560,17 +1516,13 @@ int Connection::CheckForErrors()
 	return error_code;
 }
 
-bool SortSongsByTag::operator()(const Song &s1, const Song &s2)
 
-<<<<<<< HEAD
 bool SortSongsByTag::operator()(const Song &s1, const Song &s2)
-=======
->>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
 {
 	const std::string &t1 = s1.getTag(m_type);
 	const std::string &t2 = s2.getTag(m_type);
 	return t1 < t2;
 }
 
-}
 
+}

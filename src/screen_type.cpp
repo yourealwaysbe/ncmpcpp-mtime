@@ -68,4 +68,3 @@ ScreenType stringToScreenType(const std::string &s)
 	}
 	return result;
 }
-

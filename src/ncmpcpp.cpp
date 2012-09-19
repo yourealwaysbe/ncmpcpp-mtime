@@ -48,7 +48,7 @@ namespace
 {
 	std::ofstream errorlog;
 	std::streambuf *cerr_buffer;
-
+	
 #	if !defined(WIN32)
 	void sighandler(int signal)
 	{
@@ -62,7 +62,7 @@ namespace
 		}
 	}
 #	endif // !WIN32
-
+	
 	void do_at_exit()
 	{
 		// restore old cerr buffer
@@ -81,111 +81,111 @@ int main(int argc, char **argv)
 	using Global::myScreen;
 	using Global::myLockedScreen;
 	using Global::myInactiveScreen;
-
+	
 	using Global::wHeader;
 	using Global::wFooter;
-
+	
 	using Global::ShowMessages;
 	using Global::VolumeState;
 	using Global::Timer;
-
+	
 	srand(time(0));
 	setlocale(LC_ALL, "");
 	std::locale::global(std::locale(""));
-
+	
 	Config.CheckForCommandLineConfigFilePath(argv, argc);
-
+	
 	Config.SetDefaults();
 	Config.Read();
 	Config.GenerateColumns();
-
+	
 	if (!Bindings.read(Config.ncmpcpp_directory + "bindings"))
 		return 1;
 	Bindings.generateDefaults();
-
+	
 	if (getenv("MPD_HOST"))
 		Mpd.SetHostname(getenv("MPD_HOST"));
 	if (getenv("MPD_PORT"))
 		Mpd.SetPort(atoi(getenv("MPD_PORT")));
-
+	
 	if (Config.mpd_host != "localhost")
 		Mpd.SetHostname(Config.mpd_host);
 	if (Config.mpd_port != 6600)
 		Mpd.SetPort(Config.mpd_port);
-
+	
 	Mpd.SetTimeout(Config.mpd_connection_timeout);
 	Mpd.SetIdleEnabled(Config.enable_idle_notifications);
-
+	
 	if (argc > 1)
 		ParseArgv(argc, argv);
-
+	
 	if (!Action::ConnectToMPD())
 		exit(1);
-
+	
 	if (Mpd.Version() < 16)
 	{
 		std::cout << "MPD < 0.16.0 is not supported, please upgrade.\n";
 		exit(1);
 	}
-
+	
 	CreateDir(Config.ncmpcpp_directory);
-
+	
 	// always execute these commands, even if ncmpcpp use exit function
 	atexit(do_at_exit);
-
+	
 	// redirect std::cerr output to ~/.ncmpcpp/error.log file
 	errorlog.open((Config.ncmpcpp_directory + "error.log").c_str(), std::ios::app);
 	cerr_buffer = std::cerr.rdbuf();
 	std::cerr.rdbuf(errorlog.rdbuf());
-
+	
 	NC::initScreen("ncmpcpp ver. " VERSION, Config.colors_enabled);
-
+	
 	Action::OriginalStatusbarVisibility = Config.statusbar_visibility;
-
+	
 	if (!Config.titles_visibility)
 		wattron(stdscr, COLOR_PAIR(Config.main_color));
-
+	
 	if (Config.new_design)
 		Config.statusbar_visibility = 0;
-
+	
 	Action::SetWindowsDimensions();
 	Action::ValidateScreenSize();
 	Action::InitializeScreens();
-
+	
 	wHeader = new NC::Window(0, 0, COLS, Action::HeaderHeight, "", Config.header_color, NC::brNone);
 	if (Config.header_visibility || Config.new_design)
 		wHeader->display();
-
+	
 	wFooter = new NC::Window(0, Action::FooterStartY, COLS, Action::FooterHeight, "", Config.statusbar_color, NC::brNone);
 	wFooter->setTimeout(500);
 	wFooter->setGetStringHelper(Statusbar::Helpers::getString);
 	if (Mpd.SupportsIdle())
 		wFooter->addFDCallback(Mpd.GetFD(), Statusbar::Helpers::mpd);
 	wFooter->createHistory();
-
+	
 	// initialize global timer
 	gettimeofday(&Timer, 0);
-
+	
 	// go to playlist
 	myPlaylist->switchTo();
 	myPlaylist->UpdateTimer();
-
+	
 	// go to startup screen
 	if (Config.startup_screen != myScreen)
 		Config.startup_screen->switchTo();
-
+	
 	Mpd.SetStatusUpdater(Status::update, 0);
 	Mpd.SetErrorHandler(Status::handleError, 0);
-
+	
 	// local variables
 	Key input(0, Key::Standard);
 	timeval past = { 0, 0 };
 	// local variables end
-
+	
 	mouseinterval(0);
 	if (Config.mouse_support)
 		mousemask(ALL_MOUSE_EVENTS, 0);
-
+	
 	Mpd.OrderDataFetching();
 	if (Config.jump_to_now_playing_song_at_start)
 	{
@@ -194,12 +194,12 @@ int main(int argc, char **argv)
 		if  (curr_pos >= 0)
 			myPlaylist->main().highlight(curr_pos);
 	}
-
+	
 #	ifndef WIN32
 	signal(SIGPIPE, sighandler);
 	signal(SIGWINCH, sighandler);
 #	endif // !WIN32
-
+	
 	while (!Action::ExitMainLoop)
 	{
 		if (!Mpd.Connected())
@@ -224,11 +224,11 @@ int main(int argc, char **argv)
 #				endif // ENABLE_VISUALIZER
 			}
 		}
-
+		
 		Status::trace();
-
+		
 		ShowMessages = true;
-
+		
 		// header stuff
 		if (((Timer.tv_sec == past.tv_sec && Timer.tv_usec >= past.tv_usec+500000) || Timer.tv_sec > past.tv_sec)
 		&&   (myScreen == myPlaylist || myScreen == myBrowser || myScreen == myLyrics)
@@ -237,16 +237,16 @@ int main(int argc, char **argv)
 			drawHeader();
 			past = Timer;
 		}
-
+		
 		// header stuff end
-
+		
 		if (input != Key::noOp)
 			myScreen->refreshWindow();
 		input = Key::read(*wFooter);
-
+		
 		if (input == Key::noOp)
 			continue;
-
+		
 		auto k = Bindings.get(input);
 		for (; k.first != k.second; ++k.first)
 		{
@@ -265,10 +265,10 @@ int main(int argc, char **argv)
 				break;
 			}
 		}
-
+		
 		if (myScreen == myPlaylist)
 			myPlaylist->EnableHighlighting();
-
+		
 #		ifdef ENABLE_VISUALIZER
 		// visualizer sets timeout to 40ms, but since only it needs such small
 		// value, we should restore defalt one after switching to another screen.
@@ -280,4 +280,3 @@ int main(int argc, char **argv)
 	}
 	return 0;
 }
-

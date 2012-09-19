@@ -90,10 +90,10 @@ void setProperties(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongList &p
 		menu << NC::fmtUnderline;
 		mvwhline(menu.raw(), menu.getY(), 0, KEY_SPACE, menu.getWidth());
 	}
-
+	
 	is_selected = menu.drawn()->isSelected();
 	discard_colors = Config.discard_colors_if_item_is_selected && is_selected;
-
+	
 	int song_pos = menu.isFiltered() ? s.getPosition() : drawn_pos;
 	is_now_playing = &menu == myPlaylist->activeWindow()
 	              && song_pos == Mpd.GetCurrentlyPlayingSongPos();
@@ -106,7 +106,7 @@ void showSongs(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongList &pl, c
 {
 	bool separate_albums, is_now_playing, is_selected, discard_colors;
 	setProperties(menu, s, pl, separate_albums, is_now_playing, is_selected, discard_colors);
-
+	
 	size_t y = menu.getY();
 	std::string line = s.toString(format, Config.tags_separator, "$");
 	for (auto it = line.begin(); it != line.end(); ++it)
@@ -164,10 +164,10 @@ void showSongsInColumns(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongLi
 {
 	if (Config.columns.empty())
 		return;
-
+	
 	bool separate_albums, is_now_playing, is_selected, discard_colors;
 	setProperties(menu, s, pl, separate_albums, is_now_playing, is_selected, discard_colors);
-
+	
 	int width;
 	int y = menu.getY();
 	int remained_width = menu.getWidth();
@@ -189,7 +189,7 @@ void showSongsInColumns(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongLi
 		// and next column, so we substract it now and restore later.
 		if (it != last)
 			--width;
-
+		
 		if (it == Config.columns.begin() && (is_now_playing || is_selected))
 		{
 			// here comes the shitty part. if we applied now playing or selected
@@ -213,11 +213,11 @@ void showSongsInColumns(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongLi
 			width -= offset;
 			remained_width -= offset;
 		}
-
+		
 		// if column doesn't fit into screen, discard it and any other after it.
 		if (remained_width-width < 0 || width < 0 /* this one may come from (*) */)
 			break;
-
+		
 		std::wstring tag;
 		for (size_t i = 0; i < it->type.length(); ++i)
 		{
@@ -229,16 +229,16 @@ void showSongsInColumns(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongLi
 		if (tag.empty() && it->display_empty_tag)
 			tag = ToWString(Config.empty_tag);
 		wideCut(tag, width);
-
+		
 		if (!discard_colors && it->color != NC::clDefault)
 			menu << it->color;
-
+		
 		int x_off = 0;
 		// if column uses right alignment, calculate proper offset.
 		// otherwise just assume offset is 0, ie. we start from the left.
 		if (it->right_alignment)
 			x_off = std::max(0, width - int(wideLength(tag)));
-
+		
 		whline(menu.raw(), KEY_SPACE, width);
 		menu.goToXY(x + x_off, y);
 		menu << tag;
@@ -249,11 +249,11 @@ void showSongsInColumns(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongLi
 			menu << ' ';
 			remained_width -= width+1;
 		}
-
+		
 		if (!discard_colors && it->color != NC::clDefault)
 			menu << NC::clEnd;
 	}
-
+	
 	// here comes the shitty part, second chapter. here we apply
 	// now playing suffix or/and make room for selected suffix
 	// (as it will be applied in Menu::Refresh when this function
@@ -268,7 +268,7 @@ void showSongsInColumns(NC::Menu<T> &menu, const MPD::Song &s, const ProxySongLi
 	}
 	if (is_selected)
 		menu.goToXY(menu.getWidth() - Config.selected_item_suffix_length, y);
-
+	
 	if (separate_albums)
 		menu << NC::fmtUnderlineEnd;
 }
@@ -280,7 +280,7 @@ std::string Display::Columns(size_t list_width)
 	std::string result;
 	if (Config.columns.empty())
 		return result;
-
+	
 	int width;
 	int remained_width = list_width;
 	std::vector<Column>::const_iterator it, last = Config.columns.end() - 1;
@@ -299,11 +299,11 @@ std::string Display::Columns(size_t list_width)
 		// and next column, so we substract it now and restore later.
 		if (it != last)
 			--width;
-
+		
 		// if column doesn't fit into screen, discard it and any other after it.
 		if (remained_width-width < 0 || width < 0 /* this one may come from (*) */)
 			break;
-
+		
 		std::wstring name;
 		if (it->name.empty())
 		{
@@ -321,7 +321,7 @@ std::string Display::Columns(size_t list_width)
 		else
 			name = it->name;
 		wideCut(name, width);
-
+		
 		int x_off = std::max(0, width - int(wideLength(name)));
 		if (it->right_alignment)
 		{
@@ -333,7 +333,7 @@ std::string Display::Columns(size_t list_width)
 			result += ToString(name);
 			result += std::string(x_off, KEY_SPACE);
 		}
-
+		
 		if (it != last)
 		{
 			// add missing width's part and restore the value.
@@ -341,7 +341,7 @@ std::string Display::Columns(size_t list_width)
 			result += ' ';
 		}
 	}
-
+	
 	return result;
 }
 
@@ -414,4 +414,3 @@ void Display::SearchEngine(NC::Menu<SEItem> &menu, const ProxySongList &pl)
 	else
 		menu << si.buffer();
 }
-

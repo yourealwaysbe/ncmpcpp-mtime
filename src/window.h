@@ -164,7 +164,7 @@ struct XY
 struct Window
 {
 	Window() : m_window(0), m_border_window(0), m_history(0) { }
-
+	
 	/// Constructs an empty window with given parameters
 	/// @param startx X position of left upper corner of constructed window
 	/// @param starty Y position of left upper corner of constructed window
@@ -175,42 +175,42 @@ struct Window
 	/// @param border border of constructed window
 	Window(size_t startx, size_t starty, size_t width, size_t height,
 			const std::string &title, Color color, Border border);
-
+	
 	Window(const Window &rhs);
 	Window(Window &&rhs);
 	Window &operator=(Window w);
-
+	
 	virtual ~Window();
-
+	
 	/// Allows for direct access to internal WINDOW pointer in case there
 	/// is no wrapper for a function from curses library one may want to use
 	/// @return internal WINDOW pointer
 	WINDOW *raw() const { return m_window; }
-
+	
 	/// @return window's width
 	size_t getWidth() const;
-
+	
 	/// @return window's height
 	size_t getHeight() const;
-
+	
 	/// @return X position of left upper window's corner
 	size_t getStartX() const;
-
+	
 	/// @return Y position of left upper window's corner
 	size_t getStarty() const;
-
+	
 	/// @return window's title
 	const std::string &getTitle() const;
-
+	
 	/// @return current window's color
 	Color getColor() const;
-
+	
 	/// @return current window's border
 	Border getBorder() const;
-
+	
 	/// @return current window's timeout
 	int getTimeout() const;
-
+	
 	/// Reads the string from standard input. Note that this is much more complex
 	/// function than getstr() from curses library. It allows for moving through
 	/// letters with arrows, supports scrolling if string's length is bigger than
@@ -231,25 +231,25 @@ struct Window
 	/// @see CreateHistory()
 	std::string getString(const std::string &base, size_t length_ = -1,
 	                      size_t width = 0, bool encrypted = 0);
-
+	
 	/// Wrapper for above function that doesn't take base string (it will be empty).
 	/// Taken parameters are the same as for above.
 	std::string getString(size_t length_ = -1, size_t width = 0, bool encrypted = 0)
 	{
 		return getString("", length_, width, encrypted);
 	}
-
+	
 	/// Moves cursor to given coordinates
 	/// @param x given X position
 	/// @param y given Y position
 	void goToXY(int x, int y);
-
+	
 	/// @return x window coordinate
 	int getX();
-
+	
 	/// @return y windows coordinate
 	int getY();
-
+	
 	/// Used to indicate whether given coordinates of main screen lies within
 	/// window area or not and if they do, transform them into in-window coords.
 	/// Otherwise function doesn't modify its arguments.
@@ -257,85 +257,85 @@ struct Window
 	/// @param y Y position of main screen to be checked
 	/// @return true if it transformed variables, false otherwise
 	bool hasCoords(int &x, int &y);
-
+	
 	/// Sets helper function used in getString()
 	/// @param helper pointer to function that matches getStringHelper prototype
 	/// @see getString()
 	void setGetStringHelper(GetStringHelper helper) { m_get_string_helper = helper; }
-
+	
 	/// Sets window's base color
 	/// @param fg foregound base color
 	/// @param bg background base color
 	void setBaseColor(Color fg, Color bg = clDefault);
-
+	
 	/// Sets window's border
 	/// @param border new window's border
 	void setBorder(Border border);
-
+	
 	/// Sets window's timeout
 	/// @param timeout window's timeout
 	void setTimeout(int timeout);
-
+	
 	/// Sets window's title
 	/// @param new_title new title for window
 	void setTitle(const std::string &new_title);
-
+	
 	/// Creates internal container that stores all previous
 	/// strings that were edited using this window.
 	void createHistory();
-
+	
 	/// Deletes container with all previous history entries
 	void deleteHistory();
-
+	
 	/// Refreshed whole window and its border
 	/// @see refresh()
 	void display();
-
+	
 	/// Refreshes whole window, but not the border
 	/// @see display()
 	virtual void refresh();
-
+	
 	/// Moves the window to new coordinates
 	/// @param new_x new X position of left upper corner of window
 	/// @param new_y new Y position of left upper corner of window
 	virtual void moveTo(size_t new_x, size_t new_y);
-
+	
 	/// Resizes the window
 	/// @param new_width new window's width
 	/// @param new_height new window's height
 	virtual void resize(size_t new_width, size_t new_height);
-
+	
 	/// Cleares the window
 	virtual void clear();
-
+	
 	/// Adds given file descriptor to the list that will be polled in
 	/// ReadKey() along with stdin and callback that will be invoked
 	/// when there is data waiting for reading in it
 	/// @param fd file descriptor
 	/// @param callback callback
 	void addFDCallback(int fd, void (*callback)());
-
+	
 	/// Clears list of file descriptors and their callbacks
 	void clearFDCallbacksList();
-
+	
 	/// Checks if list of file descriptors is empty
 	/// @return true if list is empty, false otherwise
 	bool FDCallbacksListEmpty() const;
-
+	
 	/// Reads key from standard input (or takes it from input queue)
 	/// and writes it into read_key variable
 	int readKey();
-
+	
 	/// Push single character into input queue, so it can get consumed by ReadKey
 	void pushChar(int ch);
-
+	
 	/// @return const reference to internal input queue
 	const std::queue<int> &inputQueue() { return m_input_queue; }
-
+	
 	/// Scrolls the window by amount of lines given in its parameter
 	/// @param where indicates how many lines it has to scroll
 	virtual void scroll(Where where);
-
+	
 	/// Applies function of compatible prototype to internal WINDOW pointer
 	/// The mostly used function in this case seem to be wclrtoeol(), which
 	/// clears the window from current cursor position to the end of line.
@@ -344,12 +344,12 @@ struct Window
 	/// @param f pointer to function to call with internal WINDOW pointer
 	/// @return reference to itself
 	Window &operator<<(int (*f)(WINDOW *));
-
+	
 	/// Applies foreground and background colors to window
 	/// @param colors struct that holds new colors information
 	/// @return reference to itself
 	Window &operator<<(Colors colors);
-
+	
 	/// Applies foregound color to window. Note that colors applied
 	/// that way are stacked, i.e if you applied clRed, then clGreen
 	/// and clEnd, current color would be clRed. If you want to discard
@@ -357,59 +357,59 @@ struct Window
 	/// @param color new color value
 	/// @return reference to itself
 	Window &operator<<(Color color);
-
+	
 	/// Applies format flag to window. Note that these attributes are
 	/// also stacked, so if you applied fmtBold twice, to get rid of
 	/// it you have to pass fmtBoldEnd also twice.
 	/// @param format format flag
 	/// @return reference to itself
 	Window &operator<<(Format format);
-
+	
 	/// Moves current cursor position to given coordinates.
 	/// @param coords struct that holds information about new coordinations
 	/// @return reference to itself
 	Window &operator<<(XY coords);
-
+	
 	/// Prints string to window
 	/// @param s const pointer to char array to be printed
 	/// @return reference to itself
 	Window &operator<<(const char *s);
-
+	
 	/// Prints single character to window
 	/// @param c character to be printed
 	/// @return reference to itself
 	Window &operator<<(char c);
-
+	
 	/// Prints wide string to window
 	/// @param ws const pointer to wchar_t array to be printed
 	/// @return reference to itself
 	Window &operator<<(const wchar_t *ws);
-
+	
 	/// Prints single wide character to window
 	/// @param wc wide character to be printed
 	/// @return reference to itself
 	Window &operator<<(wchar_t wc);
-
+	
 	/// Prints int to window
 	/// @param i integer value to be printed
 	/// @return reference to itself
 	Window &operator<<(int i);
-
+	
 	/// Prints double to window
 	/// @param d double value to be printed
 	/// @return reference to itself
 	Window &operator<<(double d);
-
+	
 	/// Prints size_t to window
 	/// @param s size value to be printed
 	/// @return reference to itself
 	Window &operator<<(size_t s);
-
+	
 	/// Prints std::string to window
 	/// @param s string to be printed
 	/// @return reference to itself
 	Window &operator<<(const std::string &s);
-
+	
 	/// Prints std::wstring to window
 	/// @param ws wide string to be printed
 	/// @return reference to itself
@@ -420,18 +420,18 @@ protected:
 	/// @param bg background color
 	///
 	void setColor(Color fg, Color bg = clDefault);
-
+	
 	/// Refreshes window's border
 	///
 	void showBorder() const;
-
+	
 	/// Changes dimensions of window, called from resize()
 	/// @param width new window's width
 	/// @param height new window's height
 	/// @see resize()
 	///
 	void adjustDimensions(size_t width, size_t height);
-
+	
 	/// Deletes old window and creates new. It's called by resize(),
 	/// SetBorder() or setTitle() since internally windows are
 	/// handled as curses pads and change in size requires to delete
@@ -441,77 +441,77 @@ protected:
 	/// @see resize()
 	///
 	virtual void recreate(size_t width, size_t height);
-
+	
 	/// internal WINDOW pointers
 	WINDOW *m_window;
 	WINDOW *m_border_window;
-
+	
 	/// start points and dimensions
 	size_t m_start_x;
 	size_t m_start_y;
 	size_t m_width;
 	size_t m_height;
-
+	
 	/// window timeout
 	int m_window_timeout;
-
+	
 	/// current colors
 	Color m_color;
 	Color m_bg_color;
-
+	
 	/// base colors
 	Color m_base_color;
 	Color m_base_bg_color;
-
+	
 	/// current border
 	Border m_border;
-
+	
 private:
 	/// Sets state of bold attribute (internal use only)
 	/// @param bold_state state of bold attribute
 	///
 	void bold(bool bold_state) const;
-
+	
 	/// Sets state of underline attribute (internal use only)
 	/// @param underline_state state of underline attribute
 	///
 	void underline(bool underline_state) const;
-
+	
 	/// Sets state of reverse attribute (internal use only)
 	/// @param reverse_state state of reverse attribute
 	///
 	void reverse(bool reverse_state) const;
-
+	
 	/// Sets state of altcharset attribute (internal use only)
 	/// @param altcharset_state state of altcharset attribute
 	///
 	void altCharset(bool altcharset_state) const;
-
+	
 	/// pointer to helper function used by getString()
 	/// @see getString()
 	///
 	GetStringHelper m_get_string_helper;
-
+	
 	/// window title
 	std::string m_title;
-
+	
 	/// stack of colors
 	std::stack<Colors> m_color_stack;
-
+	
 	/// input queue of a window. you can put characters there using
 	/// PushChar and they will be immediately consumed and
 	/// returned by ReadKey
 	std::queue<int> m_input_queue;
-
+	
 	/// containter used for additional file descriptors that have
 	/// to be polled in ReadKey() and correspondent callbacks that
 	/// are invoked if there is data available in them
 	typedef std::vector< std::pair<int, void (*)()> > FDCallbacks;
 	FDCallbacks m_fds;
-
+	
 	/// pointer to container used as history
 	std::list<std::wstring> *m_history;
-
+	
 	/// counters for format flags
 	int m_bold_counter;
 	int m_underline_counter;
@@ -522,4 +522,3 @@ private:
 }
 
 #endif
-

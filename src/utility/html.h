@@ -28,4 +28,3 @@ std::string unescapeHtmlUtf8(const std::string &s);
 void stripHtmlTags(std::string &s);
 
 #endif // _UTILITY_HTML
-

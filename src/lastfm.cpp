@@ -101,27 +101,27 @@ void Lastfm::Load()
 {
 	if (isDownloadInProgress)
 		return;
-
+	
 	assert(itsService.get());
 	assert(itsService->checkArgs(itsArgs));
-
+	
 	SetTitleAndFolder();
-
+	
 	w.clear();
 	w.reset();
-
+	
 	std::string artist = itsArgs.find("artist")->second;
 	std::string file = lowercase(artist + ".txt");
 	removeInvalidCharsFromFilename(file);
-
+	
 	itsFilename = itsFolder + "/" + file;
-
+	
 	mkdir(itsFolder.c_str()
 #	ifndef WIN32
 	, 0755
 #	endif // !WIN32
 	     );
-
+	
 	std::ifstream input(itsFilename.c_str());
 	if (input.is_open())
 	{
@@ -166,7 +166,7 @@ void *Lastfm::DownloadWrapper(void *this_ptr)
 void Lastfm::Download()
 {
 	LastfmService::Result result = itsService->fetch(itsArgs);
-
+	
 	if (result.first)
 	{
 		Save(result.second);
@@ -177,7 +177,7 @@ void Lastfm::Download()
 	}
 	else
 		w << NC::clRed << result.second << NC::clEnd;
-
+	
 	isReadyToTake = 1;
 }
 
@@ -208,13 +208,13 @@ bool Lastfm::SetArtistInfoArgs(const std::string &artist, const std::string &lan
 {
 	if (isDownloading())
 		return false;
-
+	
 	itsService.reset(new ArtistInfo);
 	itsArgs.clear();
 	itsArgs["artist"] = artist;
 	if (!lang.empty())
 		itsArgs["lang"] = lang;
-
+	
 	return true;
 }
 

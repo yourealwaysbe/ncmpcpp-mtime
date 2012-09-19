@@ -43,23 +43,23 @@ Scrollpad::Scrollpad(size_t startx,
 void Scrollpad::flush()
 {
 	m_real_height = 1;
-
+	
 	std::wstring s = m_buffer.str();
-
+	
 	size_t x = 0;
 	int x_pos = 0;
 	int space_pos = 0;
-
+	
 	for (size_t i = 0; i < s.length(); ++i)
 	{
 		x += s[i] != '\t' ? wcwidth(s[i]) : 8-x%8; // tab size
-
+		
 		if (s[i] == ' ') // if space, remember its position;
 		{
 			space_pos = i;
 			x_pos = x;
 		}
-
+		
 		if (x >= m_width)
 		{
 			// if line is over, there was at least one space in this line and we are in the middle of the word, restore position to last known space and make it EOL
@@ -70,7 +70,7 @@ void Scrollpad::flush()
 				s[i] = '\n';
 			}
 		}
-
+		
 		if (x >= m_width || s[i] == '\n')
 		{
 			m_real_height++;
@@ -199,4 +199,3 @@ Scrollpad &Scrollpad::operator<<(const std::string &s)
 }
 
 }
-

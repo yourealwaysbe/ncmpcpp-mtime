@@ -30,30 +30,30 @@ struct Regex
 	Regex(const std::string &regex, int cflags);
 	Regex(const Regex &rhs);
 	virtual ~Regex();
-
+	
 	/// @return regular expression
 	const std::string &regex() const;
-
+	
 	/// @return compilation error (if there was any)
 	const std::string &error() const;
-
+	
 	/// @return true if regular expression is compiled, false otherwise
 	bool compiled() const;
-
+	
 	/// compiles regular expression
 	/// @result true if compilation was successful, false otherwise
 	bool compile();
-
+	
 	/// compiles regular expression
 	/// @result true if compilation was successful, false otherwise
 	bool compile(const std::string &regex, int cflags);
-
+	
 	/// tries to match compiled regex with given string
 	/// @return true if string was matched, false otherwise
 	bool match(const std::string &s) const;
-
+	
 	Regex &operator=(const Regex &rhs);
-
+	
 private:
 	std::string m_regex;
 	std::string m_error;
@@ -63,4 +63,3 @@ private:
 };
 
 #endif // _REGEXES_H
-

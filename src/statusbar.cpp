@@ -142,12 +142,12 @@ void Statusbar::tryRedraw()
 	&&  Timer.tv_sec >= statusbarLockTime.tv_sec+statusbarLockDelay)
 	{
 		statusbarLockDelay = -1;
-
+		
 		if (Config.statusbar_visibility)
 			statusbarBlockUpdate = !statusbarAllowUnlock;
 		else
 			progressbarBlockUpdate = !statusbarAllowUnlock;
-
+		
 		if (Mpd.GetState() != MPD::psPlay && !statusbarBlockUpdate && !progressbarBlockUpdate)
 		{
 			if (Config.new_design)
@@ -210,4 +210,3 @@ void Statusbar::Helpers::ApplyFilterImmediately::operator()(const std::wstring &
 		Status::trace();
 	}
 }
-

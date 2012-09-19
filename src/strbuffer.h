@@ -34,42 +34,42 @@ namespace NC {//
 template <typename CharT> class BasicBuffer
 {
 	friend struct Scrollpad;
-
+	
 	/// Struct used for storing information about
 	/// one color/format flag along with its position
 	struct FormatPos
 	{
 		size_t Position;
 		short Value;
-
+		
 		bool operator<(const FormatPos &f)
 		{
 			return Position < f.Position;
 		}
-
+		
 		bool operator==(const FormatPos &f)
 		{
 			return Position == f.Position && Value == f.Value;
 		}
 	};
-
+	
 	/// Internal buffer for storing raw text
 	std::basic_string<CharT> m_string;
-
+	
 	/// List used for storing formatting informations
 	std::list<FormatPos> m_format;
-
+	
 public:
 	/// Constructs an empty buffer
 	BasicBuffer() { }
-
+	
 	/// Constructs a buffer from the existed one
 	/// @param b copied buffer
 	BasicBuffer(const BasicBuffer &b);
-
+	
 	/// @return raw content of the buffer without formatting informations
 	const std::basic_string<CharT> &str() const;
-
+	
 	/// Searches for given string in buffer and sets format/color at the
 	/// beginning and end of it using val_b and val_e flags accordingly
 	/// @param val_b flag set at the beginning of found occurence of string
@@ -81,7 +81,7 @@ public:
 	/// @return true if at least one occurence of the string was found, false otherwise
 	bool setFormatting(short val_b, std::basic_string<CharT> s, short val_e,
 						bool case_sensitive, bool for_each = 1);
-
+	
 	/// Searches for given string in buffer and removes given
 	/// format/color from the beginning and end of its occurence
 	/// @param val_b flag to be removed from the beginning of the string
@@ -92,10 +92,10 @@ public:
 	/// given format from all occurences of given string or stops after the first one
 	void removeFormatting(short val_b, std::basic_string<CharT> pattern, short val_e,
 							bool case_sensitive, bool for_each = 1);
-
+	
 	/// Removes all formating applied to string in buffer.
 	void removeFormatting();
-
+	
 	/// Prints to window object given part of the string, loading all needed formatting info
 	/// and cleaning up after. The main goal of this function is to provide interface for
 	/// colorful scrollers.
@@ -107,71 +107,71 @@ public:
 	/// the string
 	void write(Window &w, size_t &start_pos, size_t width,
 				const std::basic_string<CharT> &separator) const;
-
+	
 	/// Clears the content of the buffer and its formatting informations
 	void clear();
-
+	
 	BasicBuffer<CharT> &operator<<(int n)
 	{
 		m_string += intTo< std::basic_string<CharT> >::apply(n);
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(long int n)
 	{
 		m_string += longIntTo< std::basic_string<CharT> >::apply(n);
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(unsigned int n)
 	{
 		m_string += unsignedIntTo< std::basic_string<CharT> >::apply(n);
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(unsigned long int n)
 	{
 		m_string += unsignedLongIntTo< std::basic_string<CharT> >::apply(n);
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(char c)
 	{
 		m_string += c;
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(wchar_t wc)
 	{
 		m_string += wc;
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(const CharT *s)
 	{
 		m_string += s;
 		return *this;
 	}
-
+	
 	BasicBuffer<CharT> &operator<<(const std::basic_string<CharT> &s)
 	{
 		m_string += s;
 		return *this;
 	}
-
+	
 	/// Handles colors
 	/// @return reference to itself
 	BasicBuffer<CharT> &operator<<(Color color);
-
+	
 	/// Handles format flags
 	/// @return reference to itself
 	BasicBuffer<CharT> &operator<<(Format f);
-
+	
 	/// Handles copying one buffer to another using operator<<()
 	/// @param buf buffer to be copied
 	/// @return reference to itself
 	BasicBuffer<CharT> &operator<<(const BasicBuffer<CharT> &buf);
-
+	
 	/// Friend operator that handles printing
 	/// the content of buffer to window object
 	friend Window &operator<<(Window &w, const BasicBuffer<CharT> &buf)
@@ -202,7 +202,7 @@ public:
 		}
 		return w;
 	}
-
+	
 private:
 	/// Loads an attribute to given window object
 	/// @param w window object we want to load attribute to
@@ -308,12 +308,12 @@ template <typename CharT> void BasicBuffer<CharT>::write(
 {
 	std::basic_string<CharT> s = m_string;
 	size_t len = wideLength(s);
-
+	
 	if (len > width)
 	{
 		s += separator;
 		len = 0;
-
+		
 		auto lb = m_format.begin();
 		if (m_format.back().Position > start_pos) // if there is no attributes from current position, don't load them
 		{
@@ -321,7 +321,7 @@ template <typename CharT> void BasicBuffer<CharT>::write(
 			for (; lb->Position < start_pos; ++lb)
 				loadAttribute(w, lb->Value);
 		}
-
+		
 		for (size_t i = start_pos; i < s.length() && len < width; ++i)
 		{
 			while (i == lb->Position && lb != m_format.end())
@@ -335,7 +335,7 @@ template <typename CharT> void BasicBuffer<CharT>::write(
 		}
 		if (++start_pos >= s.length())
 			start_pos = 0;
-
+		
 		if (len < width)
 			lb = m_format.begin();
 		for (size_t i = 0; len < width; ++i)
@@ -400,4 +400,3 @@ template <typename CharT> BasicBuffer<CharT> &BasicBuffer<CharT>::operator<<(con
 }
 
 #endif
-

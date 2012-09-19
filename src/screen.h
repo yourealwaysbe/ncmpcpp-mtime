@@ -35,71 +35,71 @@ struct BaseScreen
 {
 	BaseScreen() : hasToBeResized(false) { }
 	virtual ~BaseScreen() { }
-
+	
 	/// @see Screen::isActiveWindow()
 	virtual bool isActiveWindow(const NC::Window &w_) = 0;
-
+	
 	/// @see Screen::activeWindow()
 	virtual void *activeWindow() = 0;
-
+	
 	/// @see Screen::refresh()
 	virtual void refresh() = 0;
-
+	
 	/// @see Screen::refreshWindow()
 	virtual void refreshWindow() = 0;
-
+	
 	/// @see Screen::scroll()
 	virtual void scroll(NC::Where where) = 0;
-
+	
 	/// Method used for switching to screen
 	virtual void switchTo() = 0;
-
+	
 	/// Method that should resize screen
 	/// if requested by hasToBeResized
 	virtual void resize() = 0;
-
+	
 	/// @return title of the screen
 	virtual std::wstring title() = 0;
-
+	
 	/// @return type of the screen
 	virtual ScreenType type() = 0;
-
+	
 	/// If the screen contantly has to update itself
 	/// somehow, it should be called by this function.
 	virtual void update() = 0;
-
+	
 	/// Invoked after Enter was pressed
 	virtual void enterPressed() = 0;
-
+	
 	/// Invoked after Space was pressed
 	virtual void spacePressed() = 0;
-
+	
 	/// @see Screen::mouseButtonPressed()
 	virtual void mouseButtonPressed(MEVENT me) = 0;
-
+	
 	/// @return true if screen is mergable, ie. can be "proper" subwindow
 	/// if one of the screens is locked. Screens that somehow resemble popups
 	/// will want to return false here.
 	virtual bool isMergable() = 0;
-
+	
 	/// Locks current screen.
 	/// @return true if lock was successful, false otherwise. Note that
 	/// if there is already locked screen, it'll not overwrite it.
 	bool lock();
-
+	
 	/// Should be set to true each time screen needs resize
 	bool hasToBeResized;
-
+	
 	/// Unlocks a screen, ie. hides merged window (if there is one set).
 	static void unlock();
-
+	
 protected:
 	/// @return true if screen can be locked. Note that returning
 	/// false here doesn't neccesarily mean that screen is also not
 	/// mergable (eg. lyrics screen is not lockable since that wouldn't
 	/// make much sense, but it's perfectly fine to merge it).
 	virtual bool isLockable() = 0;
-
+	
 	/// Gets X offset and width of current screen to be used eg. in resize() function.
 	/// @param adjust_locked_screen indicates whether this function should
 	/// automatically adjust locked screen's dimensions (if there is one set)
@@ -119,7 +119,7 @@ template <typename WindowT> struct Screen : public BaseScreen
 {
 	typedef WindowT WindowType;
 	typedef typename std::add_lvalue_reference<WindowType>::type WindowReference;
-
+	
 private:
 	template <bool IsPointer, typename Result> struct getObject { };
 	template <typename Result> struct getObject<true, Result> {
@@ -128,24 +128,24 @@ private:
 	template <typename Result> struct getObject<false, Result> {
 		static Result apply(WindowReference w) { return w; }
 	};
-
+	
 	typedef getObject<
 		std::is_pointer<WindowT>::value,
 		typename std::add_lvalue_reference<
 			typename std::remove_pointer<WindowT>::type
 		>::type
 	> Accessor;
-
+	
 public:
 	Screen() { }
 	Screen(WindowT w_) : w(w_) { }
-
+	
 	virtual ~Screen() { }
-
+	
 	virtual bool isActiveWindow(const NC::Window &w_) OVERRIDE {
 		return &Accessor::apply(w) == &w_;
 	}
-
+	
 	/// Since some screens contain more that one window
 	/// it's useful to determine the one that is being
 	/// active
@@ -153,17 +153,17 @@ public:
 	virtual void *activeWindow() OVERRIDE {
 		return &Accessor::apply(w);
 	}
-
+	
 	/// Refreshes whole screen
 	virtual void refresh() OVERRIDE {
 		Accessor::apply(w).display();
 	}
-
+	
 	/// Refreshes active window of the screen
 	virtual void refreshWindow() OVERRIDE {
 		Accessor::apply(w).display();
 	}
-
+	
 	/// Scrolls the screen by given amount of lines and
 	/// if fancy scrolling feature is disabled, enters the
 	/// loop that holds main loop until user releases the key
@@ -171,19 +171,19 @@ public:
 	virtual void scroll(NC::Where where) OVERRIDE {
 		Accessor::apply(w).scroll(where);
 	}
-
+	
 	/// Invoked after there was one of mouse buttons pressed
 	/// @param me struct that contains coords of where the click
 	/// had its place and button actions
 	virtual void mouseButtonPressed(MEVENT me) OVERRIDE {
 		genericMouseButtonPressed(Accessor::apply(w), me);
 	}
-
+	
 	/// @return currently active window
 	WindowReference main() {
 		return w;
 	}
-
+	
 protected:
 	/// Template parameter that should indicate the main type
 	/// of window used by the screen. What is more, it should

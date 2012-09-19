@@ -32,4 +32,3 @@ void wideCut(std::wstring &ws, size_t max_length);
 std::wstring wideShorten(const std::wstring &ws, size_t max_length);
 
 #endif // _UTILITY_WIDE_STRING
-

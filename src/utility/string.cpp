@@ -84,16 +84,16 @@ void trim(std::string &s)
 {
 	if (s.empty())
 		return;
-
+	
 	size_t b = 0;
 	size_t e = s.length()-1;
-
+	
 	while (s[e] == ' ' || s[e] == '\n' || s[e] == '\t')
 		--e;
 	++e;
 	if (e != s.length())
 		s.resize(e);
-
+	
 	while (s[b] == ' ' || s[b] == '\n' || s[e] == '\t')
 		++b;
 	if (b != 0)
@@ -172,4 +172,3 @@ void removeInvalidCharsFromFilename(std::string &filename)
 		}
 	}
 }
-

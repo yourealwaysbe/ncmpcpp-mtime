@@ -85,4 +85,3 @@ bool LocaleBasedItemSorting::operator()(const MPD::Item &a, const MPD::Item &b) 
 		result = a.type < b.type;
 	return result;
 }
-

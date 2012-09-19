@@ -100,4 +100,3 @@ Regex &Regex::operator=(const Regex &rhs)
 		compile();
 	return *this;
 }
-

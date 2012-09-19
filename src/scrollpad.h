@@ -31,7 +31,7 @@ namespace NC {//
 struct Scrollpad: public Window
 {
 	Scrollpad() { }
-
+	
 	/// Constructs an empty scrollpad with given parameters
 	/// @param startx X position of left upper corner of constructed window
 	/// @param starty Y position of left upper corner of constructed window
@@ -42,12 +42,12 @@ struct Scrollpad: public Window
 	/// @param border border of constructed window
 	Scrollpad(size_t startx, size_t starty, size_t width, size_t height,
 			const std::string &title, Color color, Border border);
-
+	
 	/// Prints the text stored in internal buffer to window. Note that
 	/// all changes that has been made for text stored in scrollpad won't
 	/// be visible until one invokes this function
 	void flush();
-
+	
 	/// Searches for given string in text and sets format/color at the
 	/// beginning and end of it using val_b and val_e flags accordingly
 	/// @param val_b flag set at the beginning of found occurence of string
@@ -60,47 +60,47 @@ struct Scrollpad: public Window
 	/// @see BasicBuffer::setFormatting()
 	bool setFormatting(short val_b, const std::wstring &s,
 				short val_e, bool case_sensitive, bool for_each = 1);
-
+	
 	/// Removes all format flags and colors from stored text
 	void forgetFormatting();
-
+	
 	/// Removes all format flags and colors that was applied
 	/// by the most recent call to setFormatting() function
 	/// @see setFormatting()
 	/// @see BasicBuffer::removeFormatting()
 	void removeFormatting();
-
+	
 	/// @return text stored in internal buffer
 	///
 	const std::wstring &content() { return m_buffer.str(); }
-
+	
 	/// Refreshes the window
 	/// @see Window::refresh()
 	///
 	virtual void refresh() OVERRIDE;
-
+	
 	/// Scrolls by given amount of lines
 	/// @param where indicates where exactly one wants to go
 	/// @see Window::scroll()
 	///
 	virtual void scroll(Where where) OVERRIDE;
-
+	
 	/// Resizes the window
 	/// @param new_width new window's width
 	/// @param new_height new window's height
 	/// @see Window::resize()
 	///
 	virtual void resize(size_t new_width, size_t new_height) OVERRIDE;
-
+	
 	/// Cleares the content of scrollpad
 	/// @see Window::clear()
 	///
 	virtual void clear() OVERRIDE;
-
+	
 	/// Sets starting position to the beginning
 	///
 	void reset();
-
+	
 	/// Template function that redirects all data passed
 	/// to the scrollpad window to its internal buffer
 	/// @param obj any object that has ostream &operator<<() defined
@@ -112,18 +112,18 @@ struct Scrollpad: public Window
 		return *this;
 	}
 	Scrollpad &operator<<(const std::string &s);
-
+	
 private:
 	WBuffer m_buffer;
-
+	
 	size_t m_beginning;
-
+	
 	bool m_found_for_each;
 	bool m_found_case_sensitive;
 	short m_found_value_begin;
 	short m_found_value_end;
 	std::wstring m_found_pattern;
-
+	
 	size_t m_real_height;
 };
 
