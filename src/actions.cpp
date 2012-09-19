@@ -2125,6 +2125,7 @@ void ToggleLibraryTagType::Run()
 		myLibrary->Tags.setTitle(Config.titles_visibility ? item_type + "s" : "");
 		myLibrary->Tags.reset();
 		item_type = lowercase(item_type);
+<<<<<<< HEAD
 		std::string and_mtime = Config.media_library_sort_by_mtime ?
 <<<<<<< HEAD
 			                    " and mtime" :
@@ -2133,6 +2134,10 @@ void ToggleLibraryTagType::Run()
 			                    " and mtime" :
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+		std::string and_mtime = Config.media_library_sort_by_mtime ? 
+			                    " and mtime" : 
+>>>>>>> parent of a6778ea... formatted correctly
 								"";
 		if (myLibrary->Columns() == 2)
 		{
@@ -2531,15 +2536,20 @@ void ShowServerInfo::Run()
 	myServerInfo->switchTo();
 }
 
+<<<<<<< HEAD
 bool ToggleMediaLibraryMTimeSort::canBeRun() const
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+bool ToggleMediaLibraryMTimeSort::canBeRun() const 
+>>>>>>> parent of a6778ea... formatted correctly
 {
 	return (myScreen == myLibrary);
 }
 
+<<<<<<< HEAD
 void ToggleMediaLibraryMTimeSort::Run()
 <<<<<<< HEAD
 {
@@ -2550,6 +2560,11 @@ void ToggleMediaLibraryMTimeSort::Run()
 	if (myScreen == myLibrary)
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+void ToggleMediaLibraryMTimeSort::Run() 
+{
+	if (myScreen == myLibrary) 
+>>>>>>> parent of a6778ea... formatted correctly
 		myLibrary->toggleMTimeSort();
 }
 

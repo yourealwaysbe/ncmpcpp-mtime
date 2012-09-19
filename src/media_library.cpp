@@ -102,6 +102,7 @@ class SortSearchConstraints {
 public:
 	SortSearchConstraints() : m_cmp(std::locale(), Config.ignore_leading_the) { }
 	bool operator()(const SearchConstraints &a, const SearchConstraints &b) const {
+<<<<<<< HEAD
 		if (Config.media_library_sort_by_mtime)
 <<<<<<< HEAD
 		{
@@ -117,6 +118,13 @@ public:
 		else
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+		if (Config.media_library_sort_by_mtime) 
+		{
+			return a.MTime > b.MTime;
+		} 
+		else 
+>>>>>>> parent of a6778ea... formatted correctly
 		{
 			int result;
 			result = m_cmp(a.PrimaryTag, b.PrimaryTag);
@@ -134,11 +142,15 @@ class ArtistSorting {
 	LocaleStringComparison m_cmp;
 public:
 	ArtistSorting() : m_cmp(std::locale(), Config.ignore_leading_the) { }
+<<<<<<< HEAD
 	bool operator()(const MPD::TagMTime &a,
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	bool operator()(const MPD::TagMTime &a, 
+>>>>>>> parent of a6778ea... formatted correctly
 	                const MPD::TagMTime &b) const {
 		if (Config.media_library_sort_by_mtime)
 			return a.mtime() > b.mtime();
@@ -244,11 +256,15 @@ std::wstring MediaLibrary::title()
 	return L"Media library";
 }
 
+<<<<<<< HEAD
 bool MediaLibrary::hasMTimes()
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+bool MediaLibrary::hasMTimes() 
+>>>>>>> parent of a6778ea... formatted correctly
 {
 	bool has = false;
 	if (hasTwoColumns && !Albums.empty())
@@ -258,27 +274,36 @@ bool MediaLibrary::hasMTimes()
 	return has;
 }
 
+<<<<<<< HEAD
 void MediaLibrary::toggleMTimeSort()
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+void MediaLibrary::toggleMTimeSort() 
+>>>>>>> parent of a6778ea... formatted correctly
 {
 	Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
 	if (Config.media_library_sort_by_mtime)
-		Statusbar::msg("Sorting library by: Modification time");
+		Statusbar::msg("Sorting library by: Modification time.");
 	else
-		Statusbar::msg("Sorting library by: Name");
+		Statusbar::msg("Sorting library by: Name.");
 
+<<<<<<< HEAD
 	if (!myLibrary->hasMTimes() && Config.media_library_sort_by_mtime)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	if (!myLibrary->hasMTimes() && Config.media_library_sort_by_mtime) 
+>>>>>>> parent of a6778ea... formatted correctly
 	{
 		myLibrary->Tags.clear();
 		myLibrary->Albums.clear();
 		myLibrary->Songs.clear();
+<<<<<<< HEAD
 	}
 <<<<<<< HEAD
 	else
@@ -287,6 +312,10 @@ void MediaLibrary::toggleMTimeSort()
 	else
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	} 
+	else 
+>>>>>>> parent of a6778ea... formatted correctly
 	{
 		if (!hasTwoColumns)
 		{
@@ -294,6 +323,7 @@ void MediaLibrary::toggleMTimeSort()
 			Tags.refresh();
 			Albums.clear();
 			Songs.clear();
+<<<<<<< HEAD
 		}
 <<<<<<< HEAD
 		else
@@ -302,6 +332,10 @@ void MediaLibrary::toggleMTimeSort()
 		else
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+		} 
+		else 
+>>>>>>> parent of a6778ea... formatted correctly
 		{
 			std::sort(Albums.beginV(), Albums.endV(), SortSearchConstraints());
 			Albums.refresh();
@@ -309,15 +343,20 @@ void MediaLibrary::toggleMTimeSort()
 		}
 	}
 
+<<<<<<< HEAD
 	if (hasTwoColumns)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	if (hasTwoColumns) 
+>>>>>>> parent of a6778ea... formatted correctly
 	{
 		if (Config.titles_visibility)
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
+<<<<<<< HEAD
 			std::string and_mtime = Config.media_library_sort_by_mtime ?
 <<<<<<< HEAD
 			                        " and mtime" :
@@ -328,6 +367,11 @@ void MediaLibrary::toggleMTimeSort()
 
 				   					"";
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+			std::string and_mtime = Config.media_library_sort_by_mtime ? 
+			                        " and mtime" : 
+				   					"";
+>>>>>>> parent of a6778ea... formatted correctly
 			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
 	}
@@ -371,11 +415,15 @@ void MediaLibrary::update()
 			{
 				Mpd.StartFieldSearch(MPD_TAG_DATE);
 
+<<<<<<< HEAD
 				Mpd.AddSearch(Config.media_lib_primary_tag,
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+				Mpd.AddSearch(Config.media_lib_primary_tag, 
+>>>>>>> parent of a6778ea... formatted correctly
 				              Tags.current().value().tag());
 				Mpd.AddSearch(MPD_TAG_ALBUM, album);
 				auto dates = Mpd.CommitSearchTags();
@@ -448,6 +496,7 @@ void MediaLibrary::update()
 		Songs.reset();
 
 		Mpd.StartSearch(1);
+<<<<<<< HEAD
 		Mpd.AddSearch(Config.media_lib_primary_tag,
 <<<<<<< HEAD
 		              hasTwoColumns ? Albums.current().value().PrimaryTag :
@@ -456,6 +505,10 @@ void MediaLibrary::update()
 		              hasTwoColumns ? Albums.current().value().PrimaryTag :
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+		Mpd.AddSearch(Config.media_lib_primary_tag, 
+		              hasTwoColumns ? Albums.current().value().PrimaryTag : 
+>>>>>>> parent of a6778ea... formatted correctly
 		                              Tags.current().value().tag());
 		if (Albums.current().value().Date != AllTracksMarker)
 		{
@@ -757,11 +810,15 @@ MPD::SongList MediaLibrary::getSelectedSongs()
 				if (hasTwoColumns)
 					Mpd.AddSearch(Config.media_lib_primary_tag, sc.PrimaryTag);
 				else
+<<<<<<< HEAD
 					Mpd.AddSearch(Config.media_lib_primary_tag,
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+					Mpd.AddSearch(Config.media_lib_primary_tag, 
+>>>>>>> parent of a6778ea... formatted correctly
 					              Tags.current().value().tag());
 				Mpd.AddSearch(MPD_TAG_ALBUM, sc.Album);
 				Mpd.AddSearch(MPD_TAG_DATE, sc.Date);
@@ -876,6 +933,7 @@ void MediaLibrary::toggleColumnsMode()
 		if (Config.titles_visibility)
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
+<<<<<<< HEAD
 			std::string and_mtime = Config.media_library_sort_by_mtime ?
 <<<<<<< HEAD
 			                        " and mtime" :
@@ -884,6 +942,10 @@ void MediaLibrary::toggleColumnsMode()
 			                        " and mtime" :
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+			std::string and_mtime = Config.media_library_sort_by_mtime ? 
+			                        " and mtime" : 
+>>>>>>> parent of a6778ea... formatted correctly
 									"";
 			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
@@ -1103,11 +1165,15 @@ void DisplayPrimaryTags(NC::Menu<MPD::TagMTime> &menu)
 	const std::string &tag = menu.drawn()->value().tag();
 	if (tag.empty())
 		menu << Config.empty_tag;
+<<<<<<< HEAD
 	else
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	else 
+>>>>>>> parent of a6778ea... formatted correctly
 		menu << tag;
 }
 

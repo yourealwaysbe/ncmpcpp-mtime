@@ -97,44 +97,60 @@ struct TagMTime
 
 <<<<<<< HEAD
 
+<<<<<<< HEAD
 struct TagMTime
 =======
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+struct TagMTime 
+>>>>>>> parent of a6778ea... formatted correctly
 {
 	TagMTime(const std::string &tag_) : m_tag(tag_), m_mtime(0) { }
-
+	
 	TagMTime(const std::string &tag_, time_t mtime_) : m_tag(tag_), m_mtime(mtime_) { }
-
+	
 	const std::string &tag() const { return m_tag; }
 	time_t mtime() const { return m_mtime; }
 
+<<<<<<< HEAD
 	void set_mtime(time_t mtime_)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	void set_mtime(time_t mtime_) 
+>>>>>>> parent of a6778ea... formatted correctly
 	{
 		m_mtime = mtime_;
 	}
 
+<<<<<<< HEAD
 	void set_tag(std::string tag_)
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	void set_tag(std::string tag_) 
+>>>>>>> parent of a6778ea... formatted correctly
 	{
 		m_tag = tag_;
 	}
 
+<<<<<<< HEAD
 	bool hasMTime()
 <<<<<<< HEAD
 =======
 
 >>>>>>> a9796565f86abdb5c81424cac29324ecff90cb38
+=======
+	bool hasMTime() 
+>>>>>>> parent of a6778ea... formatted correctly
 	{
 		return (m_mtime != 0);
 	}
-
+	
 private:
 	std::string m_tag;
 	time_t m_mtime;
@@ -341,3 +357,4 @@ private:
 extern MPD::Connection Mpd;
 
 #endif
+
