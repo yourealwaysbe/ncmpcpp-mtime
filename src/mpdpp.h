@@ -95,30 +95,30 @@ private:
 
 
 
-struct TagMTime 
+struct TagMTime
 {
 	TagMTime(const std::string &tag_) : m_tag(tag_), m_mtime(0) { }
-	
+
 	TagMTime(const std::string &tag_, time_t mtime_) : m_tag(tag_), m_mtime(mtime_) { }
-	
+
 	const std::string &tag() const { return m_tag; }
 	time_t mtime() const { return m_mtime; }
 
-	void set_mtime(time_t mtime_) 
+	void set_mtime(time_t mtime_)
 	{
 		m_mtime = mtime_;
 	}
 
-	void set_tag(std::string tag_) 
+	void set_tag(std::string tag_)
 	{
 		m_tag = tag_;
 	}
 
-	bool hasMTime() 
+	bool hasMTime()
 	{
 		return (m_mtime != 0);
 	}
-	
+
 private:
 	std::string m_tag;
 	time_t m_mtime;
@@ -325,4 +325,3 @@ private:
 extern MPD::Connection Mpd;
 
 #endif
-

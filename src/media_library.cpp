@@ -102,11 +102,11 @@ class SortSearchConstraints {
 public:
 	SortSearchConstraints() : m_cmp(std::locale(), Config.ignore_leading_the) { }
 	bool operator()(const SearchConstraints &a, const SearchConstraints &b) const {
-		if (Config.media_library_sort_by_mtime) 
+		if (Config.media_library_sort_by_mtime)
 		{
 			return a.MTime > b.MTime;
-		} 
-		else 
+		}
+		else
 		{
 			int result;
 			result = m_cmp(a.PrimaryTag, b.PrimaryTag);
@@ -124,7 +124,7 @@ class ArtistSorting {
 	LocaleStringComparison m_cmp;
 public:
 	ArtistSorting() : m_cmp(std::locale(), Config.ignore_leading_the) { }
-	bool operator()(const MPD::TagMTime &a, 
+	bool operator()(const MPD::TagMTime &a,
 	                const MPD::TagMTime &b) const {
 		if (Config.media_library_sort_by_mtime)
 			return a.mtime() > b.mtime();
@@ -231,7 +231,7 @@ std::wstring MediaLibrary::title()
 	return L"Media library";
 }
 
-bool MediaLibrary::hasMTimes() 
+bool MediaLibrary::hasMTimes()
 {
 	bool has = false;
 	if (hasTwoColumns && !Albums.empty())
@@ -241,21 +241,21 @@ bool MediaLibrary::hasMTimes()
 	return has;
 }
 
-void MediaLibrary::toggleMTimeSort() 
+void MediaLibrary::toggleMTimeSort()
 {
 	Config.media_library_sort_by_mtime = !Config.media_library_sort_by_mtime;
 	if (Config.media_library_sort_by_mtime)
-		Statusbar::msg("Sorting library by: Modification time.");
+		Statusbar::msg("Sorting library by: Modification time");
 	else
-		Statusbar::msg("Sorting library by: Name.");
+		Statusbar::msg("Sorting library by: Name");
 
-	if (!myLibrary->hasMTimes() && Config.media_library_sort_by_mtime) 
+	if (!myLibrary->hasMTimes() && Config.media_library_sort_by_mtime)
 	{
 		myLibrary->Tags.clear();
 		myLibrary->Albums.clear();
 		myLibrary->Songs.clear();
-	} 
-	else 
+	}
+	else
 	{
 		if (!hasTwoColumns)
 		{
@@ -263,8 +263,8 @@ void MediaLibrary::toggleMTimeSort()
 			Tags.refresh();
 			Albums.clear();
 			Songs.clear();
-		} 
-		else 
+		}
+		else
 		{
 			std::sort(Albums.beginV(), Albums.endV(), SortSearchConstraints());
 			Albums.refresh();
@@ -272,14 +272,14 @@ void MediaLibrary::toggleMTimeSort()
 		}
 	}
 
-	if (hasTwoColumns) 
+	if (hasTwoColumns)
 	{
 		if (Config.titles_visibility)
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
-			std::string and_mtime = Config.media_library_sort_by_mtime ? 
-			                        " and mtime" : 
-				   					"";
+			std::string and_mtime = Config.media_library_sort_by_mtime ?
+			                        " and mtime" :
+			                        "";
 			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
 	}
@@ -323,7 +323,7 @@ void MediaLibrary::update()
 			{
 				Mpd.StartFieldSearch(MPD_TAG_DATE);
 
-				Mpd.AddSearch(Config.media_lib_primary_tag, 
+				Mpd.AddSearch(Config.media_lib_primary_tag,
 				              Tags.current().value().tag());
 				Mpd.AddSearch(MPD_TAG_ALBUM, album);
 				auto dates = Mpd.CommitSearchTags();
@@ -396,8 +396,8 @@ void MediaLibrary::update()
 		Songs.reset();
 		
 		Mpd.StartSearch(1);
-		Mpd.AddSearch(Config.media_lib_primary_tag, 
-		              hasTwoColumns ? Albums.current().value().PrimaryTag : 
+		Mpd.AddSearch(Config.media_lib_primary_tag,
+		              hasTwoColumns ? Albums.current().value().PrimaryTag :
 		                              Tags.current().value().tag());
 		if (Albums.current().value().Date != AllTracksMarker)
 		{
@@ -699,7 +699,7 @@ MPD::SongList MediaLibrary::getSelectedSongs()
 				if (hasTwoColumns)
 					Mpd.AddSearch(Config.media_lib_primary_tag, sc.PrimaryTag);
 				else
-					Mpd.AddSearch(Config.media_lib_primary_tag, 
+					Mpd.AddSearch(Config.media_lib_primary_tag,
 					              Tags.current().value().tag());
 				Mpd.AddSearch(MPD_TAG_ALBUM, sc.Album);
 				Mpd.AddSearch(MPD_TAG_DATE, sc.Date);
@@ -814,8 +814,8 @@ void MediaLibrary::toggleColumnsMode()
 		if (Config.titles_visibility)
 		{
 			std::string item_type = lowercase(tagTypeToString(Config.media_lib_primary_tag));
-			std::string and_mtime = Config.media_library_sort_by_mtime ? 
-			                        " and mtime" : 
+			std::string and_mtime = Config.media_library_sort_by_mtime ?
+			                        " and mtime" :
 									"";
 			Albums.setTitle("Albums (sorted by " + item_type + and_mtime + ")");
 		}
@@ -1037,7 +1037,7 @@ void DisplayPrimaryTags(NC::Menu<MPD::TagMTime> &menu)
 	const std::string &tag = menu.drawn()->value().tag();
 	if (tag.empty())
 		menu << Config.empty_tag;
-	else 
+	else
 		menu << tag;
 }
 

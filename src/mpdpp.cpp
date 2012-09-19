@@ -1156,7 +1156,7 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 	assert(!isCommandsListEnabled);
 	GoBusy();
 
-	if (!get_mtime) 
+	if (!get_mtime)
 	{
 		mpd_search_db_tags(itsConnection, type);
 		mpd_search_commit(itsConnection);
@@ -1166,25 +1166,25 @@ TagMTimeList Connection::GetListMTime(mpd_tag_type type, bool get_mtime)
 			mpd_return_pair(itsConnection, item);
 		}
 		mpd_response_finish(itsConnection);
-	} 
-	else 
+	}
+	else
 	{
 		mpd_send_list_all_meta(itsConnection, "/");
 		std::map<std::string, time_t> max_mtimes;
-		while (mpd_song *s = mpd_recv_song(itsConnection)) 
+		while (mpd_song *s = mpd_recv_song(itsConnection))
 		{
 			Song song(s);
 			const std::string &tag = song.getTag(type);
 			time_t mtime = song.getMTime();
 			auto mt = max_mtimes.find(tag);
-			if (mt == max_mtimes.end()) 
+			if (mt == max_mtimes.end())
 				max_mtimes.insert(std::make_pair(tag, mtime));
-			else 
+			else
 				mt->second = std::max(mt->second, mtime);
 		}
 		mpd_response_finish(itsConnection);
- 
-		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) 
+
+		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it)
 		{
 			result.push_back(TagMTime(it->first, it->second));
 		}
@@ -1288,30 +1288,30 @@ TagMTimeList Connection::CommitSearchTagsMTime()
 	GoBusy();
 	mpd_search_commit(itsConnection);
 
-	if (!itsSearchFieldMTime) 
+	if (!itsSearchFieldMTime)
 	{
 		while (mpd_pair *tag = mpd_recv_pair_tag(itsConnection, itsSearchedField))
 		{
 			result.push_back(TagMTime(tag->value));
 			mpd_return_pair(itsConnection, tag);
 		}
-	} 
-	else 
+	}
+	else
 	{
 		std::map<std::string, time_t> max_mtimes;
-		while (mpd_song *s = mpd_recv_song(itsConnection)) 
+		while (mpd_song *s = mpd_recv_song(itsConnection))
 		{
 			Song song(s);
 			const std::string &tag = song.getTag(itsSearchedField);
 			time_t mtime = song.getMTime();
 			auto mt = max_mtimes.find(tag);
-			if (mt == max_mtimes.end()) 
+			if (mt == max_mtimes.end())
 				max_mtimes.insert(std::make_pair(tag, mtime));
 			else
 				mt->second = std::max(mt->second, mtime);
 		}
- 
-		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it) 
+
+		for (auto it = max_mtimes.begin(); it != max_mtimes.end(); ++it)
 		{
 			result.push_back(TagMTime(it->first, it->second));
 		}
@@ -1517,7 +1517,7 @@ int Connection::CheckForErrors()
 }
 
 
-bool SortSongsByTag::operator()(const Song &s1, const Song &s2) 
+bool SortSongsByTag::operator()(const Song &s1, const Song &s2)
 {
 	const std::string &t1 = s1.getTag(m_type);
 	const std::string &t2 = s2.getTag(m_type);

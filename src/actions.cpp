@@ -2125,8 +2125,8 @@ void ToggleLibraryTagType::Run()
 		myLibrary->Tags.setTitle(Config.titles_visibility ? item_type + "s" : "");
 		myLibrary->Tags.reset();
 		item_type = lowercase(item_type);
-		std::string and_mtime = Config.media_library_sort_by_mtime ? 
-			                    " and mtime" : 
+		std::string and_mtime = Config.media_library_sort_by_mtime ?
+			                    " and mtime" :
 								"";
 		if (myLibrary->Columns() == 2)
 		{
@@ -2524,14 +2524,14 @@ void ShowServerInfo::Run()
 	myServerInfo->switchTo();
 }
 
-bool ToggleMediaLibraryMTimeSort::canBeRun() const 
+bool ToggleMediaLibraryMTimeSort::canBeRun() const
 {
 	return (myScreen == myLibrary);
 }
 
-void ToggleMediaLibraryMTimeSort::Run() 
+void ToggleMediaLibraryMTimeSort::Run()
 {
-	if (myScreen == myLibrary) 
+	if (myScreen == myLibrary)
 		myLibrary->toggleMTimeSort();
 }
 
